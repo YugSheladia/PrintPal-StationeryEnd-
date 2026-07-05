@@ -1,0 +1,184 @@
+using TMPro;
+using Unity.VisualScripting;
+using UnityEngine;
+
+public class SearchedOrderStatus : MonoBehaviour
+{
+    Scene3Manager           Scene3ManagerScript;
+    Scene3Backend           Scene3BackendScript;
+    SearchedOrderStatusManager   SearchedOrderStatusManagerScript;
+
+    [Header("Prefabs")]
+    [SerializeField] GameObject OrderStatusInfoPrefab;
+    [SerializeField] GameObject PrintBillPrefab;
+    [SerializeField] GameObject Print_FinalBillPrefab;
+
+    [Header("UI")]
+    public string UsernameString;
+    [SerializeField] TMP_Text Username;
+
+    [SerializeField] TMP_Text OrderIDText;
+    [SerializeField] TMP_Text OrderOTP;
+    [SerializeField] TMP_Text CompletedAtText; 
+
+    
+
+    GameObject SearchedOrderStatusInfoObject;
+
+
+
+    public void SetRequiredScripts(
+                                    Scene3Manager Scene3ManagerScript,
+                                    Scene3Backend Scene3BackendScript,
+                                    SearchedOrderStatusManager SearchedOrderStatusManagerScript
+                                  )
+    {
+        this.Scene3ManagerScript = Scene3ManagerScript;
+        this.Scene3BackendScript = Scene3BackendScript;
+        this.SearchedOrderStatusManagerScript = SearchedOrderStatusManagerScript;
+    }
+
+
+
+
+    public OrderSummary Order;
+    public void SetOrder(OrderSummary Order)
+    {
+        Debug.Log("Inside SetOrder()");
+        this.Order = Order;
+    }
+    public void UpdateUI()
+    {
+        Username.text = UsernameString;
+
+        OrderIDText.text                = Order.OrderID.ToString();
+        OrderOTP.text                   = Order.OrderOTP.ToString();
+        //ApproximateTimeLeftText.text    = Order.ApproximateTimeLeft.ToString();
+
+        print("OrderID                      = " + Order.OrderID.ToString()      +
+              "\nOrderOTP                   = " + Order.OrderOTP.ToString()     +
+              "\nApproximate time left      = " + Order.ApproximateTimeLeft);
+    }
+
+
+    
+
+    public void ClickedOrderStatusPanel()
+    {
+        if (Order == null)
+        {
+            Debug.LogError("Could not find OrderSummary Object.");
+            return;
+        }
+
+        CreateOrderStatusInfo();
+
+        SearchedOrderStatusManagerScript.SearchedOrdersStatusPanel.SetActive(false);
+    }
+    private void CreateOrderStatusInfo()
+    {
+        SearchedOrderStatusInfoObject = Instantiate(
+                                                    OrderStatusInfoPrefab,
+                                                    SearchedOrderStatusManagerScript.transform,
+                                                    false
+                                                  );
+
+        SearchedOrderStatusInfo SearchedOrderStatusInfoScript = 
+            SearchedOrderStatusInfoObject.GetComponent<SearchedOrderStatusInfo>();
+
+        SearchedOrderStatusInfoScript.SetScene3ManagerScript(Scene3ManagerScript);
+        SearchedOrderStatusInfoScript.SetSearchedOrdersStatusPanel(SearchedOrderStatusManagerScript.SearchedOrdersStatusPanel);
+
+        SearchedOrderStatusInfoListParentScript Parent = 
+            SearchedOrderStatusInfoObject.GetComponentInChildren<SearchedOrderStatusInfoListParentScript>();
+
+        if (Parent == null)
+        {
+            Debug.LogError("OrderStatusInfoListParentScript not found.");
+            return;
+        }
+
+        Transform BillParent = Parent.transform;
+
+        foreach (PrintDetails Print in Order.Prints)
+        {
+            GameObject BillObject = Instantiate(
+                                                    PrintBillPrefab,
+                                                    BillParent,
+                                                    false
+                                               );
+
+            PrintBill BillScript = BillObject.GetComponent<PrintBill>();
+
+            BillScript.SetBillDetailsInBillScript(Print);
+        }
+
+        CreateFinalBill(BillParent);
+    }
+    private void CreateFinalBill(Transform BillParent)
+    {
+        GameObject FinalBillObject = Instantiate(Print_FinalBillPrefab, BillParent, false);
+
+        Print_FinalBill FinalBillScript = FinalBillObject.GetComponent<Print_FinalBill>();
+
+        FinalBillScript.SetFinalBillAmount(
+                                            Order.FinalAmount,
+                                            Order.OrderID,
+                                            Order.OrderOTP
+                                          );
+    }
+
+
+
+
+
+
+    public void ClickedMarkAsPending()
+    {
+        if (Order == null)
+        {
+            Debug.Log("Order is absent inside CollectedOrderStatus script.");
+            return;
+        }
+
+        Scene3BackendScript.SetOrderAsPending(Order.OrderID);
+
+        Destroy(gameObject);
+    }
+    public void ClickedMarkAsCompleted()
+    {
+        if (Order == null)
+        {
+            Debug.Log("Order is absent inside CollectedOrderStatus script.");
+            return;
+        }
+
+        Scene3BackendScript.SetOrderAsCompleted(Order.OrderID);
+
+        Destroy(gameObject);
+    }
+    public void ClickedMarkAsCollected()
+    {
+        if (Order == null)
+        {
+            Debug.Log("Order is absent inside RTCOrderStatus script.");
+            return;
+        }
+
+        Scene3BackendScript.SetOrderAsCollected(Order.OrderID);
+
+        Destroy(gameObject);
+    }
+    public void ClickedDeleteOrderButton()
+    {
+        if (Order == null)
+        {
+            Debug.Log("Order is absent inside SearchedOrderStatus script.");
+            return;
+        }
+
+        Scene3BackendScript.SetOrderAsDeleted(Order.OrderID);
+
+        Destroy(gameObject);
+    }
+}
