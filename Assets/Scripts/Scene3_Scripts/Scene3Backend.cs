@@ -24,6 +24,9 @@ public class OrderSummary
     public string OrderStatus;
 
     public string CreatedAt;
+    public string CompletedAt;
+    public string CollectedAt;
+    public string DeletedAt;
 
     // Runtime only.
     public List<PrintDetails> Prints = new();
@@ -289,14 +292,7 @@ public class UsernameResponse
 }
 
 
-[System.Serializable]
-public class OrderCountResponse
-{
-    public bool Success;
-    public string Message;
 
-    public int TotalOrders;
-}
 
 
 
@@ -1289,6 +1285,15 @@ public class Scene3Backend : MonoBehaviour
 
 
 
+    //Order count -
+    [System.Serializable]
+    public class OrderCountResponse
+    {
+        public bool Success;
+        public string Message;
+
+        public int TotalOrders;
+    }
     public void GetOrdersCount()
     {
         StartCoroutine(GetOrderCount("pending",     HomePageScript.TotalPendingOrdersText));
@@ -1297,9 +1302,10 @@ public class Scene3Backend : MonoBehaviour
     }
     public IEnumerator GetOrderCount(string status, TMP_Text targetText)
     {
-        UnityWebRequest request = UnityWebRequest.Get(
-            $"http://localhost:3000/orders/count/{status}?StationeryID={Script1.StationeryInfoObject.StationeryID}"
-        );
+        UnityWebRequest request 
+            = UnityWebRequest.Get(
+                                   $"http://localhost:3000/orders/count/{status}?StationeryID={Script1.StationeryInfoObject.StationeryID}"
+                                 );
 
         yield return request.SendWebRequest();
 
@@ -1370,45 +1376,37 @@ public class Scene3Backend : MonoBehaviour
     }
     public IEnumerator GetTodayStationeryRevenue(int StationeryID)
     {
-        print("1");
         UnityWebRequest request = UnityWebRequest.Get(
                                                             $"http://localhost:3000/analytics/stationery/todayEarnings?StationeryID={StationeryID}"
                                                      );
-        print("2");
+
         yield return request.SendWebRequest();
 
-        print("3");
         if (request.result != UnityWebRequest.Result.Success)
         {
-            print("4");
             Debug.LogError("Failed to get today's revenue: " + request.error);
             yield break;
         }
 
 #if UNITY_EDITOR
-        print("5");
         Debug.Log(request.downloadHandler.text);
 #endif
-        print("6");
         EarningsResponse response =
             JsonUtility.FromJson<EarningsResponse>(request.downloadHandler.text);
-        print("7");
         if (response == null)
         {
-            print("8");
             Debug.LogError("JSON Parsing Failed.");
             yield break;
         }
-        print("9");
+
         if (!response.Success)
         {
-            print("10");
             Debug.LogError(response.Message);
             yield break;
         }
-        print("11");
+
         Debug.Log("Today's Revenue: " + response.Amount);
-        print("12");
+
         HomePageScript.RevenueToday.text = "`" + response.Amount.ToString("F2");
     }
 

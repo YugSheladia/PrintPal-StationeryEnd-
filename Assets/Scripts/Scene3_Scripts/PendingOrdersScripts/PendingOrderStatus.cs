@@ -19,7 +19,7 @@ public class PendingOrderStatus : MonoBehaviour
 
     [SerializeField] TMP_Text OrderIDText;
     [SerializeField] TMP_Text OrderOTP;
-    [SerializeField] TMP_Text ApproximateTimeLeftText; 
+    [SerializeField] TMP_Text CreatedAt; 
 
     
 
@@ -50,17 +50,26 @@ public class PendingOrderStatus : MonoBehaviour
     {
         Username.text = UsernameString;
 
-        OrderIDText.text                = Order.OrderID.ToString();
-        OrderOTP.text                   = Order.OrderOTP.ToString();
-        ApproximateTimeLeftText.text    = Order.ApproximateTimeLeft.ToString();
+        OrderIDText.text    = Order.OrderID.ToString();
+        OrderOTP.text       = Order.OrderOTP.ToString();
 
-        print("OrderID                      = " + Order.OrderID.ToString()      +
-              "\nOrderOTP                   = " + Order.OrderOTP.ToString()     +
-              "\nApproximate time left      = " + Order.ApproximateTimeLeft);
+        if(Order.CreatedAt == null)
+        {
+            Debug.Log("Created At = null");
+            CreatedAt.text = "unknown";
+        }
+        else
+        {
+            CreatedAt.text = Order.CreatedAt.ToString();
+        }
+
+        print("OrderID          = " + Order.OrderID.ToString() +
+              "\nOrderOTP       = " + Order.OrderOTP.ToString() +
+              "\nCreated at     = " + Order.CreatedAt);
     }
 
 
-    
+
 
     public void ClickedOrderStatusPanel()
     {

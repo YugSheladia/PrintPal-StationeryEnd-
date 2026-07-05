@@ -51,13 +51,22 @@ public class RTCOrderStatus : MonoBehaviour
     {
         Username.text = UsernameString;
 
-        OrderIDText.text                = Order.OrderID.ToString();
-        OrderOTP.text                   = Order.OrderOTP.ToString();
-        //ApproximateTimeLeftText.text    = Order.ApproximateTimeLeft.ToString();
+        OrderIDText.text        = Order.OrderID.ToString();
+        OrderOTP.text           = Order.OrderOTP.ToString();
 
-        print("OrderID                      = " + Order.OrderID.ToString()      +
-              "\nOrderOTP                   = " + Order.OrderOTP.ToString()     +
-              "\nApproximate time left      = " + Order.ApproximateTimeLeft);
+        if (Order.CompletedAt == null)
+        {
+            Debug.Log("CompletedAt = null");
+            CompletedAtText.text = "unknown";
+        }
+        else
+        {
+            CompletedAtText.text = Order.CompletedAt.ToString();
+        }
+
+        print("OrderID          = " + Order.OrderID.ToString()      +
+              "\nOrderOTP       = " + Order.OrderOTP.ToString()     +
+              "\nCompleted at   = " + Order.CompletedAt);
     }
 
 

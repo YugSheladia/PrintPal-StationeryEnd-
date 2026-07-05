@@ -1,13 +1,10 @@
 fileFormatVersion: 2
-guid: 740c4fd6951f2644c99aff9c8c47c72d
+guid: 4401b6e4ca3c97a41b0e305ed67027b1
 TextureImporter:
   internalIDToNameTable:
   - first:
-      213: -4801923697170587870
-    second: Collected_0
-  - first:
-      213: -8008818501793099674
-    second: Collected_1
+      213: -2246650992860625620
+    second: Vector_0
   externalObjects: {}
   serializedVersion: 13
   mipmaps:
@@ -49,7 +46,7 @@ TextureImporter:
   nPOTScale: 0
   lightmap: 0
   compressionQuality: 50
-  spriteMode: 1
+  spriteMode: 2
   spriteExtrude: 1
   spriteMeshType: 1
   alignment: 0
@@ -116,13 +113,13 @@ TextureImporter:
     serializedVersion: 2
     sprites:
     - serializedVersion: 2
-      name: Collected_0
+      name: Vector_0
       rect:
         serializedVersion: 2
         x: 0
         y: 0
-        width: 181
-        height: 200
+        width: 217
+        height: 217
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -131,30 +128,8 @@ TextureImporter:
       physicsShape: []
       tessellationDetail: -1
       bones: []
-      spriteID: 22fdd9fc6d32c5db0800000000000000
-      internalID: -4801923697170587870
-      vertices: []
-      indices: 
-      edges: []
-      weights: []
-    - serializedVersion: 2
-      name: Collected_1
-      rect:
-        serializedVersion: 2
-        x: 119
-        y: 0
-        width: 77
-        height: 63
-      alignment: 0
-      pivot: {x: 0, y: 0}
-      border: {x: 0, y: 0, z: 0, w: 0}
-      customData: 
-      outline: []
-      physicsShape: []
-      tessellationDetail: -1
-      bones: []
-      spriteID: 660db025106fad090800000000000000
-      internalID: -8008818501793099674
+      spriteID: c25834443da42d0e0800000000000000
+      internalID: -2246650992860625620
       vertices: []
       indices: 
       edges: []
@@ -163,7 +138,7 @@ TextureImporter:
     customData: 
     physicsShape: []
     bones: []
-    spriteID: 5e97eb03825dee720800000000000000
+    spriteID: 
     internalID: 0
     vertices: []
     indices: 
@@ -173,8 +148,7 @@ TextureImporter:
     spriteCustomMetadata:
       entries: []
     nameFileIdTable:
-      Collected_0: -4801923697170587870
-      Collected_1: -8008818501793099674
+      Vector_0: -2246650992860625620
   mipmapLimitGroupName: 
   pSDRemoveMatte: 0
   userData: 

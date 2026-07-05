@@ -34,7 +34,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: -178, y: -78}
+  m_AnchoredPosition: {x: -178, y: -180}
   m_SizeDelta: {x: 283.1199, y: 60}
   m_Pivot: {x: 0, y: 0}
 --- !u!222 &4341774776108617880
@@ -148,7 +148,7 @@ GameObject:
   - component: {fileID: 4488525962537686842}
   - component: {fileID: 1430169819771254533}
   m_Layer: 5
-  m_Name: ApproximateTimeLeftValue (TMP)
+  m_Name: CreatedAtValue (TMP)
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -170,8 +170,8 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: -207, y: -178}
-  m_SizeDelta: {x: 232.5661, y: 60}
+  m_AnchoredPosition: {x: -164, y: 20}
+  m_SizeDelta: {x: 400, y: 60}
   m_Pivot: {x: 0, y: 0}
 --- !u!222 &4488525962537686842
 CanvasRenderer:
@@ -306,7 +306,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: -269, y: 122}
+  m_AnchoredPosition: {x: -269, y: 120}
   m_SizeDelta: {x: 353.1854, y: 60}
   m_Pivot: {x: 0, y: 0}
 --- !u!222 &1319122134974413446
@@ -526,7 +526,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: -211, y: 22}
+  m_AnchoredPosition: {x: -211, y: -80}
   m_SizeDelta: {x: 283.12, y: 60}
   m_Pivot: {x: 0, y: 0}
 --- !u!222 &2869451526543254095
@@ -684,7 +684,7 @@ MonoBehaviour:
   Username: {fileID: 7299525562133008683}
   OrderIDText: {fileID: 1952613394400948256}
   OrderOTP: {fileID: 3115646909960068378}
-  ApproximateTimeLeftText: {fileID: 1430169819771254533}
+  CreatedAt: {fileID: 1430169819771254533}
   Order:
     OrderID: 0
     UserID: 0
@@ -695,6 +695,9 @@ MonoBehaviour:
     Status: 0
     OrderStatus: 
     CreatedAt: 
+    CompletedAt: 
+    CollectedAt: 
+    DeletedAt: 
 --- !u!1 &4698966712217950755
 GameObject:
   m_ObjectHideFlags: 0
@@ -729,7 +732,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: -450, y: 22}
+  m_AnchoredPosition: {x: -450, y: -80}
   m_SizeDelta: {x: 280.2248, y: 60}
   m_Pivot: {x: 0, y: 0}
 --- !u!222 &8486016153141661155
@@ -843,7 +846,7 @@ GameObject:
   - component: {fileID: 5255107355828420532}
   - component: {fileID: 7840842646782700856}
   m_Layer: 5
-  m_Name: 'ApproximateTimeLeft (TMP) '
+  m_Name: 'CreatedAt (TMP) '
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -865,8 +868,8 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: -450, y: -178}
-  m_SizeDelta: {x: 646.4357, y: 60}
+  m_AnchoredPosition: {x: -450, y: 20}
+  m_SizeDelta: {x: 280.22, y: 60}
   m_Pivot: {x: 0, y: 0}
 --- !u!222 &5255107355828420532
 CanvasRenderer:
@@ -896,7 +899,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_text: 'Time left :'
+  m_text: 'Created at :'
   m_isRightToLeft: 0
   m_fontAsset: {fileID: 11400000, guid: 2ccedcdec690c844895fdde29a27f45d, type: 2}
   m_sharedMaterial: {fileID: -6584190823593576278, guid: 2ccedcdec690c844895fdde29a27f45d, type: 2}
@@ -1270,7 +1273,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: -450, y: 122}
+  m_AnchoredPosition: {x: -450, y: 120}
   m_SizeDelta: {x: 200, y: 60}
   m_Pivot: {x: 0, y: 0}
 --- !u!222 &2909198118087419028
@@ -1406,7 +1409,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: -450, y: -78}
+  m_AnchoredPosition: {x: -450, y: -180}
   m_SizeDelta: {x: 326.4952, y: 60}
   m_Pivot: {x: 0, y: 0}
 --- !u!222 &7006383008868278687

@@ -49,13 +49,22 @@ public class CollectedOrderStatus : MonoBehaviour
     {
         Username.text = UsernameString;
 
-        OrderIDText.text                = Order.OrderID.ToString();
-        OrderOTP.text                   = Order.OrderOTP.ToString();
-        //ApproximateTimeLeftText.text    = Order.ApproximateTimeLeft.ToString();
+        OrderIDText.text        = Order.OrderID.ToString();
+        OrderOTP.text           = Order.OrderOTP.ToString();
 
-        print("OrderID                      = " + Order.OrderID.ToString()      +
-              "\nOrderOTP                   = " + Order.OrderOTP.ToString()     +
-              "\nApproximate time left      = " + Order.ApproximateTimeLeft);
+        if(Order.CollectedAt == null)
+        {
+            Debug.Log("CollectedAt = null");
+            CollectedAtText.text = "unknown";
+        }
+        else
+        {
+            CollectedAtText.text = Order.CollectedAt.ToString();
+        }
+
+        print("OrderID          = " + Order.OrderID.ToString()      +
+              "\nOrderOTP       = " + Order.OrderOTP.ToString()     +
+              "\nCollected at   = " + Order.CollectedAt);
     }
 
 

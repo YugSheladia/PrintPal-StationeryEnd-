@@ -19,18 +19,15 @@ public class LoginInfoVerificationResponse
     public StationeryInfo StationeryInfoObject;
 }
 
-[System.Serializable]
-public class PhoneNumberAvailabilityResponse
-{
-    public bool Success;
-    public string Message; 
-}
+
 
 [System.Serializable]
 public class StationeryInfoVerificationResponse
 {
     public bool Success;
     public string Message;
+
+    public int StationeryID;
 }
 
 
@@ -130,7 +127,12 @@ public class Scene2Backend : MonoBehaviour
 
 
 
-
+    [System.Serializable]
+    public class PhoneNumberAvailabilityResponse
+    {
+        public bool Success;
+        public string Message;
+    }
     public void CheckPhoneNumberAvailability(StationeryPhoneNumber StationeryPhoneNumberObject)
     {
         StartCoroutine(SubmitPhoneNumberToServer(StationeryPhoneNumberObject));
@@ -186,6 +188,7 @@ public class Scene2Backend : MonoBehaviour
 
 
 
+
     public void VerifyStationeryInfo()
     {
         StartCoroutine(SubmitStationeryInfoToServer());
@@ -220,6 +223,8 @@ public class Scene2Backend : MonoBehaviour
 
             StationeryInfoVerificationResponse ResponseObject = 
                 JsonUtility.FromJson<StationeryInfoVerificationResponse>(ServerResponseJSON);
+
+            StationeryInfoWrapperObject.StationeryInfoObject.StationeryID = ResponseObject.StationeryID;
 
             Script1.SetStationeryInfo(StationeryInfoWrapperObject.StationeryInfoObject);
 
