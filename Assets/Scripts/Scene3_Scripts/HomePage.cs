@@ -22,6 +22,8 @@ public class HomePage : MonoBehaviour
     [SerializeField] CollectedOrderStatusManager    CollectedOrderStatusManagerScript;
     [SerializeField] SearchedOrderStatusManager     SearchedOrderStatusManagerScript;
 
+    [SerializeField] TMP_Text StationeryName;
+
     [SerializeField] TMP_Dropdown IDSwitchDropdown;
     [SerializeField] TMP_Text SearchByText;
     [SerializeField] TMP_InputField SearchInputfield;
@@ -34,7 +36,13 @@ public class HomePage : MonoBehaviour
     [SerializeField] public TMP_Text RevenueToday;
 
 
- 
+
+    private void Start()
+    {
+        StationeryName.text = Script1.StationeryInfoObject.StationeryName;
+    }
+
+
     public void ClickedRefreshButton()
     {
         CurrentDate.text = DateTime.Now.ToString("dd-MM-yyyy");

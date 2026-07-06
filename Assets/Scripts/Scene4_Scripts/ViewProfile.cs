@@ -6,10 +6,13 @@ public class ViewProfile : MonoBehaviour
     [SerializeField] Scene4Manager Scene4ManagerScript;
     [SerializeField] Scene4Backend Scene4BackendScript;
 
+    [SerializeField] UpdateProfile UpdateProfileScript;
+
     [SerializeField] TMP_Text StationeryNameText;
     [SerializeField] TMP_Text StationeryIDText;
     [SerializeField] TMP_Text PhoneNumberText;
     [SerializeField] TMP_Text EmailText;
+
 
 
 
@@ -30,6 +33,9 @@ public class ViewProfile : MonoBehaviour
     public void ClickedEditButton()
     {
         Scene4ManagerScript.DisableAllPanels();
+
+        UpdateProfileScript.SetExistingStationeryInfoInUI();
+
         Scene4ManagerScript.EnableUpdateProfilePanel();
     }
 

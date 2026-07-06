@@ -15,4 +15,11 @@ public class SetPassword : MonoBehaviour
         Scene2ManagerScript.DisableAllPanels();
         Scene2ManagerScript.EnableSetProfileInfoPanel();
     }
+
+
+    public void ClickedPreviousPage()
+    {
+        Scene2ManagerScript.DisableAllPanels();
+        Scene2ManagerScript.EnableSetPhoneNumberPanel();
+    }
 }

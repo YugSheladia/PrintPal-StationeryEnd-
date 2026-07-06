@@ -4,9 +4,12 @@ using TMPro;
 using UnityEngine;
 using UnityEngine.Networking;
 
-//==================================================
+
+//=========================================================================
+//To recieve EVERY INFO possible about a order issued.
+//=========================================================================
+
 // ORDERS TABLE
-//==================================================
 [System.Serializable]
 public class OrderSummary
 {
@@ -42,10 +45,7 @@ public class OrderSummaryWrapper
 }
 
 
-
-//==================================================
 // PRINTS TABLE
-//==================================================
 [System.Serializable]
 public class PrintSummary
 {
@@ -70,10 +70,7 @@ public class PrintSummaryWrapper
 }
 
 
-
-//==================================================
 // PRINT SETTINGS TABLE
-//==================================================
 [System.Serializable]
 public class PrintSettingsSummary
 {
@@ -108,10 +105,7 @@ public class PrintSettingsSummaryWrapper
 }
 
 
-
-//==================================================
 // PRINT BILLS TABLE
-//==================================================
 [System.Serializable]
 public class PrintBillsSummary
 {
@@ -144,10 +138,7 @@ public class PrintBillsSummaryWrapper
 }
 
 
-
-//==================================================
 // PrintDetails
-//==================================================
 public enum PageSelectionEnum
 {
     AllPages,
@@ -272,6 +263,7 @@ public class PrintDetails
 
 
 
+//
 [System.Serializable]
 public class UserInfo
 {
@@ -294,8 +286,6 @@ public class UsernameResponse
 
 
 
-
-
 //==================================================
 // Main Class
 //==================================================
@@ -304,6 +294,8 @@ public class Scene3Backend : MonoBehaviour
 {
     [SerializeField] HomePage HomePageScript;
 
+
+    //Wrapper objects creation.
     public OrderSummaryWrapper ConfirmedOrders = new();
 
     public PrintSummaryWrapper ConfirmedPrints = new();
@@ -314,7 +306,7 @@ public class Scene3Backend : MonoBehaviour
 
 
 
-
+    //To get orders, beloing to a stationery, of a specific status.
     public IEnumerator GetPendingOrders(int StationeryID)
     {
         Debug.Log("Downloading Pending Orders...");
@@ -519,6 +511,8 @@ public class Scene3Backend : MonoBehaviour
 
 
 
+   //To get prints, printBills, and printSettings of Orders of a specific status
+   //( Called by functions above, e.g. - GetPendingORders, GetCompletedOrders ).
     IEnumerator GetPrints()
     {
         Debug.Log("Downloading Prints...");
@@ -760,11 +754,11 @@ public class Scene3Backend : MonoBehaviour
 
 
 
-
+    //Making a PrintDetails object for each prints of each order ( of a specific order status ).
+    
     public Dictionary  <int, PrintSettingsSummary> SettingsDictionary  = new();
     public Dictionary  <int, PrintBillsSummary>    BillsDictionary     = new();
     public Dictionary  <int, List<PrintSummary>>   PrintsDictionary    = new();
-    // BUILD PRINT DETAILS
     void BuildPrintDetails()
     {
         Debug.Log("Building Print Details...");
@@ -881,14 +875,14 @@ public class Scene3Backend : MonoBehaviour
 
 
 
+    //To get name of the User who issued the Order.
     public void GetUsernameFromServer(int UserID, PendingOrderStatus PendingOrderStatusScript)
     {
         StartCoroutine(GetUsername(UserID, PendingOrderStatusScript));
     }
     public IEnumerator GetUsername(int UserID, PendingOrderStatus PendingOrderStatusScript)
     {
-        UnityWebRequest request =
-            UnityWebRequest.Get("http://localhost:3000/user/" + UserID);
+        UnityWebRequest request = UnityWebRequest.Get("http://localhost:3000/user/" + UserID);
 
         yield return request.SendWebRequest();
 
@@ -922,8 +916,7 @@ public class Scene3Backend : MonoBehaviour
     }
     public IEnumerator GetUsername(int UserID, RTCOrderStatus RTCOrderStatusScript)
     {
-        UnityWebRequest request =
-            UnityWebRequest.Get("http://localhost:3000/user/" + UserID);
+        UnityWebRequest request = UnityWebRequest.Get("http://localhost:3000/user/" + UserID);
 
         yield return request.SendWebRequest();
 
@@ -957,8 +950,7 @@ public class Scene3Backend : MonoBehaviour
     }
     public IEnumerator GetUsername(int UserID, CollectedOrderStatus CollectedOrderStatusScript)
     {
-        UnityWebRequest request =
-            UnityWebRequest.Get("http://localhost:3000/user/" + UserID);
+        UnityWebRequest request = UnityWebRequest.Get("http://localhost:3000/user/" + UserID);
 
         yield return request.SendWebRequest();
 
@@ -992,8 +984,7 @@ public class Scene3Backend : MonoBehaviour
     }
     public IEnumerator GetUsername(int UserID, SearchedOrderStatus SearchedOrderStatusScript)
     {
-        UnityWebRequest request =
-            UnityWebRequest.Get("http://localhost:3000/user/" + UserID);
+        UnityWebRequest request = UnityWebRequest.Get("http://localhost:3000/user/" + UserID);
 
         yield return request.SendWebRequest();
 
@@ -1024,6 +1015,8 @@ public class Scene3Backend : MonoBehaviour
 
 
 
+
+    //To set Order's status.
     [System.Serializable]
     public class OrderIDRequest
     {
@@ -1183,6 +1176,7 @@ public class Scene3Backend : MonoBehaviour
 
 
 
+
     //Search functionality -
     public IEnumerator SearchByOrderIDCoroutine(int StationeryID, int OrderID)
     {
@@ -1329,6 +1323,7 @@ public class Scene3Backend : MonoBehaviour
 
 
 
+    //Get stationery's revenue.
     [System.Serializable]
     public class EarningsResponse
     {
@@ -1407,7 +1402,7 @@ public class Scene3Backend : MonoBehaviour
 
         Debug.Log("Today's Revenue: " + response.Amount);
 
-        HomePageScript.RevenueToday.text = "`" + response.Amount.ToString("F2");
+        HomePageScript.RevenueToday.text = response.Amount.ToString("F2");
     }
 
 

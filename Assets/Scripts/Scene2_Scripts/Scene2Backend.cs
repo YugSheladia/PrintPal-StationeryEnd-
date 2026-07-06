@@ -3,6 +3,11 @@ using UnityEngine;
 using UnityEngine.Networking;
 using UnityEngine.SceneManagement;
 
+
+
+
+
+//
 [System.Serializable]
 public class StationeryInfoWrapper
 {
@@ -11,6 +16,10 @@ public class StationeryInfoWrapper
     public StationeryInfo   StationeryInfoObject;
 }
 
+
+
+
+//Used for login verification.
 [System.Serializable]
 public class LoginInfoVerificationResponse
 {
@@ -21,6 +30,8 @@ public class LoginInfoVerificationResponse
 
 
 
+
+//
 [System.Serializable]
 public class StationeryInfoVerificationResponse
 {
@@ -40,6 +51,7 @@ public class Scene2Backend : MonoBehaviour
 
 
 
+    //Login verification.
     public void VerifyLoginInfo(LoginInfo LoginInfoObject)
     {
         StartCoroutine(SubmitLoginInfoToServer(LoginInfoObject));
@@ -127,6 +139,7 @@ public class Scene2Backend : MonoBehaviour
 
 
 
+    //Used for checking phone availability verification.
     [System.Serializable]
     public class PhoneNumberAvailabilityResponse
     {
@@ -189,6 +202,7 @@ public class Scene2Backend : MonoBehaviour
 
 
 
+    //Creating a stationery account.
     public void VerifyStationeryInfo()
     {
         StartCoroutine(SubmitStationeryInfoToServer());

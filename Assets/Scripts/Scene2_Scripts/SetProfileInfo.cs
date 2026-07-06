@@ -18,4 +18,12 @@ public class SetProfileInfo : MonoBehaviour
 
         Scene2BackendScript.VerifyStationeryInfo();
     }
+
+
+
+    public void ClickedPreviousPage()
+    {
+        Scene2ManagerScript.DisableAllPanels();
+        Scene2ManagerScript.EnableSetPasswordPanel();
+    }
 }

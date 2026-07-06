@@ -20,4 +20,10 @@ public class SetPhoneNumber : MonoBehaviour
 
         Scene2BackendScript.CheckPhoneNumberAvailability(StationeryPhoneNumberObject);
     }
+
+    public void ClickedPreviousBUtton()
+    {
+        Scene2ManagerScript.DisableAllPanels();
+        Scene2ManagerScript.EnableLoginPanel();
+    }
 }

@@ -18,6 +18,18 @@ public class UpdateProfile : MonoBehaviour
     [SerializeField] TMP_InputField UPINumberInput;
     [SerializeField] TMP_InputField EmailInput;
 
+
+
+    public void SetExistingStationeryInfoInUI()
+    {
+        Scene4BackendScript.StartCoroutine_GetStationeryInfoFromServer();
+
+        StationeryNameInput.text    = Script1.StationeryInfoObject.StationeryName;
+        UPINumberInput.text         = Script1.StationeryInfoObject.UPINumber;
+        EmailInput.text             = Script1.StationeryInfoObject.Email;
+    }
+
+
     public void ClickedSubmitButton()
     {
         UpdatedStationeryInfo UpdatedStationeryInfoObject = new UpdatedStationeryInfo();

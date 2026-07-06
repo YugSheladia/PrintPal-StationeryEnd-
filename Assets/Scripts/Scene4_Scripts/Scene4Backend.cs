@@ -2,11 +2,16 @@ using System.Collections;
 using UnityEngine;
 using UnityEngine.Networking;
 
+
+//To verify if the updated stationery info ( updated through profile info -> view profile -> edit ) has reacehd the server or not.
 public class UpdatedStationeryInfoWrapper
 {
     public string Message;
     public bool Success;
 }
+
+
+
 
 public class Scene4Backend : MonoBehaviour
 {
@@ -16,7 +21,7 @@ public class Scene4Backend : MonoBehaviour
     StationeryInfoWrapper StationeryInfoWrapperObject = new StationeryInfoWrapper();
 
 
-
+    //To update a stationery's profile info.
     public void StartCoroutine_UpdateStationeryInfoInServer(UpdatedStationeryInfo UpdatedStationeryInfoObject)
     {
         StartCoroutine(UpdateStationeryInfoInServer(UpdatedStationeryInfoObject));
@@ -66,7 +71,7 @@ public class Scene4Backend : MonoBehaviour
 
 
 
-
+    //To recieve a stationery's info.
     public void StartCoroutine_GetStationeryInfoFromServer()
     {
         StartCoroutine(GetStationeryInfoFromServer());
