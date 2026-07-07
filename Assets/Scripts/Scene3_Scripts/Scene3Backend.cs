@@ -512,7 +512,7 @@ public class Scene3Backend : MonoBehaviour
 
 
    //To get prints, printBills, and printSettings of Orders of a specific status
-   //( Called by functions above, e.g. - GetPendingORders, GetCompletedOrders ).
+   //( Called by functions above, e.g. - GetPendingOrders, GetCompletedOrders ).
     IEnumerator GetPrints()
     {
         Debug.Log("Downloading Prints...");
