@@ -13,6 +13,7 @@ public class Scene3Manager : MonoBehaviour
     [SerializeField] GameObject CompletedOrdersPage;
     [SerializeField] GameObject CollectedOrdersPage;
     [SerializeField] GameObject SearchedOrdersPage;
+    [SerializeField] GameObject ArchivedOrdersPage;
 
 
 
@@ -32,6 +33,7 @@ public class Scene3Manager : MonoBehaviour
         DisableCompletedOrdersPage();
         DisableCollectedOrdersPage();
         DisableSearchedOrdersPage();
+        DisableArchivedOrdersPage();
     }
     public void EnableBlankPanel()
     {
@@ -86,5 +88,13 @@ public class Scene3Manager : MonoBehaviour
     public void DisableSearchedOrdersPage()
     {
         SearchedOrdersPage.SetActive(false);
+    }
+    public void EnableArchivedOrdersPage()
+    {
+        ArchivedOrdersPage.SetActive(true);
+    }
+    public void DisableArchivedOrdersPage()
+    {
+        ArchivedOrdersPage.SetActive(false);
     }
 }

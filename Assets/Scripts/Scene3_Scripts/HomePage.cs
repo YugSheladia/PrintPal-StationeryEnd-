@@ -21,6 +21,7 @@ public class HomePage : MonoBehaviour
     [SerializeField] RTCOrderStatusManager          RTCOrderStatusManagerScript;
     [SerializeField] CollectedOrderStatusManager    CollectedOrderStatusManagerScript;
     [SerializeField] SearchedOrderStatusManager     SearchedOrderStatusManagerScript;
+    [SerializeField] ArchivedOrderStatusManager     ArchivedOrderStatusManagerScript;
 
     [SerializeField] TMP_Text StationeryName;
 
@@ -119,6 +120,25 @@ public class HomePage : MonoBehaviour
         Scene3ManagerScript.DisableAllPanels();
         Scene3ManagerScript.EnableCollectedOrdersPage();
     }
+    public void ClickedArchivedOrdersButton()
+    {
+        StartCoroutine(ClickedArchivedOrdersButtonCoroutine());
+    }
+    IEnumerator ClickedArchivedOrdersButtonCoroutine()
+    {
+        yield return StartCoroutine(Scene3BackendScript.GetArchivedOrders(Script1.StationeryInfoObject.StationeryID));
+
+        ArchivedOrderStatusManagerScript.CreateOrderStatusPanels();
+
+        Scene3ManagerScript.DisableAllPanels();
+        Scene3ManagerScript.EnableArchivedOrdersPage();
+    }
+
+
+
+
+
+    //Search by OrderID / UserID functionality.
     public void ClickedSearchedOrdersButton()
     {
         StartCoroutine(ClickedSearchedOrdersButtonCoroutine());

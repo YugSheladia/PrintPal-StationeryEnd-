@@ -24,12 +24,14 @@ public class OrderSummary
     public float FinalAmount;
 
     public int Status;
-    public string OrderStatus;
+    public int ArchivedByStationery;
 
     public string CreatedAt;
     public string CompletedAt;
     public string CollectedAt;
     public string DeletedAt;
+
+    public string ArchivedByStationeryAt;
 
     // Runtime only.
     public List<PrintDetails> Prints = new();
@@ -457,18 +459,22 @@ public class Scene3Backend : MonoBehaviour
 
         Debug.Log("Finished Downloading Collected Orders.");
     }
-    public IEnumerator GetDeletedOrders(int StationeryID)
-    {
-        Debug.Log("Downloading Deleted Orders...");
 
-        ConfirmedOrders.Orders = new OrderSummary[0];
-        ConfirmedPrints.Prints = new PrintSummary[0];
-        ConfirmedPrintSettings.PrintSettings = new PrintSettingsSummary[0];
-        ConfirmedPrintBills.PrintBills = new PrintBillsSummary[0];
+
+
+    //Get all Archived Orders.
+    public IEnumerator GetArchivedOrders(int StationeryID)
+    {
+        Debug.Log("Downloading Archived Orders...");
+
+        ConfirmedOrders.Orders                  = new OrderSummary[0];
+        ConfirmedPrints.Prints                  = new PrintSummary[0];
+        ConfirmedPrintSettings.PrintSettings    = new PrintSettingsSummary[0];
+        ConfirmedPrintBills.PrintBills          = new PrintBillsSummary[0];
 
         UnityWebRequest request =
             UnityWebRequest.Get(
-                $"http://localhost:3000/orders/deleted?StationeryID={StationeryID}"
+                $"http://localhost:3000/stationeryOrders/archived?StationeryID={StationeryID}"
             );
 
         yield return request.SendWebRequest();
@@ -501,7 +507,7 @@ public class Scene3Backend : MonoBehaviour
         ConfirmedOrders.Orders =
             response.Orders ?? new OrderSummary[0];
 
-        Debug.Log($"Downloaded {ConfirmedOrders.Orders.Length} Deleted Orders.");
+        Debug.Log($"Downloaded {ConfirmedOrders.Orders.Length} Archived Orders.");
 
         yield return StartCoroutine(GetPrints());
 
@@ -1012,6 +1018,40 @@ public class Scene3Backend : MonoBehaviour
             Debug.LogError(request.error);
         }
     }
+    public void GetUsernameFromServer(int UserID, ArchivedOrderStatus ArchivedOrderStatusScript)
+    {
+        StartCoroutine(GetUsername(UserID, ArchivedOrderStatusScript));
+    }
+    public IEnumerator GetUsername(int UserID, ArchivedOrderStatus ArchivedOrderStatusScript)
+    {
+        UnityWebRequest request = UnityWebRequest.Get("http://localhost:3000/user/" + UserID);
+
+        yield return request.SendWebRequest();
+
+        if (request.result == UnityWebRequest.Result.Success)
+        {
+            string json = request.downloadHandler.text;
+            Debug.Log("Server Response:\n" + json);
+
+            UsernameResponse response = JsonUtility.FromJson<UsernameResponse>(json);
+
+            if (response.Success)
+            {
+                Debug.Log("Username: " + response.User.Username);
+
+                ArchivedOrderStatusScript.UsernameString = response.User.Name;
+                ArchivedOrderStatusScript.UpdateUI();
+            }
+            else
+            {
+                Debug.LogWarning("User not found.");
+            }
+        }
+        else
+        {
+            Debug.LogError(request.error);
+        }
+    }
 
 
 
@@ -1135,11 +1175,15 @@ public class Scene3Backend : MonoBehaviour
             Debug.LogError(request.error);
         }
     }
-    public void SetOrderAsDeleted(int OrderID)
+
+
+
+    //Marking Orders as Archived / Unarchived.
+    public void SetOrderAsArchived(int OrderID)
     {
-        StartCoroutine(Coroutine_SetOrderAsDeleted(OrderID));
+        StartCoroutine(Coroutine_SetOrderAsArchived(OrderID));
     }
-    IEnumerator Coroutine_SetOrderAsDeleted(int OrderID)
+    IEnumerator Coroutine_SetOrderAsArchived(int OrderID)
     {
         OrderIDRequest requestBody = new();
         requestBody.OrderID = OrderID;
@@ -1149,7 +1193,7 @@ public class Scene3Backend : MonoBehaviour
         byte[] body = System.Text.Encoding.UTF8.GetBytes(json);
 
         UnityWebRequest request = new UnityWebRequest(
-                                                            "http://localhost:3000/order/delete",
+                                                            "http://localhost:3000/order/stationery-archive",
                                                             "POST"
                                                       );
 
@@ -1166,7 +1210,45 @@ public class Scene3Backend : MonoBehaviour
 
         if (request.result == UnityWebRequest.Result.Success)
         {
-            Debug.Log("Order marked as Deleted.");
+            Debug.Log("Order marked as Archived.");
+        }
+        else
+        {
+            Debug.LogError(request.error);
+        }
+    }
+    public void SetOrderAsUnarchived(int OrderID)
+    {
+        StartCoroutine(Coroutine_SetOrderAsUnarchived(OrderID));
+    }
+    IEnumerator Coroutine_SetOrderAsUnarchived(int OrderID)
+    {
+        OrderIDRequest requestBody = new();
+        requestBody.OrderID = OrderID;
+
+        string json = JsonUtility.ToJson(requestBody);
+
+        byte[] body = System.Text.Encoding.UTF8.GetBytes(json);
+
+        UnityWebRequest request = new UnityWebRequest(
+                                                            "http://localhost:3000/order/stationery-unarchive",
+                                                            "POST"
+                                                      );
+
+        request.uploadHandler = new UploadHandlerRaw(body);
+
+        request.downloadHandler = new DownloadHandlerBuffer();
+
+        request.SetRequestHeader(
+                                    "Content-Type",
+                                    "application/json"
+                                );
+
+        yield return request.SendWebRequest();
+
+        if (request.result == UnityWebRequest.Result.Success)
+        {
+            Debug.Log("Order marked as Unarchived.");
         }
         else
         {

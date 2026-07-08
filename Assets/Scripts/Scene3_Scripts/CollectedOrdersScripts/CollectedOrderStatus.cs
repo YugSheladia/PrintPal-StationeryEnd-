@@ -161,7 +161,7 @@ public class CollectedOrderStatus : MonoBehaviour
 
         Destroy(gameObject);
     }
-    public void ClickedDeleteOrderButton()
+    public void ClickedArchiveOrderButton()
     {
         if (Order == null)
         {
@@ -169,7 +169,7 @@ public class CollectedOrderStatus : MonoBehaviour
             return;
         }
 
-        Scene3BackendScript.SetOrderAsDeleted(Order.OrderID);
+        Scene3BackendScript.SetOrderAsArchived(Order.OrderID);
 
         Destroy(gameObject);
     }

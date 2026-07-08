@@ -1,6 +1,6 @@
 using TMPro;
-using Unity.VisualScripting;
 using UnityEngine;
+using UnityEngine.UI;
 
 public class SearchedOrderStatus : MonoBehaviour
 {
@@ -17,14 +17,39 @@ public class SearchedOrderStatus : MonoBehaviour
     public string UsernameString;
     [SerializeField] TMP_Text Username;
 
+    [SerializeField] TMP_Text StatusTimeStampText;
+
     [SerializeField] TMP_Text OrderIDText;
     [SerializeField] TMP_Text OrderOTP;
-    [SerializeField] TMP_Text CompletedAtText; 
 
-    
+    [SerializeField] GameObject ArchivePanel;
+    [SerializeField] GameObject PendingPanel;
+    [SerializeField] GameObject CompletedPanel;
+    [SerializeField] GameObject CollectedPanel;
+
+    [SerializeField] Image ViewDetailsColor;
+
+    [SerializeField] Image StatusIndicator;
+
 
     GameObject SearchedOrderStatusInfoObject;
 
+
+    enum OrderStatusEnum
+    {
+        Pending,
+        Completed,
+        Collected
+    }
+    OrderStatusEnum orderStatusEnum;
+
+
+    enum ArchiveStatusEnum
+    {
+        Unarchived,
+        Archived
+    }
+    ArchiveStatusEnum archiveStatusEnum;
 
 
     public void SetRequiredScripts(
@@ -49,11 +74,81 @@ public class SearchedOrderStatus : MonoBehaviour
     }
     public void UpdateUI()
     {
+        orderStatusEnum = (OrderStatusEnum)Order.Status;
+        archiveStatusEnum = (ArchiveStatusEnum)Order.ArchivedByStationery;
+
+        switch(orderStatusEnum)
+        {
+            case OrderStatusEnum.Pending:
+                DisableAllPanels();
+                EnablePendingPanel();
+                
+                StatusTimeStampText.text = "Order Created at " + Order.CreatedAt;
+                StatusTimeStampText.color = new Color32(246, 59, 57, 200);
+
+                ViewDetailsColor.color = new Color32(246, 59, 57, 200);
+
+                StatusIndicator.color = new Color32(246, 59, 57, 200);
+                
+                break;
+
+            case OrderStatusEnum.Completed:
+                DisableAllPanels();
+                EnableCompletedPanel();
+
+                StatusTimeStampText.text = "Order Completed at " + Order.CompletedAt;
+                StatusTimeStampText.color = new Color32(245, 207, 73, 230);
+
+                ViewDetailsColor.color = new Color32(245, 207, 73, 230);
+
+                StatusIndicator.color = new Color32(245, 207, 73, 230);
+
+                break;
+
+            case OrderStatusEnum.Collected:
+                DisableAllPanels();
+                EnableCollectedPanel();
+
+                StatusTimeStampText.text = "Order Collected at " + Order.CollectedAt;
+                StatusTimeStampText.color = new Color32(2, 141, 26, 220);
+
+                ViewDetailsColor.color = new Color32(2, 141, 26, 220);
+
+                StatusIndicator.color = new Color32(2, 141, 26, 220);
+
+                break;
+
+            default:
+                DisableAllPanels();
+           
+                Debug.Log("Invalid Order Status");
+                StatusTimeStampText.text = "?";
+
+                break;
+        }
+
+        switch (archiveStatusEnum)
+        {
+            case ArchiveStatusEnum.Unarchived:
+                break;
+
+            case ArchiveStatusEnum.Archived:
+                DisableAllPanels();
+                EnableArchivePanel();
+
+                StatusTimeStampText.color = new Color32(36, 36, 36, 150);
+
+                ViewDetailsColor.color = new Color32(36, 36, 36, 150);
+
+                StatusIndicator.color = new Color32(36, 36, 36, 150);
+                break;
+        }
+
         Username.text = UsernameString;
 
         OrderIDText.text                = Order.OrderID.ToString();
         OrderOTP.text                   = Order.OrderOTP.ToString();
-        //ApproximateTimeLeftText.text    = Order.ApproximateTimeLeft.ToString();
+        
 
         print("OrderID                      = " + Order.OrderID.ToString()      +
               "\nOrderOTP                   = " + Order.OrderOTP.ToString()     +
@@ -141,6 +236,11 @@ public class SearchedOrderStatus : MonoBehaviour
             return;
         }
 
+        if (archiveStatusEnum == ArchiveStatusEnum.Archived)
+        {
+            Scene3BackendScript.SetOrderAsUnarchived(Order.OrderID);
+        }
+
         Scene3BackendScript.SetOrderAsPending(Order.OrderID);
 
         Destroy(gameObject);
@@ -151,6 +251,11 @@ public class SearchedOrderStatus : MonoBehaviour
         {
             Debug.Log("Order is absent inside CollectedOrderStatus script.");
             return;
+        }
+
+        if (archiveStatusEnum == ArchiveStatusEnum.Archived)
+        {
+            Scene3BackendScript.SetOrderAsUnarchived(Order.OrderID);
         }
 
         Scene3BackendScript.SetOrderAsCompleted(Order.OrderID);
@@ -165,11 +270,16 @@ public class SearchedOrderStatus : MonoBehaviour
             return;
         }
 
+        if (archiveStatusEnum == ArchiveStatusEnum.Archived)
+        {
+            Scene3BackendScript.SetOrderAsUnarchived(Order.OrderID);
+        }
+
         Scene3BackendScript.SetOrderAsCollected(Order.OrderID);
 
         Destroy(gameObject);
     }
-    public void ClickedDeleteOrderButton()
+    public void ClickedArchiveOrderButton()
     {
         if (Order == null)
         {
@@ -177,8 +287,53 @@ public class SearchedOrderStatus : MonoBehaviour
             return;
         }
 
-        Scene3BackendScript.SetOrderAsDeleted(Order.OrderID);
+        Scene3BackendScript.SetOrderAsArchived(Order.OrderID);
 
         Destroy(gameObject);
+    }
+
+
+
+
+    public void DisableAllPanels()
+    {
+        DisableArchivePanel();
+        DisablePendingPanel();
+        DisableCompletedPanel();
+        DisableCollectedPanel();
+    }
+
+
+    public void EnableArchivePanel()
+    {
+        ArchivePanel.SetActive(true);
+    }
+    public void DisableArchivePanel()
+    {
+        ArchivePanel.SetActive(false);
+    }
+    public void EnablePendingPanel()
+    {
+        PendingPanel.SetActive(true);
+    }
+    public void DisablePendingPanel()
+    {
+        PendingPanel.SetActive(false);
+    }
+    public void EnableCompletedPanel()
+    {
+        CompletedPanel.SetActive(true);
+    }
+    public void DisableCompletedPanel()
+    {
+        CompletedPanel.SetActive(false);
+    }
+    public void EnableCollectedPanel()
+    {
+        CollectedPanel.SetActive(true);
+    }
+    public void DisableCollectedPanel()
+    {
+        CollectedPanel.SetActive(false);
     }
 }
