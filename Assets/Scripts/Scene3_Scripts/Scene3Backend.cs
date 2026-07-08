@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
 using UnityEngine.Networking;
-
+using System.IO;
 
 //=========================================================================
 //To recieve EVERY INFO possible about a order issued.
@@ -187,6 +187,7 @@ public enum ColorEnum
 public class PrintDetails
 {
     public int OrderID;
+    public int PrintID;
 
     public int PrintNumber;
 
@@ -835,6 +836,7 @@ public class Scene3Backend : MonoBehaviour
 
                 Details.OrderID = Order.OrderID;
 
+                Details.PrintID = Print.PrintID;
                 Details.PrintNumber = Print.PrintNumber;
 
                 Details.PDFName = Print.PDFName;
@@ -1565,6 +1567,54 @@ public class Scene3Backend : MonoBehaviour
 
         // Example:
         // HomePageScript.TotalRevenueText.text = "`" + response.Amount.ToString("F2");
+    }
+
+
+
+    public void DownloadOrderPrintsFromServer(OrderSummary Order)
+    {
+        foreach (PrintDetails Print in Order.Prints)
+        {
+            StartCoroutine(Coroutine_DownloadPDF(Print.PrintID));
+        }
+    }
+    IEnumerator Coroutine_DownloadPDF(int PrintID)
+    {
+        string savePath = Path.Combine(
+            Application.persistentDataPath,
+            PrintID + ".pdf"
+        );
+
+        // If already downloaded, just open it.
+        if (File.Exists(savePath))
+        {
+            Debug.Log("PDF already exists. Opening...");
+            Application.OpenURL("file://" + savePath);
+            yield break;
+        }
+
+        using (UnityWebRequest request =
+            UnityWebRequest.Get("http://localhost:3000/download/" + PrintID))
+        {
+            request.downloadHandler = new DownloadHandlerFile(savePath);
+
+            yield return request.SendWebRequest();
+
+            if (request.result != UnityWebRequest.Result.Success)
+            {
+                Debug.Log(new FileInfo(savePath).Length);
+
+                Debug.LogError(request.error);
+            }
+            else
+            {
+                Debug.Log("Saved to: " + savePath);
+
+                Debug.Log(new FileInfo(savePath).Length);
+
+                Application.OpenURL("file://" + savePath);
+            }
+        }
     }
 }
 

@@ -176,4 +176,11 @@ public class PendingOrderStatus : MonoBehaviour
 
         Destroy(gameObject);
     }
+
+
+
+    public void DownloadAllPrintsFromOrder()
+    {
+        Scene3BackendScript.DownloadOrderPrintsFromServer(Order);
+    }
 }
