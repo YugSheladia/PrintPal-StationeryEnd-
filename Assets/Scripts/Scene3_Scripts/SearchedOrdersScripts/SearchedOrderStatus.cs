@@ -336,4 +336,11 @@ public class SearchedOrderStatus : MonoBehaviour
     {
         CollectedPanel.SetActive(false);
     }
+
+
+
+    public void DownloadAllPrintsFromOrder()
+    {
+        Scene3BackendScript.DownloadOrderPrintsFromServer(Order);
+    }
 }

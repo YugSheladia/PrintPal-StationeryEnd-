@@ -212,4 +212,11 @@ public class ArchivedOrderStatus : MonoBehaviour
 
         Destroy(gameObject);
     }
+
+
+
+    public void DownloadAllPrintsFromOrder()
+    {
+        Scene3BackendScript.DownloadOrderPrintsFromServer(Order);
+    }
 }

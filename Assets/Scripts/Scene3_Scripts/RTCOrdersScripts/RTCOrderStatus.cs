@@ -175,4 +175,11 @@ public class RTCOrderStatus : MonoBehaviour
 
         Destroy(gameObject);
     }
+
+
+
+    public void DownloadAllPrintsFromOrder()
+    {
+        Scene3BackendScript.DownloadOrderPrintsFromServer(Order);
+    }
 }
