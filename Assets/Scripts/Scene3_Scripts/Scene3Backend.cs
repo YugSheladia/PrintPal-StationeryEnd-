@@ -1,9 +1,10 @@
 using System.Collections;
 using System.Collections.Generic;
+using System.IO;
 using TMPro;
 using UnityEngine;
 using UnityEngine.Networking;
-using System.IO;
+using static Scene3Backend;
 
 //=========================================================================
 //To recieve EVERY INFO possible about a order issued.
@@ -1613,6 +1614,62 @@ public class Scene3Backend : MonoBehaviour
                 Debug.Log(new FileInfo(savePath).Length);
 
                 Application.OpenURL("file://" + savePath);
+            }
+        }
+    }
+
+
+
+
+
+
+    //new stuff -
+    [System.Serializable]
+    public class PrinterInfo
+    {
+        public string deviceId;
+        public string name;
+    }
+
+    [System.Serializable]
+    public class PrintersResponse
+    {
+        public bool success;
+        public string message;
+        public PrinterInfo[] printers;
+    }
+   
+
+    public void ClickedViewAllPrintersButton()
+    {
+        StartCoroutine(GetPrinters());
+    }
+    public IEnumerator GetPrinters()
+    {
+        using (UnityWebRequest request = UnityWebRequest.Get("http://localhost:3000/printers"))
+        {
+            yield return request.SendWebRequest();
+
+            if (request.result != UnityWebRequest.Result.Success)
+            {
+                Debug.LogError(request.error);
+                yield break;
+            }
+
+            PrintersResponse response =
+                JsonUtility.FromJson<PrintersResponse>(request.downloadHandler.text);
+
+            if (!response.success)
+            {
+                Debug.LogError(response.message);
+                yield break;
+            }
+
+            Debug.Log("Installed Printers:");
+
+            foreach (PrinterInfo Printer in response.printers)
+            {
+                Debug.Log(Printer.name);
             }
         }
     }
