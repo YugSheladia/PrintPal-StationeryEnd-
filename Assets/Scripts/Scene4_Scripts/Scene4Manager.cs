@@ -1,4 +1,10 @@
+using TMPro;
 using UnityEngine;
+using System.Collections;
+
+
+
+
 
 public class Scene4Manager : MonoBehaviour
 {
@@ -10,6 +16,15 @@ public class Scene4Manager : MonoBehaviour
 
     public StationeryInfo StationeryInfoObject = new StationeryInfo();
 
+    [SerializeField] GameObject InvisiblePanel;
+    [SerializeField] GameObject MessagePanel;
+    [SerializeField] TMP_Text MessageText;
+
+
+
+
+
+
 
     private void Start()
     {
@@ -17,7 +32,9 @@ public class Scene4Manager : MonoBehaviour
         EnableProfileMenuPanel();
     }
 
-    
+
+
+
 
     public void DisableAllPanels()
     {
@@ -26,6 +43,20 @@ public class Scene4Manager : MonoBehaviour
         DisableViewProfileInfoPanel();
         DisableUpdateProfilePanel();
     }
+
+
+
+    public void EnableInvisiblePanel()
+    {
+        InvisiblePanel.SetActive(true);
+    }
+    public void DisableInvisiblePanel()
+    {
+        InvisiblePanel.SetActive(false);
+    }
+
+
+
 
     public void EnableBlankPanel()
     {
@@ -58,6 +89,41 @@ public class Scene4Manager : MonoBehaviour
     public void DisableUpdateProfilePanel()
     {
         UpdateProfilePanel.SetActive(false);
+    }
+
+
+
+
+
+
+    private Coroutine MessagePanelCoroutine;
+    public void EnableMessagePanel()
+    {
+        if (MessagePanelCoroutine != null)
+        {
+            StopCoroutine(MessagePanelCoroutine);
+        }
+
+        MessagePanel.SetActive(true);
+
+        MessagePanelCoroutine = StartCoroutine(CoroutineMessagePanelHandler());
+    }
+    public void DisableMessagePanel()
+    {
+        if (MessagePanelCoroutine != null)
+        {
+            StopCoroutine(MessagePanelCoroutine);
+            MessagePanelCoroutine = null;
+        }
+
+        MessagePanel.SetActive(false);
+    }
+    IEnumerator CoroutineMessagePanelHandler()
+    {
+        yield return new WaitForSeconds(5);
+
+        MessagePanel.SetActive(false);
+        MessagePanelCoroutine = null;
     }
 }
 

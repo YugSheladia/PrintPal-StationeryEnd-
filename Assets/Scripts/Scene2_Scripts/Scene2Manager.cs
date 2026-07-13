@@ -1,4 +1,11 @@
 using UnityEngine;
+using TMPro;
+using System.Collections;
+
+
+
+
+
 
 [System.Serializable]
 public class StationeryInfo
@@ -33,20 +40,39 @@ public class Scene2Manager : MonoBehaviour
     [SerializeField] GameObject SetPasswordPanel;
     [SerializeField] GameObject SetProfileInfoPanel;
 
+    [SerializeField] GameObject InvisiblePanel;
+    [SerializeField] GameObject MessagePanel;
+    [SerializeField] public TMP_Text MessageText;
+
+
+
+
+
+
     public void Start()
     {
         DisableAllPanels();
         EnableLoginPanel();
     }
 
+
+
+
     public void DisableAllPanels()
     {
         DisableBlankPanel();
+        DisableInvisiblePanel();
+
         DisableLoginPanel();
         DisableSetPhoneNumberPanel();
         DisableSetPasswordPanel();
         DisableSetProfileInfoPanel();
     }
+
+
+
+
+
     public void EnableBlankPanel()
     {
         BlankPanel.SetActive(true);
@@ -55,6 +81,18 @@ public class Scene2Manager : MonoBehaviour
     {
         BlankPanel.SetActive(false);
     }
+    public void EnableInvisiblePanel()
+    {
+        InvisiblePanel.SetActive(true);
+    }
+    public void DisableInvisiblePanel()
+    {
+        InvisiblePanel.SetActive(false);
+    }
+
+
+
+
     public void EnableLoginPanel()
     {
         LoginPanel.SetActive(true);
@@ -80,11 +118,47 @@ public class Scene2Manager : MonoBehaviour
         SetPasswordPanel.SetActive(false);
     }
     public void EnableSetProfileInfoPanel()
-    { 
+    {
         SetProfileInfoPanel.SetActive(true);
     }
     public void DisableSetProfileInfoPanel()
     {
         SetProfileInfoPanel.SetActive(false);
+    }
+
+
+
+
+
+
+
+    private Coroutine MessagePanelCoroutine;
+    public void EnableMessagePanel()
+    {
+        if (MessagePanelCoroutine != null)
+        {
+            StopCoroutine(MessagePanelCoroutine);
+        }
+
+        MessagePanel.SetActive(true);
+
+        MessagePanelCoroutine = StartCoroutine(CoroutineMessagePanelHandler());
+    }
+    public void DisableMessagePanel()
+    {
+        if (MessagePanelCoroutine != null)
+        {
+            StopCoroutine(MessagePanelCoroutine);
+            MessagePanelCoroutine = null;
+        }
+
+        MessagePanel.SetActive(false);
+    }
+    IEnumerator CoroutineMessagePanelHandler()
+    {
+        yield return new WaitForSeconds(5);
+
+        MessagePanel.SetActive(false);
+        MessagePanelCoroutine = null;
     }
 }

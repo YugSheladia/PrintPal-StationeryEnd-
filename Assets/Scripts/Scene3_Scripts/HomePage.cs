@@ -46,12 +46,63 @@ public class HomePage : MonoBehaviour
 
     public void ClickedRefreshButton()
     {
+        StartCoroutine(ClickedRefreshButtonCoroutine());
+    }
+    IEnumerator ClickedRefreshButtonCoroutine()
+    {
+        Scene3ManagerScript.EnableInvisiblePanel();
+
         CurrentDate.text = DateTime.Now.ToString("dd-MM-yyyy");
 
-        StartCoroutine(Scene3BackendScript.GetTodayStationeryRevenue(Script1.StationeryInfoObject.StationeryID));
+        bool RevenueSuccess = false;
 
-        Scene3BackendScript.GetOrdersCount();
+        yield return StartCoroutine
+        (
+            Scene3BackendScript.GetTodayStationeryRevenue
+            (
+                Script1.StationeryInfoObject.StationeryID,
+                Result => RevenueSuccess = Result
+            )
+        );
+
+        if (!RevenueSuccess)
+        {
+            RefreshFailed();
+            yield break;
+        }
+
+        bool OrdersCountSuccess = false;
+
+        yield return StartCoroutine
+        (
+            Scene3BackendScript.GetOrdersCount
+            (
+                Result => OrdersCountSuccess = Result
+            )
+        );
+
+        if (!OrdersCountSuccess)
+        {
+            RefreshFailed();
+            yield break;
+        }
+
+        Scene3ManagerScript.DisableInvisiblePanel();
+
+        Scene3ManagerScript.DisableAllPanels();
+        Scene3ManagerScript.EnableHomePagePanel();
     }
+    void RefreshFailed()
+    {
+        Scene3ManagerScript.DisableAllPanels();
+
+        Scene3ManagerScript.MessageText.text = "Something went wrong, try again later.";
+
+        Scene3ManagerScript.EnableMessagePanel();
+    }
+
+
+
 
 
 
@@ -63,6 +114,9 @@ public class HomePage : MonoBehaviour
     {
         Debug.Log("Settings");
     }
+
+
+
 
 
     public void SwitchIDToSearchBy()
@@ -81,13 +135,40 @@ public class HomePage : MonoBehaviour
     }
 
 
+
+
+
+
+
+
     public void ClickedPendingOrdersButton()
     {
         StartCoroutine(ClickedPendingOrdersButtonCoroutine());
     }
     IEnumerator ClickedPendingOrdersButtonCoroutine()
     {
-        yield return StartCoroutine(Scene3BackendScript.GetPendingOrders(Script1.StationeryInfoObject.StationeryID));
+        Scene3ManagerScript.EnableInvisiblePanel();
+
+        bool Success = false;
+
+        yield return StartCoroutine
+        (
+            Scene3BackendScript.GetPendingOrders
+            (
+                Script1.StationeryInfoObject.StationeryID,
+                Result => Success = Result
+            )
+        );
+
+        if (!Success)
+        {
+            Scene3ManagerScript.DisableAllPanels();
+
+            Scene3ManagerScript.MessageText.text = "Something went wrong, try again later.";
+            Scene3ManagerScript.EnableMessagePanel();
+
+            yield break;
+        }
 
         PendingOrderStatusManagerScript.CreateOrderStatusPanels();
 
@@ -100,7 +181,30 @@ public class HomePage : MonoBehaviour
     }
     IEnumerator ClickedCompletedOrdersButtonCoroutine()
     {
-        yield return StartCoroutine(Scene3BackendScript.GetCompletedOrders(Script1.StationeryInfoObject.StationeryID));
+        Scene3ManagerScript.EnableInvisiblePanel();
+
+        bool Success = false;
+
+        yield return StartCoroutine
+        (
+            Scene3BackendScript.GetCompletedOrders
+            (
+                Script1.StationeryInfoObject.StationeryID,
+                Result => Success = Result
+            )
+        );
+
+        Scene3ManagerScript.DisableInvisiblePanel();
+
+        if (!Success)
+        {
+            Scene3ManagerScript.DisableAllPanels();
+
+            Scene3ManagerScript.MessageText.text = "Something went wrong, try again later.";
+            Scene3ManagerScript.EnableMessagePanel();
+
+            yield break;
+        }
 
         RTCOrderStatusManagerScript.CreateOrderStatusPanels();
 
@@ -113,7 +217,30 @@ public class HomePage : MonoBehaviour
     }
     IEnumerator ClickedCollectedOrdersButtonCoroutine()
     {
-        yield return StartCoroutine(Scene3BackendScript.GetCollectedOrders(Script1.StationeryInfoObject.StationeryID));
+        Scene3ManagerScript.EnableInvisiblePanel();
+
+        bool Success = false;
+
+        yield return StartCoroutine
+        (
+            Scene3BackendScript.GetCollectedOrders
+            (
+                Script1.StationeryInfoObject.StationeryID,
+                Result => Success = Result
+            )
+        );
+
+        Scene3ManagerScript.DisableInvisiblePanel();
+
+        if (!Success)
+        {
+            Scene3ManagerScript.DisableAllPanels();
+
+            Scene3ManagerScript.MessageText.text = "Something went wrong, try again later.";
+            Scene3ManagerScript.EnableMessagePanel();
+
+            yield break;
+        }
 
         CollectedOrderStatusManagerScript.CreateOrderStatusPanels();
 
@@ -126,13 +253,40 @@ public class HomePage : MonoBehaviour
     }
     IEnumerator ClickedArchivedOrdersButtonCoroutine()
     {
-        yield return StartCoroutine(Scene3BackendScript.GetArchivedOrders(Script1.StationeryInfoObject.StationeryID));
+        Scene3ManagerScript.EnableInvisiblePanel();
+
+        bool Success = false;
+
+        yield return StartCoroutine
+        (
+            Scene3BackendScript.GetArchivedOrders
+            (
+                Script1.StationeryInfoObject.StationeryID,
+                Result => Success = Result
+            )
+        );
+
+        Scene3ManagerScript.DisableInvisiblePanel();
+
+        if (!Success)
+        {
+            Scene3ManagerScript.DisableAllPanels();
+
+            Scene3ManagerScript.MessageText.text = "Something went wrong, try again later.";
+            Scene3ManagerScript.EnableMessagePanel();
+
+            yield break;
+        }
 
         ArchivedOrderStatusManagerScript.CreateOrderStatusPanels();
 
         Scene3ManagerScript.DisableAllPanels();
         Scene3ManagerScript.EnableArchivedOrdersPage();
     }
+
+
+
+
 
 
 
@@ -145,15 +299,51 @@ public class HomePage : MonoBehaviour
     }
     IEnumerator ClickedSearchedOrdersButtonCoroutine()
     {
-        Debug.Log("Stationery ID = " + Script1.StationeryInfoObject.StationeryID);
+        Scene3ManagerScript.EnableInvisiblePanel();
+
+        Debug.Log
+        (
+            "Stationery ID = "
+            + Script1.StationeryInfoObject.StationeryID
+        );
+
+        bool Success = false;
 
         if (IDToSearchByEnum == IDToSearchBy.SearchByOrderID)
         {
-            yield return StartCoroutine(Scene3BackendScript.SearchByOrderIDCoroutine(Script1.StationeryInfoObject.StationeryID, int.Parse(SearchInputfield.text)));
+            yield return StartCoroutine
+            (
+                Scene3BackendScript.SearchByOrderIDCoroutine
+                (
+                    Script1.StationeryInfoObject.StationeryID,
+                    int.Parse(SearchInputfield.text),
+                    Result => Success = Result
+                )
+            );
         }
         else
         {
-            yield return StartCoroutine(Scene3BackendScript.SearchByUserIDCoroutine(Script1.StationeryInfoObject.StationeryID, int.Parse(SearchInputfield.text)));
+            yield return StartCoroutine
+            (
+                Scene3BackendScript.SearchByUserIDCoroutine
+                (
+                    Script1.StationeryInfoObject.StationeryID,
+                    int.Parse(SearchInputfield.text),
+                    Result => Success = Result
+                )
+            );
+        }
+
+        Scene3ManagerScript.DisableInvisiblePanel();
+
+        if (!Success)
+        {
+            Scene3ManagerScript.DisableAllPanels();
+
+            Scene3ManagerScript.MessageText.text = "Something went wrong, try again later.";
+            Scene3ManagerScript.EnableMessagePanel();
+
+            yield break;
         }
 
         SearchedOrderStatusManagerScript.CreateOrderStatusPanels();

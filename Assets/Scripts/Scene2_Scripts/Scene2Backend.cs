@@ -7,7 +7,7 @@ using UnityEngine.SceneManagement;
 
 
 
-//
+//For getting stationery details from database after login verification.
 [System.Serializable]
 public class StationeryInfoWrapper
 {
@@ -15,9 +15,6 @@ public class StationeryInfoWrapper
     public string           Message;
     public StationeryInfo   StationeryInfoObject;
 }
-
-
-
 
 //Used for login verification.
 [System.Serializable]
@@ -28,10 +25,7 @@ public class LoginInfoVerificationResponse
     public StationeryInfo StationeryInfoObject;
 }
 
-
-
-
-//
+//For creating a Stationery account
 [System.Serializable]
 public class StationeryInfoVerificationResponse
 {
@@ -42,12 +36,27 @@ public class StationeryInfoVerificationResponse
 }
 
 
+
+
+
+
+
+
+
 public class Scene2Backend : MonoBehaviour
 {
     [SerializeField] Scene2Manager Scene2ManagerScript;
 
 
+
     public StationeryInfoWrapper StationeryInfoWrapperObject = new StationeryInfoWrapper();
+
+
+
+
+
+
+
 
 
 
@@ -62,43 +71,77 @@ public class Scene2Backend : MonoBehaviour
 
         byte[] LoginInfoRaw = System.Text.Encoding.UTF8.GetBytes(LoginInfoJSON);
 
-        UnityWebRequest request = new UnityWebRequest(
-                                                        "http://localhost:3000/stationeryLogin",
-                                                        "POST"
-                                                     );
+        UnityWebRequest request = new UnityWebRequest
+        (
+            "http://localhost:3000/stationeryLogin",
+            "POST"
+        );
 
         request.uploadHandler = new UploadHandlerRaw(LoginInfoRaw);
-
         request.downloadHandler = new DownloadHandlerBuffer();
 
-        request.SetRequestHeader(
-                                "Content-Type",
-                                "application/json"
-                                );
+        request.SetRequestHeader
+        (
+            "Content-Type",
+            "application/json"
+        );
 
         yield return request.SendWebRequest();
 
-        if (request.result == UnityWebRequest.Result.Success)
+        string ServerResponse = request.downloadHandler.text;
+
+        Debug.Log("Raw server response = \n" + ServerResponse);
+
+        LoginInfoVerificationResponse ResponseObject =
+            JsonUtility.FromJson<LoginInfoVerificationResponse>(ServerResponse);
+
+        if (request.responseCode == 200 && ResponseObject.Success)
         {
-            string ServerResponse = request.downloadHandler.text;
-            Debug.Log("Raw server response = \n" + ServerResponse);
+            yield return StartCoroutine
+            (
+                GetStationeryInfoFromServer
+                (
+                    ResponseObject.StationeryInfoObject.PhoneNumber
+                )
+            );
 
-            LoginInfoVerificationResponse ResponseObject = JsonUtility.FromJson<LoginInfoVerificationResponse>(ServerResponse);
-
-            if (ResponseObject.Success == true)
-            {
-                StartCoroutine(GetStationeryInfoFromServer(ResponseObject.StationeryInfoObject.PhoneNumber));
-
-                Debug.Log("Unity - Sucessfully logged in.");
-            }
-            else
-            {
-                Debug.Log("Unity - Incorrect Login information.");
-            }
+            Debug.Log("Unity - Successfully logged in.");
         }
         else
         {
-            Debug.LogError(request.error);
+            Scene2ManagerScript.DisableAllPanels();
+            Scene2ManagerScript.EnableLoginPanel();
+
+            if (request.responseCode == 404)
+            {
+                Scene2ManagerScript.MessageText.text =
+                    "Phone number doesn't exist.";
+            }
+            else if (request.responseCode == 401)
+            {
+                Scene2ManagerScript.MessageText.text =
+                    "Incorrect password.";
+            }
+            else if (request.responseCode == 500)
+            {
+                Scene2ManagerScript.MessageText.text =
+                    "Database error. Please try again.";
+            }
+            else
+            {
+                Scene2ManagerScript.MessageText.text =
+                    "Something went wrong. Please try again.";
+            }
+
+            Scene2ManagerScript.EnableMessagePanel();
+
+            Debug.LogError
+            (
+                "Login failed: "
+                + request.responseCode
+                + " | "
+                + ResponseObject?.Message
+            );
         }
     }
     IEnumerator GetStationeryInfoFromServer(string PhoneNumber)
@@ -128,13 +171,27 @@ public class Scene2Backend : MonoBehaviour
             else
             {
                 Debug.LogError("User not found");
+
+                Scene2ManagerScript.MessageText.text = "User not found.\nRestart the app if you think this is a mistake";
+                Scene2ManagerScript.EnableMessagePanel();
+
+                Scene2ManagerScript.DisableAllPanels();
+                Scene2ManagerScript.EnableLoginPanel();
             }
         }
         else
         {
             Debug.LogError(request.error);
+
+            Scene2ManagerScript.MessageText.text = "An error occured.\nRestart the app if you think this is a mistake";
+            Scene2ManagerScript.EnableMessagePanel();
+
+            Scene2ManagerScript.DisableAllPanels();
+            Scene2ManagerScript.EnableLoginPanel();
         }
     }
+
+
 
 
 
@@ -191,13 +248,27 @@ public class Scene2Backend : MonoBehaviour
             else
             {
                 Debug.Log("Number already taken.");
+
+                Scene2ManagerScript.MessageText.text = "Phone number already taken.";
+                Scene2ManagerScript.EnableMessagePanel();
+
+                Scene2ManagerScript.DisableAllPanels();
+                Scene2ManagerScript.EnableSetPhoneNumberPanel();
             }
         }
         else
         {
             Debug.LogError(request.error);
+
+            Scene2ManagerScript.MessageText.text = "An error occured.\nRestart the app if you think this is a mistake";
+            Scene2ManagerScript.EnableMessagePanel();
+
+            Scene2ManagerScript.DisableAllPanels();
+            Scene2ManagerScript.EnableSetPhoneNumberPanel();
         }
     }
+
+
 
 
 
@@ -247,6 +318,13 @@ public class Scene2Backend : MonoBehaviour
         else
         {
             Debug.LogError(request.error);
+
+            Scene2ManagerScript.MessageText.text = "An error occured.\nRestart the app if you think this is a mistake";
+            Scene2ManagerScript.EnableMessagePanel();
+
+            Scene2ManagerScript.DisableAllPanels();
+            Scene2ManagerScript.EnableSetProfileInfoPanel();
         }
     }
+
 }

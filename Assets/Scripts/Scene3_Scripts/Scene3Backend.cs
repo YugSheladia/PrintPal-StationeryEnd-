@@ -2,6 +2,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using TMPro;
+using UnityEditor.SceneManagement;
 using UnityEngine;
 using UnityEngine.Networking;
 using static Scene3Backend;
@@ -36,6 +37,8 @@ public class OrderSummary
 
     // Runtime only.
     public List<PrintDetails> Prints = new();
+
+    public bool failedToDownloadOrder = false;
 }
 
 [System.Serializable]
@@ -61,6 +64,8 @@ public class PrintSummary
     public string PDFName;
 
     public int TotalPages;
+
+    public bool failedToDownloadPrint = false;
 }
 
 [System.Serializable]
@@ -96,6 +101,8 @@ public class PrintSettingsSummary
     public int Color;
 
     public int Copies;
+
+    public bool failedToDownloadPrintSettings = false;
 }
 
 [System.Serializable]
@@ -129,6 +136,8 @@ public class PrintBillsSummary
     public int PagesPerSheet;
 
     public float BillAmount;
+
+    public bool failedToDownloadPrintBills = false;
 }
 
 [System.Serializable]
@@ -216,6 +225,10 @@ public class PrintDetails
 
     public float BillAmount;
 
+    public bool failedToDownloadPrint           = false;
+    public bool failedToDownloadPrintSettings   = false;
+    public bool failedToDownloadPrintBills      = false;
+
     public PrintDetails()
     {
 
@@ -290,13 +303,21 @@ public class UsernameResponse
 
 
 
+
+
+
+
+
+
 //==================================================
 // Main Class
 //==================================================
 
 public class Scene3Backend : MonoBehaviour
 {
-    [SerializeField] HomePage HomePageScript;
+    [SerializeField] HomePage       HomePageScript;
+    [SerializeField] Scene3Manager  Scene3ManagerScript;
+
 
 
     //Wrapper objects creation.
@@ -310,8 +331,14 @@ public class Scene3Backend : MonoBehaviour
 
 
 
+
+
+
+
+
+
     //To get orders, beloing to a stationery, of a specific status.
-    public IEnumerator GetPendingOrders(int StationeryID)
+    public IEnumerator GetPendingOrders ( int StationeryID, System.Action<bool> OnComplete )
     {
         Debug.Log("Downloading Pending Orders...");
 
@@ -319,17 +346,19 @@ public class Scene3Backend : MonoBehaviour
         ConfirmedPrints.Prints                  = new PrintSummary[0];
         ConfirmedPrintSettings.PrintSettings    = new PrintSettingsSummary[0];
         ConfirmedPrintBills.PrintBills          = new PrintBillsSummary[0];
-    
 
-        UnityWebRequest request = UnityWebRequest.Get(
-                                                         $"http://localhost:3000/orders/pending?StationeryID={StationeryID}"
-                                                     );
+        UnityWebRequest request = UnityWebRequest.Get
+        (
+            $"http://localhost:3000/orders/pending?StationeryID={StationeryID}"
+        );
 
         yield return request.SendWebRequest();
 
         if (request.result != UnityWebRequest.Result.Success)
         {
             Debug.LogError("Orders Download Failed: " + request.error);
+
+            OnComplete(false);
             yield break;
         }
 
@@ -337,49 +366,78 @@ public class Scene3Backend : MonoBehaviour
         Debug.Log(request.downloadHandler.text);
 #endif
 
-        OrderSummaryWrapper response =
-            JsonUtility.FromJson<OrderSummaryWrapper>(request.downloadHandler.text);
+        OrderSummaryWrapper Response =
+            JsonUtility.FromJson<OrderSummaryWrapper>
+            (
+                request.downloadHandler.text
+            );
 
-        if (response == null)
+        if (Response == null)
         {
             Debug.LogError("Orders JSON Parsing Failed.");
+
+            OnComplete(false);
             yield break;
         }
 
-        if (!response.Success)
+        if (!Response.Success)
         {
-            Debug.LogError("Server Error: " + response.Message);
+            Debug.LogError("Server Error: " + Response.Message);
+
+            OnComplete(false);
             yield break;
         }
 
         ConfirmedOrders.Orders =
-            response.Orders ?? new OrderSummary[0];
+            Response.Orders ?? new OrderSummary[0];
 
-        Debug.Log($"Downloaded {ConfirmedOrders.Orders.Length} Pending Orders.");
+        Debug.Log
+        (
+            $"Downloaded {ConfirmedOrders.Orders.Length} Pending Orders."
+        );
 
-        yield return StartCoroutine(GetPrints());
+        bool PrintsSuccess = false;
+
+        yield return StartCoroutine
+        (
+            GetPrints(Result => PrintsSuccess = Result)
+        );
+
+        if (!PrintsSuccess)
+        {
+            OnComplete(false);
+            yield break;
+        }
 
         Debug.Log("Finished Downloading Pending Orders.");
+
+        OnComplete(true);
     }
-    public IEnumerator GetCompletedOrders(int StationeryID)
+    public IEnumerator GetCompletedOrders ( int StationeryID, System.Action<bool> OnComplete)
     {
         Debug.Log("Downloading Completed Orders...");
 
-        ConfirmedOrders.Orders = new OrderSummary[0];
-        ConfirmedPrints.Prints = new PrintSummary[0];
-        ConfirmedPrintSettings.PrintSettings = new PrintSettingsSummary[0];
-        ConfirmedPrintBills.PrintBills = new PrintBillsSummary[0];
+        ConfirmedOrders.Orders                  = new OrderSummary[0];
+        ConfirmedPrints.Prints                  = new PrintSummary[0];
+        ConfirmedPrintSettings.PrintSettings    = new PrintSettingsSummary[0];
+        ConfirmedPrintBills.PrintBills          = new PrintBillsSummary[0];
 
-        UnityWebRequest request =
-            UnityWebRequest.Get(
-                $"http://localhost:3000/orders/completed?StationeryID={StationeryID}"
-            );
+        UnityWebRequest request = UnityWebRequest.Get
+        (
+            $"http://localhost:3000/orders/completed?StationeryID={StationeryID}"
+        );
 
         yield return request.SendWebRequest();
 
         if (request.result != UnityWebRequest.Result.Success)
         {
-            Debug.LogError("Orders Download Failed: " + request.error);
+            Debug.LogError
+            (
+                "Orders Download Failed: "
+                + request.error
+            );
+
+            OnComplete(false);
             yield break;
         }
 
@@ -387,49 +445,82 @@ public class Scene3Backend : MonoBehaviour
         Debug.Log(request.downloadHandler.text);
 #endif
 
-        OrderSummaryWrapper response =
-            JsonUtility.FromJson<OrderSummaryWrapper>(request.downloadHandler.text);
+        OrderSummaryWrapper Response =
+            JsonUtility.FromJson<OrderSummaryWrapper>
+            (
+                request.downloadHandler.text
+            );
 
-        if (response == null)
+        if (Response == null)
         {
             Debug.LogError("Orders JSON Parsing Failed.");
+
+            OnComplete(false);
             yield break;
         }
 
-        if (!response.Success)
+        if (!Response.Success)
         {
-            Debug.LogError("Server Error: " + response.Message);
+            Debug.LogError
+            (
+                "Server Error: "
+                + Response.Message
+            );
+
+            OnComplete(false);
             yield break;
         }
 
         ConfirmedOrders.Orders =
-            response.Orders ?? new OrderSummary[0];
+            Response.Orders ?? new OrderSummary[0];
 
-        Debug.Log($"Downloaded {ConfirmedOrders.Orders.Length} Completed Orders.");
+        Debug.Log
+        (
+            $"Downloaded {ConfirmedOrders.Orders.Length} Completed Orders."
+        );
 
-        yield return StartCoroutine(GetPrints());
+        bool PrintsSuccess = false;
+
+        yield return StartCoroutine
+        (
+            GetPrints(Result => PrintsSuccess = Result)
+        );
+
+        if (!PrintsSuccess)
+        {
+            OnComplete(false);
+            yield break;
+        }
 
         Debug.Log("Finished Downloading Completed Orders.");
+
+        OnComplete(true);
     }
-    public IEnumerator GetCollectedOrders(int StationeryID)
+    public IEnumerator GetCollectedOrders ( int StationeryID, System.Action<bool> OnComplete)
     {
         Debug.Log("Downloading Collected Orders...");
 
-        ConfirmedOrders.Orders = new OrderSummary[0];
-        ConfirmedPrints.Prints = new PrintSummary[0];
-        ConfirmedPrintSettings.PrintSettings = new PrintSettingsSummary[0];
-        ConfirmedPrintBills.PrintBills = new PrintBillsSummary[0];
+        ConfirmedOrders.Orders                          = new OrderSummary[0];
+        ConfirmedPrints.Prints                          = new PrintSummary[0];
+        ConfirmedPrintSettings.PrintSettings            = new PrintSettingsSummary[0];
+        ConfirmedPrintBills.PrintBills                  = new PrintBillsSummary[0];
 
-        UnityWebRequest request =
-            UnityWebRequest.Get(
-                $"http://localhost:3000/orders/collected?StationeryID={StationeryID}"
-            );
+        UnityWebRequest request = UnityWebRequest.Get
+        (
+            $"http://localhost:3000/orders/collected?StationeryID={StationeryID}"
+        );
 
         yield return request.SendWebRequest();
 
         if (request.result != UnityWebRequest.Result.Success)
         {
-            Debug.LogError("Orders Download Failed: " + request.error);
+            Debug.LogError
+            (
+                "Orders Download Failed: "
+                + request.error
+            );
+
+            OnComplete(false);
             yield break;
         }
 
@@ -437,35 +528,58 @@ public class Scene3Backend : MonoBehaviour
         Debug.Log(request.downloadHandler.text);
 #endif
 
-        OrderSummaryWrapper response =
-            JsonUtility.FromJson<OrderSummaryWrapper>(request.downloadHandler.text);
+        OrderSummaryWrapper Response =
+            JsonUtility.FromJson<OrderSummaryWrapper>
+            (
+                request.downloadHandler.text
+            );
 
-        if (response == null)
+        if (Response == null)
         {
             Debug.LogError("Orders JSON Parsing Failed.");
+
+            OnComplete(false);
             yield break;
         }
 
-        if (!response.Success)
+        if (!Response.Success)
         {
-            Debug.LogError("Server Error: " + response.Message);
+            Debug.LogError
+            (
+                "Server Error: "
+                + Response.Message
+            );
+
+            OnComplete(false);
             yield break;
         }
 
         ConfirmedOrders.Orders =
-            response.Orders ?? new OrderSummary[0];
+            Response.Orders ?? new OrderSummary[0];
 
-        Debug.Log($"Downloaded {ConfirmedOrders.Orders.Length} Collected Orders.");
+        Debug.Log
+        (
+            $"Downloaded {ConfirmedOrders.Orders.Length} Collected Orders."
+        );
 
-        yield return StartCoroutine(GetPrints());
+        bool PrintsSuccess = false;
+
+        yield return StartCoroutine
+        (
+            GetPrints(Result => PrintsSuccess = Result)
+        );
+
+        if (!PrintsSuccess)
+        {
+            OnComplete(false);
+            yield break;
+        }
 
         Debug.Log("Finished Downloading Collected Orders.");
+
+        OnComplete(true);
     }
-
-
-
-    //Get all Archived Orders.
-    public IEnumerator GetArchivedOrders(int StationeryID)
+    public IEnumerator GetArchivedOrders ( int StationeryID, System.Action<bool> OnComplete )
     {
         Debug.Log("Downloading Archived Orders...");
 
@@ -474,16 +588,22 @@ public class Scene3Backend : MonoBehaviour
         ConfirmedPrintSettings.PrintSettings    = new PrintSettingsSummary[0];
         ConfirmedPrintBills.PrintBills          = new PrintBillsSummary[0];
 
-        UnityWebRequest request =
-            UnityWebRequest.Get(
-                $"http://localhost:3000/stationeryOrders/archived?StationeryID={StationeryID}"
-            );
+        UnityWebRequest request = UnityWebRequest.Get
+        (
+            $"http://localhost:3000/stationeryOrders/archived?StationeryID={StationeryID}"
+        );
 
         yield return request.SendWebRequest();
 
         if (request.result != UnityWebRequest.Result.Success)
         {
-            Debug.LogError("Orders Download Failed: " + request.error);
+            Debug.LogError
+            (
+                "Orders Download Failed: "
+                + request.error
+            );
+
+            OnComplete(false);
             yield break;
         }
 
@@ -491,37 +611,68 @@ public class Scene3Backend : MonoBehaviour
         Debug.Log(request.downloadHandler.text);
 #endif
 
-        OrderSummaryWrapper response =
-            JsonUtility.FromJson<OrderSummaryWrapper>(request.downloadHandler.text);
+        OrderSummaryWrapper Response =
+            JsonUtility.FromJson<OrderSummaryWrapper>
+            (
+                request.downloadHandler.text
+            );
 
-        if (response == null)
+        if (Response == null)
         {
             Debug.LogError("Orders JSON Parsing Failed.");
+
+            OnComplete(false);
             yield break;
         }
 
-        if (!response.Success)
+        if (!Response.Success)
         {
-            Debug.LogError("Server Error: " + response.Message);
+            Debug.LogError
+            (
+                "Server Error: "
+                + Response.Message
+            );
+
+            OnComplete(false);
             yield break;
         }
 
         ConfirmedOrders.Orders =
-            response.Orders ?? new OrderSummary[0];
+            Response.Orders ?? new OrderSummary[0];
 
-        Debug.Log($"Downloaded {ConfirmedOrders.Orders.Length} Archived Orders.");
+        Debug.Log
+        (
+            $"Downloaded {ConfirmedOrders.Orders.Length} Archived Orders."
+        );
 
-        yield return StartCoroutine(GetPrints());
+        bool PrintsSuccess = false;
 
-        Debug.Log("Finished Downloading Deleted Orders.");
+        yield return StartCoroutine
+        (
+            GetPrints(Result => PrintsSuccess = Result)
+        );
+
+        if (!PrintsSuccess)
+        {
+            OnComplete(false);
+            yield break;
+        }
+
+        Debug.Log("Finished Downloading Archived Orders.");
+
+        OnComplete(true);
     }
 
 
 
 
-   //To get prints, printBills, and printSettings of Orders of a specific status
-   //( Called by functions above, e.g. - GetPendingOrders, GetCompletedOrders ).
-    IEnumerator GetPrints()
+
+
+
+
+    //To get prints, printBills, and printSettings of Orders of a specific status
+    //( Called by functions above, e.g. - GetPendingOrders, GetCompletedOrders ).
+    IEnumerator GetPrints(System.Action<bool> OnComplete)
     {
         Debug.Log("Downloading Prints...");
 
@@ -530,10 +681,10 @@ public class Scene3Backend : MonoBehaviour
         foreach (OrderSummary Order in ConfirmedOrders.Orders)
         {
             UnityWebRequest request = UnityWebRequest.Get
-                                                      (
-                                                            "http://localhost:3000/prints/order/"
-                                                            + Order.OrderID
-                                                      );
+            (
+                "http://localhost:3000/prints/order/"
+                + Order.OrderID
+            );
 
             yield return request.SendWebRequest();
 
@@ -545,7 +696,8 @@ public class Scene3Backend : MonoBehaviour
                     + Order.OrderID
                 );
 
-                continue;
+                OnComplete(false);
+                yield break;
             }
 
 #if UNITY_EDITOR
@@ -558,26 +710,16 @@ public class Scene3Backend : MonoBehaviour
                     request.downloadHandler.text
                 );
 
-            if (Response == null)
+            if (Response == null || !Response.Success)
             {
                 Debug.LogError
                 (
-                    "Failed Parsing Prints JSON For Order "
+                    "Failed To Download Prints For Order "
                     + Order.OrderID
                 );
 
-                continue;
-            }
-
-            if (!Response.Success)
-            {
-                Debug.LogError
-                (
-                    "Server Error : "
-                    + Response.Message
-                );
-
-                continue;
+                OnComplete(false);
+                yield break;
             }
 
             if (Response.Prints != null)
@@ -588,98 +730,24 @@ public class Scene3Backend : MonoBehaviour
 
         ConfirmedPrints.Prints = AllPrints.ToArray();
 
-        Debug.Log
+        bool SettingsSuccess = false;
+
+        yield return StartCoroutine
         (
-            "Downloaded "
-            + ConfirmedPrints.Prints.Length
-            + " Prints."
+            GetPrintSettings(Result => SettingsSuccess = Result)
         );
 
-        yield return StartCoroutine(GetPrintSettings());
-
-        Debug.Log("Finished Downloading Prints.");
-    }
-    IEnumerator GetPrintBills()
-    {
-        Debug.Log("Downloading Print Bills...");
-
-        List<PrintBillsSummary> AllPrintBills = new();
-
-        foreach (PrintSummary Print in ConfirmedPrints.Prints)
+        if (!SettingsSuccess)
         {
-            UnityWebRequest request =
-                UnityWebRequest.Get
-                (
-                    "http://localhost:3000/bill/print/"
-                    + Print.PrintID
-                );
-
-            yield return request.SendWebRequest();
-
-            if (request.result != UnityWebRequest.Result.Success)
-            {
-                Debug.LogError
-                (
-                    "Failed To Download Bill For Print "
-                    + Print.PrintID
-                );
-
-                continue;
-            }
-
-#if UNITY_EDITOR
-            Debug.Log(request.downloadHandler.text);
-#endif
-
-            PrintBillsSummaryWrapper Response =
-                JsonUtility.FromJson<PrintBillsSummaryWrapper>
-                (
-                    request.downloadHandler.text
-                );
-
-            if (Response == null)
-            {
-                Debug.LogError
-                (
-                    "Failed Parsing Print Bill JSON For Print "
-                    + Print.PrintID
-                );
-
-                continue;
-            }
-
-            if (!Response.Success)
-            {
-                Debug.LogError
-                (
-                    "Server Error : "
-                    + Response.Message
-                );
-
-                continue;
-            }
-
-            if (Response.PrintBills != null)
-            {
-                AllPrintBills.AddRange(Response.PrintBills);
-            }
+            OnComplete(false);
+            yield break;
         }
 
-        ConfirmedPrintBills.PrintBills =
-            AllPrintBills.ToArray();
+        Debug.Log("Finished Downloading Prints.");
 
-        Debug.Log
-        (
-            "Downloaded "
-            + ConfirmedPrintBills.PrintBills.Length
-            + " Print Bills."
-        );
-
-        BuildPrintDetails();
-
-        Debug.Log("Finished Downloading Everything.");
+        OnComplete(true);
     }
-    IEnumerator GetPrintSettings()
+    IEnumerator GetPrintSettings(System.Action<bool> OnComplete)
     {
         Debug.Log("Downloading Print Settings...");
 
@@ -687,12 +755,11 @@ public class Scene3Backend : MonoBehaviour
 
         foreach (PrintSummary Print in ConfirmedPrints.Prints)
         {
-            UnityWebRequest request =
-                UnityWebRequest.Get
-                (
-                    "http://localhost:3000/settings/print/"
-                    + Print.PrintID
-                );
+            UnityWebRequest request = UnityWebRequest.Get
+            (
+                "http://localhost:3000/settings/print/"
+                + Print.PrintID
+            );
 
             yield return request.SendWebRequest();
 
@@ -704,12 +771,9 @@ public class Scene3Backend : MonoBehaviour
                     + Print.PrintID
                 );
 
-                continue;
+                OnComplete(false);
+                yield break;
             }
-
-#if UNITY_EDITOR
-            Debug.Log(request.downloadHandler.text);
-#endif
 
             PrintSettingsSummaryWrapper Response =
                 JsonUtility.FromJson<PrintSettingsSummaryWrapper>
@@ -717,26 +781,16 @@ public class Scene3Backend : MonoBehaviour
                     request.downloadHandler.text
                 );
 
-            if (Response == null)
+            if (Response == null || !Response.Success)
             {
                 Debug.LogError
                 (
-                    "Failed Parsing Print Settings JSON For Print "
+                    "Failed To Download Settings For Print "
                     + Print.PrintID
                 );
 
-                continue;
-            }
-
-            if (!Response.Success)
-            {
-                Debug.LogError
-                (
-                    "Server Error : "
-                    + Response.Message
-                );
-
-                continue;
+                OnComplete(false);
+                yield break;
             }
 
             if (Response.PrintSettings != null)
@@ -748,22 +802,93 @@ public class Scene3Backend : MonoBehaviour
         ConfirmedPrintSettings.PrintSettings =
             AllPrintSettings.ToArray();
 
-        Debug.Log
+        bool BillsSuccess = false;
+
+        yield return StartCoroutine
         (
-            "Downloaded "
-            + ConfirmedPrintSettings.PrintSettings.Length
-            + " Print Settings."
+            GetPrintBills(Result => BillsSuccess = Result)
         );
 
-        yield return StartCoroutine(GetPrintBills());
+        if (!BillsSuccess)
+        {
+            OnComplete(false);
+            yield break;
+        }
 
         Debug.Log("Finished Downloading Print Settings.");
+
+        OnComplete(true);
+    }
+    IEnumerator GetPrintBills(System.Action<bool> OnComplete)
+    {
+        Debug.Log("Downloading Print Bills...");
+
+        List<PrintBillsSummary> AllPrintBills = new();
+
+        foreach (PrintSummary Print in ConfirmedPrints.Prints)
+        {
+            UnityWebRequest request = UnityWebRequest.Get
+            (
+                "http://localhost:3000/bill/print/"
+                + Print.PrintID
+            );
+
+            yield return request.SendWebRequest();
+
+            if (request.result != UnityWebRequest.Result.Success)
+            {
+                Debug.LogError
+                (
+                    "Failed To Download Bill For Print "
+                    + Print.PrintID
+                );
+
+                OnComplete(false);
+                yield break;
+            }
+
+            PrintBillsSummaryWrapper Response =
+                JsonUtility.FromJson<PrintBillsSummaryWrapper>
+                (
+                    request.downloadHandler.text
+                );
+
+            if (Response == null || !Response.Success)
+            {
+                Debug.LogError
+                (
+                    "Failed To Download Bill For Print "
+                    + Print.PrintID
+                );
+
+                OnComplete(false);
+                yield break;
+            }
+
+            if (Response.PrintBills != null)
+            {
+                AllPrintBills.AddRange(Response.PrintBills);
+            }
+        }
+
+        ConfirmedPrintBills.PrintBills =
+            AllPrintBills.ToArray();
+
+        BuildPrintDetails();
+
+        Debug.Log("Finished Downloading Everything.");
+
+        OnComplete(true);
     }
 
 
 
+
+
+
+
     //Making a PrintDetails object for each prints of each order ( of a specific order status ).
-    
+
     public Dictionary  <int, PrintSettingsSummary> SettingsDictionary  = new();
     public Dictionary  <int, PrintBillsSummary>    BillsDictionary     = new();
     public Dictionary  <int, List<PrintSummary>>   PrintsDictionary    = new();
@@ -884,7 +1009,12 @@ public class Scene3Backend : MonoBehaviour
 
 
 
-    //To get name of the User who issued the Order.
+
+
+
+
+    /// ////////////////
+
     public void GetUsernameFromServer(int UserID, PendingOrderStatus PendingOrderStatusScript)
     {
         StartCoroutine(GetUsername(UserID, PendingOrderStatusScript));
@@ -912,11 +1042,23 @@ public class Scene3Backend : MonoBehaviour
             else
             {
                 Debug.LogWarning("User not found.");
+
+                Scene3ManagerScript.DisableAllPanels();
+                Scene3ManagerScript.EnableHomePagePanel();
+
+                Scene3ManagerScript.MessageText.text = "Something went wrong, try again later.";
+                Scene3ManagerScript.EnableMessagePanel();
             }
         }
         else
         {
             Debug.LogError(request.error);
+
+            Scene3ManagerScript.DisableAllPanels();
+            Scene3ManagerScript.EnableHomePagePanel();
+
+            Scene3ManagerScript.MessageText.text = "Something went wrong, try again later.";
+            Scene3ManagerScript.EnableMessagePanel();
         }
     }
     public void GetUsernameFromServer(int UserID, RTCOrderStatus RTCOrderStatusScript)
@@ -946,11 +1088,23 @@ public class Scene3Backend : MonoBehaviour
             else
             {
                 Debug.LogWarning("User not found.");
+
+                Scene3ManagerScript.DisableAllPanels();
+                Scene3ManagerScript.EnableHomePagePanel();
+
+                Scene3ManagerScript.MessageText.text = "Something went wrong, try again later.";
+                Scene3ManagerScript.EnableMessagePanel();
             }
         }
         else
         {
             Debug.LogError(request.error);
+
+            Scene3ManagerScript.DisableAllPanels();
+            Scene3ManagerScript.EnableHomePagePanel();
+
+            Scene3ManagerScript.MessageText.text = "Something went wrong, try again later.";
+            Scene3ManagerScript.EnableMessagePanel();
         }
     }
     public void GetUsernameFromServer(int UserID, CollectedOrderStatus CollectedOrderStatusScript)
@@ -980,11 +1134,23 @@ public class Scene3Backend : MonoBehaviour
             else
             {
                 Debug.LogWarning("User not found.");
+
+                Scene3ManagerScript.DisableAllPanels();
+                Scene3ManagerScript.EnableHomePagePanel();
+
+                Scene3ManagerScript.MessageText.text = "Something went wrong, try again later.";
+                Scene3ManagerScript.EnableMessagePanel();
             }
         }
         else
         {
             Debug.LogError(request.error);
+
+            Scene3ManagerScript.DisableAllPanels();
+            Scene3ManagerScript.EnableHomePagePanel();
+
+            Scene3ManagerScript.MessageText.text = "Something went wrong, try again later.";
+            Scene3ManagerScript.EnableMessagePanel();
         }
     }
     public void GetUsernameFromServer(int UserID, SearchedOrderStatus SearchedOrderStatusScript)
@@ -1014,11 +1180,23 @@ public class Scene3Backend : MonoBehaviour
             else
             {
                 Debug.LogWarning("User not found.");
+
+                Scene3ManagerScript.DisableAllPanels();
+                Scene3ManagerScript.EnableHomePagePanel();
+
+                Scene3ManagerScript.MessageText.text = "Something went wrong, try again later.";
+                Scene3ManagerScript.EnableMessagePanel();
             }
         }
         else
         {
             Debug.LogError(request.error);
+
+            Scene3ManagerScript.DisableAllPanels();
+            Scene3ManagerScript.EnableHomePagePanel();
+
+            Scene3ManagerScript.MessageText.text = "Something went wrong, try again later.";
+            Scene3ManagerScript.EnableMessagePanel();
         }
     }
     public void GetUsernameFromServer(int UserID, ArchivedOrderStatus ArchivedOrderStatusScript)
@@ -1048,16 +1226,36 @@ public class Scene3Backend : MonoBehaviour
             else
             {
                 Debug.LogWarning("User not found.");
+
+                Scene3ManagerScript.DisableAllPanels();
+                Scene3ManagerScript.EnableHomePagePanel();
+
+                Scene3ManagerScript.MessageText.text = "Something went wrong, try again later.";
+                Scene3ManagerScript.EnableMessagePanel();
             }
         }
         else
         {
             Debug.LogError(request.error);
+
+            Scene3ManagerScript.DisableAllPanels();
+            Scene3ManagerScript.EnableHomePagePanel();
+
+            Scene3ManagerScript.MessageText.text = "Something went wrong, try again later.";
+            Scene3ManagerScript.EnableMessagePanel();
         }
     }
 
 
 
+
+
+
+
+
+
+
+    //
 
     //To set Order's status.
     [System.Serializable]
@@ -1065,128 +1263,277 @@ public class Scene3Backend : MonoBehaviour
     {
         public int OrderID;
     }
-    public void SetOrderAsPending(int OrderID)
+    public void SetOrderAsPending(int OrderID, GameObject Panel)
     {
-        StartCoroutine(Coroutine_SetOrderAsPending(OrderID));
+        StartCoroutine
+        (
+            SetOrderAsPending
+            (
+                OrderID,
+                Success => HandleStandaloneStatusChange
+                (
+                    Success,
+                    Panel
+                )
+            )
+        );
     }
-    IEnumerator Coroutine_SetOrderAsPending(int OrderID)
+    public void SetOrderAsCompleted(int OrderID, GameObject Panel)
+    {
+        StartCoroutine
+        (
+            SetOrderAsCompleted
+            (
+                OrderID,
+                Success => HandleStandaloneStatusChange
+                (
+                    Success,
+                    Panel
+                )
+            )
+        );
+    }
+    public void SetOrderAsCollected(int OrderID, GameObject Panel)
+    {
+        StartCoroutine
+        (
+            SetOrderAsCollected
+            (
+                OrderID,
+                Success => HandleStandaloneStatusChange
+                (
+                    Success,
+                    Panel
+                )
+            )
+        );
+    }
+    public void SetOrderAsUnarchived(int OrderID, GameObject Panel)
+    {
+        StartCoroutine
+        (
+            SetOrderAsUnarchived
+            (
+                OrderID,
+                Success => HandleStandaloneStatusChange
+                (
+                    Success,
+                    Panel
+                )
+            )
+        );
+    }
+    void HandleStandaloneStatusChange ( bool Success, GameObject Panel )
+    {
+        Scene3ManagerScript.DisableInvisiblePanel();
+
+        if (!Success)
+        {
+            Scene3ManagerScript.DisableAllPanels();
+            Scene3ManagerScript.EnableHomePagePanel();
+
+            Scene3ManagerScript.MessageText.text = "Something went wrong, try again later.";
+            Scene3ManagerScript.EnableMessagePanel();
+
+            return;
+        }
+
+        Destroy(Panel);
+    }
+
+
+
+
+
+
+
+    public IEnumerator SetOrderAsPending ( int OrderID, System.Action<bool> OnComplete )
     {
         OrderIDRequest requestBody = new();
         requestBody.OrderID = OrderID;
 
         string json = JsonUtility.ToJson(requestBody);
 
-        UnityWebRequest request = new UnityWebRequest(
-                                                        "http://localhost:3000/order/pending",
-                                                        "POST"
-                                                      );
+        byte[] body =
+            System.Text.Encoding.UTF8.GetBytes(json);
 
-        byte[] body = System.Text.Encoding.UTF8.GetBytes(json);
+        UnityWebRequest request = new UnityWebRequest
+        (
+            "http://localhost:3000/order/pending",
+            "POST"
+        );
 
         request.uploadHandler = new UploadHandlerRaw(body);
         request.downloadHandler = new DownloadHandlerBuffer();
 
-        request.SetRequestHeader(
-                                    "Content-Type", 
-                                    "application/json"
-                                );
+        request.SetRequestHeader
+        (
+            "Content-Type",
+            "application/json"
+        );
 
         yield return request.SendWebRequest();
 
-        if (request.result == UnityWebRequest.Result.Success)
+        if (request.result != UnityWebRequest.Result.Success)
         {
-            Debug.Log("Order marked as Pending.");
+            Debug.LogError
+            (
+                "Failed To Mark Order As Pending: "
+                + request.error
+            );
+
+            OnComplete(false);
+            yield break;
         }
-        else
-        {
-            Debug.LogError(request.error);
-        }
+
+        Debug.Log("Order marked as Pending.");
+
+        OnComplete(true);
     }
-    public void SetOrderAsCompleted(int OrderID)
-    {
-        StartCoroutine(Coroutine_SetOrderAsCompleted(OrderID));
-    }
-    IEnumerator Coroutine_SetOrderAsCompleted(int OrderID)
+    public IEnumerator SetOrderAsCompleted ( int OrderID, System.Action<bool> OnComplete )
     {
         OrderIDRequest requestBody = new();
         requestBody.OrderID = OrderID;
 
         string json = JsonUtility.ToJson(requestBody);
 
-        byte[] body = System.Text.Encoding.UTF8.GetBytes(json);
+        byte[] body =
+            System.Text.Encoding.UTF8.GetBytes(json);
 
-        UnityWebRequest request = new UnityWebRequest(
-                                                        "http://localhost:3000/order/completed",
-                                                        "POST"
-                                                     );
+        UnityWebRequest request = new UnityWebRequest
+        (
+            "http://localhost:3000/order/completed",
+            "POST"
+        );
 
         request.uploadHandler = new UploadHandlerRaw(body);
-
         request.downloadHandler = new DownloadHandlerBuffer();
 
-        request.SetRequestHeader(
-                                    "Content-Type", 
-                                    "application/json"
-                                );
+        request.SetRequestHeader
+        (
+            "Content-Type",
+            "application/json"
+        );
 
         yield return request.SendWebRequest();
 
-        if (request.result == UnityWebRequest.Result.Success)
+        if (request.result != UnityWebRequest.Result.Success)
         {
-            Debug.Log("Order marked as Completed.");
+            Debug.LogError
+            (
+                "Failed To Mark Order As Completed: "
+                + request.error
+            );
+
+            OnComplete(false);
+            yield break;
         }
-        else
-        {
-            Debug.LogError(request.error);
-        }
+
+        Debug.Log("Order marked as Completed.");
+
+        OnComplete(true);
     }
-    public void SetOrderAsCollected(int OrderID)
-    {
-        StartCoroutine(Coroutine_SetOrderAsCollected(OrderID));
-    }
-    IEnumerator Coroutine_SetOrderAsCollected(int OrderID)
+    public IEnumerator SetOrderAsCollected ( int OrderID, System.Action<bool> OnComplete )
     {
         OrderIDRequest requestBody = new();
         requestBody.OrderID = OrderID;
 
         string json = JsonUtility.ToJson(requestBody);
 
-        byte[] body = System.Text.Encoding.UTF8.GetBytes(json);
+        byte[] body =
+            System.Text.Encoding.UTF8.GetBytes(json);
 
-        UnityWebRequest request = new UnityWebRequest(
-                                                            "http://localhost:3000/order/collected",
-                                                            "POST"
-                                                      );
+        UnityWebRequest request = new UnityWebRequest
+        (
+            "http://localhost:3000/order/collected",
+            "POST"
+        );
 
         request.uploadHandler = new UploadHandlerRaw(body);
-
         request.downloadHandler = new DownloadHandlerBuffer();
 
-        request.SetRequestHeader(
-                                    "Content-Type", 
-                                    "application/json"
-                                );
+        request.SetRequestHeader
+        (
+            "Content-Type",
+            "application/json"
+        );
 
         yield return request.SendWebRequest();
 
-        if (request.result == UnityWebRequest.Result.Success)
+        if (request.result != UnityWebRequest.Result.Success)
         {
-            Debug.Log("Order marked as Collected.");
+            Debug.LogError
+            (
+                "Failed To Mark Order As Collected: "
+                + request.error
+            );
+
+            OnComplete(false);
+            yield break;
         }
-        else
-        {
-            Debug.LogError(request.error);
-        }
+
+        Debug.Log("Order marked as Collected.");
+
+        OnComplete(true);
     }
-
-
-
-    //Marking Orders as Archived / Unarchived.
-    public void SetOrderAsArchived(int OrderID)
+    public IEnumerator SetOrderAsUnarchived ( int OrderID, System.Action<bool> OnComplete )
     {
-        StartCoroutine(Coroutine_SetOrderAsArchived(OrderID));
+        OrderIDRequest requestBody = new();
+        requestBody.OrderID = OrderID;
+
+        string json = JsonUtility.ToJson(requestBody);
+
+        byte[] body =
+            System.Text.Encoding.UTF8.GetBytes(json);
+
+        UnityWebRequest request = new UnityWebRequest
+        (
+            "http://localhost:3000/order/stationery-unarchive",
+            "POST"
+        );
+
+        request.uploadHandler = new UploadHandlerRaw(body);
+        request.downloadHandler = new DownloadHandlerBuffer();
+
+        request.SetRequestHeader
+        (
+            "Content-Type",
+            "application/json"
+        );
+
+        yield return request.SendWebRequest();
+
+        if (request.result != UnityWebRequest.Result.Success)
+        {
+            Debug.LogError
+            (
+                "Failed To Unarchive Order "
+                + OrderID
+                + ": "
+                + request.error
+            );
+
+            OnComplete(false);
+            yield break;
+        }
+
+        Debug.Log("Order marked as Unarchived.");
+
+        OnComplete(true);
     }
-    IEnumerator Coroutine_SetOrderAsArchived(int OrderID)
+
+
+
+
+
+
+
+
+    public void SetOrderAsArchived(int OrderID, GameObject Panel)
+    {
+        StartCoroutine(Coroutine_SetOrderAsArchived(OrderID, Panel));
+    }
+    IEnumerator Coroutine_SetOrderAsArchived(int OrderID, GameObject Panel)
     {
         OrderIDRequest requestBody = new();
         requestBody.OrderID = OrderID;
@@ -1214,65 +1561,45 @@ public class Scene3Backend : MonoBehaviour
         if (request.result == UnityWebRequest.Result.Success)
         {
             Debug.Log("Order marked as Archived.");
+
+            Destroy(Panel);
+
+            Scene3ManagerScript.DisableInvisiblePanel();
         }
         else
         {
             Debug.LogError(request.error);
+
+            Scene3ManagerScript.DisableAllPanels();
+            Scene3ManagerScript.EnableHomePagePanel();
+
+            Scene3ManagerScript.MessageText.text = "Something went wrong, try again later.";
+            Scene3ManagerScript.EnableMessagePanel();
         }
     }
-    public void SetOrderAsUnarchived(int OrderID)
-    {
-        StartCoroutine(Coroutine_SetOrderAsUnarchived(OrderID));
-    }
-    IEnumerator Coroutine_SetOrderAsUnarchived(int OrderID)
-    {
-        OrderIDRequest requestBody = new();
-        requestBody.OrderID = OrderID;
 
-        string json = JsonUtility.ToJson(requestBody);
 
-        byte[] body = System.Text.Encoding.UTF8.GetBytes(json);
 
-        UnityWebRequest request = new UnityWebRequest(
-                                                            "http://localhost:3000/order/stationery-unarchive",
-                                                            "POST"
-                                                      );
 
-        request.uploadHandler = new UploadHandlerRaw(body);
 
-        request.downloadHandler = new DownloadHandlerBuffer();
 
-        request.SetRequestHeader(
-                                    "Content-Type",
-                                    "application/json"
-                                );
 
-        yield return request.SendWebRequest();
-
-        if (request.result == UnityWebRequest.Result.Success)
-        {
-            Debug.Log("Order marked as Unarchived.");
-        }
-        else
-        {
-            Debug.LogError(request.error);
-        }
-    }
 
 
 
 
     //Search functionality -
-    public IEnumerator SearchByOrderIDCoroutine(int StationeryID, int OrderID)
+    public IEnumerator SearchByOrderIDCoroutine ( int StationeryID, int OrderID, System.Action<bool> OnComplete )
     {
         Debug.Log("Searching Order...");
 
-        ConfirmedOrders.Orders = new OrderSummary[0];
-        ConfirmedPrints.Prints = new PrintSummary[0];
-        ConfirmedPrintSettings.PrintSettings = new PrintSettingsSummary[0];
-        ConfirmedPrintBills.PrintBills = new PrintBillsSummary[0];
+        ConfirmedOrders.Orders                  = new OrderSummary[0];
+        ConfirmedPrints.Prints                  = new PrintSummary[0];
+        ConfirmedPrintSettings.PrintSettings    = new PrintSettingsSummary[0];
+        ConfirmedPrintBills.PrintBills          = new PrintBillsSummary[0];
 
-        UnityWebRequest request = UnityWebRequest.Get(
+        UnityWebRequest request = UnityWebRequest.Get
+        (
             $"http://localhost:3000/SearchByOrderID?StationeryID={StationeryID}&OrderID={OrderID}"
         );
 
@@ -1280,7 +1607,13 @@ public class Scene3Backend : MonoBehaviour
 
         if (request.result != UnityWebRequest.Result.Success)
         {
-            Debug.LogError("Order Search Failed: " + request.error);
+            Debug.LogError
+            (
+                "Order Search Failed: "
+                + request.error
+            );
+
+            OnComplete(false);
             yield break;
         }
 
@@ -1288,31 +1621,58 @@ public class Scene3Backend : MonoBehaviour
         Debug.Log(request.downloadHandler.text);
 #endif
 
-        OrderSummaryWrapper response =
-            JsonUtility.FromJson<OrderSummaryWrapper>(request.downloadHandler.text);
+        OrderSummaryWrapper Response =
+            JsonUtility.FromJson<OrderSummaryWrapper>
+            (
+                request.downloadHandler.text
+            );
 
-        if (response == null)
+        if (Response == null)
         {
             Debug.LogError("Order JSON Parsing Failed.");
+
+            OnComplete(false);
             yield break;
         }
 
-        if (!response.Success)
+        if (!Response.Success)
         {
-            Debug.LogError("Server Error: " + response.Message);
+            Debug.LogError
+            (
+                "Server Error: "
+                + Response.Message
+            );
+
+            OnComplete(false);
             yield break;
         }
 
         ConfirmedOrders.Orders =
-            response.Orders ?? new OrderSummary[0];
+            Response.Orders ?? new OrderSummary[0];
 
-        Debug.Log($"Found {ConfirmedOrders.Orders.Length} Order(s).");
+        Debug.Log
+        (
+            $"Found {ConfirmedOrders.Orders.Length} Order(s)."
+        );
 
-        yield return StartCoroutine(GetPrints());
+        bool PrintsSuccess = false;
+
+        yield return StartCoroutine
+        (
+            GetPrints(Result => PrintsSuccess = Result)
+        );
+
+        if (!PrintsSuccess)
+        {
+            OnComplete(false);
+            yield break;
+        }
 
         Debug.Log("Finished Searching Order.");
+
+        OnComplete(true);
     }
-    public IEnumerator SearchByUserIDCoroutine(int StationeryID, int UserID)
+    public IEnumerator SearchByUserIDCoroutine ( int StationeryID, int UserID, System.Action<bool> OnComplete )
     {
         Debug.Log("Searching User Orders...");
 
@@ -1321,7 +1681,8 @@ public class Scene3Backend : MonoBehaviour
         ConfirmedPrintSettings.PrintSettings = new PrintSettingsSummary[0];
         ConfirmedPrintBills.PrintBills = new PrintBillsSummary[0];
 
-        UnityWebRequest request = UnityWebRequest.Get(
+        UnityWebRequest request = UnityWebRequest.Get
+        (
             $"http://localhost:3000/SearchByUserID?StationeryID={StationeryID}&UserID={UserID}"
         );
 
@@ -1329,7 +1690,13 @@ public class Scene3Backend : MonoBehaviour
 
         if (request.result != UnityWebRequest.Result.Success)
         {
-            Debug.LogError("User Orders Search Failed: " + request.error);
+            Debug.LogError
+            (
+                "User Orders Search Failed: "
+                + request.error
+            );
+
+            OnComplete(false);
             yield break;
         }
 
@@ -1337,30 +1704,67 @@ public class Scene3Backend : MonoBehaviour
         Debug.Log(request.downloadHandler.text);
 #endif
 
-        OrderSummaryWrapper response =
-            JsonUtility.FromJson<OrderSummaryWrapper>(request.downloadHandler.text);
+        OrderSummaryWrapper Response =
+            JsonUtility.FromJson<OrderSummaryWrapper>
+            (
+                request.downloadHandler.text
+            );
 
-        if (response == null)
+        if (Response == null)
         {
             Debug.LogError("Orders JSON Parsing Failed.");
+
+            OnComplete(false);
             yield break;
         }
 
-        if (!response.Success)
+        if (!Response.Success)
         {
-            Debug.LogError("Server Error: " + response.Message);
+            Debug.LogError
+            (
+                "Server Error: "
+                + Response.Message
+            );
+
+            OnComplete(false);
             yield break;
         }
 
         ConfirmedOrders.Orders =
-            response.Orders ?? new OrderSummary[0];
+            Response.Orders ?? new OrderSummary[0];
 
-        Debug.Log($"Found {ConfirmedOrders.Orders.Length} Order(s).");
+        Debug.Log
+        (
+            $"Found {ConfirmedOrders.Orders.Length} Order(s)."
+        );
 
-        yield return StartCoroutine(GetPrints());
+        bool PrintsSuccess = false;
+
+        yield return StartCoroutine
+        (
+            GetPrints(Result => PrintsSuccess = Result)
+        );
+
+        if (!PrintsSuccess)
+        {
+            OnComplete(false);
+            yield break;
+        }
 
         Debug.Log("Finished Searching User Orders.");
+
+        OnComplete(true);
     }
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -1373,38 +1777,121 @@ public class Scene3Backend : MonoBehaviour
 
         public int TotalOrders;
     }
-    public void GetOrdersCount()
+    public IEnumerator GetOrdersCount ( System.Action<bool> OnComplete )
     {
-        StartCoroutine(GetOrderCount("pending",     HomePageScript.TotalPendingOrdersText));
-        StartCoroutine(GetOrderCount("completed",   HomePageScript.TotalFinishedOrdersText));
-        StartCoroutine(GetOrderCount("collected",   HomePageScript.TotalCollectedOrdersText));
+        bool PendingSuccess = false;
+
+        yield return StartCoroutine
+        (
+            GetOrderCount
+            (
+                "pending",
+                HomePageScript.TotalPendingOrdersText,
+                Result => PendingSuccess = Result
+            )
+        );
+
+        if (!PendingSuccess)
+        {
+            OnComplete(false);
+            yield break;
+        }
+
+
+        bool CompletedSuccess = false;
+
+        yield return StartCoroutine
+        (
+            GetOrderCount
+            (
+                "completed",
+                HomePageScript.TotalFinishedOrdersText,
+                Result => CompletedSuccess = Result
+            )
+        );
+
+        if (!CompletedSuccess)
+        {
+            OnComplete(false);
+            yield break;
+        }
+
+
+        bool CollectedSuccess = false;
+
+        yield return StartCoroutine
+        (
+            GetOrderCount
+            (
+                "collected",
+                HomePageScript.TotalCollectedOrdersText,
+                Result => CollectedSuccess = Result
+            )
+        );
+
+        if (!CollectedSuccess)
+        {
+            OnComplete(false);
+            yield break;
+        }
+
+        OnComplete(true);
     }
-    public IEnumerator GetOrderCount(string status, TMP_Text targetText)
+    public IEnumerator GetOrderCount ( string status, TMP_Text targetText, System.Action<bool> OnComplete )
     {
-        UnityWebRequest request 
-            = UnityWebRequest.Get(
-                                   $"http://localhost:3000/orders/count/{status}?StationeryID={Script1.StationeryInfoObject.StationeryID}"
-                                 );
+        UnityWebRequest request = UnityWebRequest.Get
+        (
+            $"http://localhost:3000/orders/count/{status}?StationeryID={Script1.StationeryInfoObject.StationeryID}"
+        );
 
         yield return request.SendWebRequest();
 
         if (request.result != UnityWebRequest.Result.Success)
         {
-            Debug.LogError(request.error);
+            Debug.LogError
+            (
+                "Failed to get "
+                + status
+                + " order count: "
+                + request.error
+            );
+
+            OnComplete(false);
             yield break;
         }
 
-        OrderCountResponse response =
-            JsonUtility.FromJson<OrderCountResponse>(request.downloadHandler.text);
+        OrderCountResponse Response =
+            JsonUtility.FromJson<OrderCountResponse>
+            (
+                request.downloadHandler.text
+            );
 
-        if (response == null || !response.Success)
+        if (Response == null || !Response.Success)
         {
-            Debug.LogError("Failed to get order count.");
+            Debug.LogError
+            (
+                "Failed to get "
+                + status
+                + " order count."
+            );
+
+            OnComplete(false);
             yield break;
         }
 
-        targetText.text = response.TotalOrders.ToString();
+        targetText.text =
+            Response.TotalOrders.ToString();
+
+        OnComplete(true);
     }
+
+
+
+
+
+
+
+
 
 
 
@@ -1417,7 +1904,7 @@ public class Scene3Backend : MonoBehaviour
 
         public float Amount;
     }
-    public IEnumerator GetAllTimeStationeryEarnings(int StationeryID)
+    public IEnumerator GetAllTimeStationeryEarnings (int StationeryID)
     {
         UnityWebRequest request = UnityWebRequest.Get(
             $"http://localhost:3000/analytics/stationeryEarnings?StationeryID={StationeryID}"
@@ -1454,41 +1941,69 @@ public class Scene3Backend : MonoBehaviour
 
         //HomePageScript.StationeryEarningsText.text = "`" + response.Amount.ToString("F2");
     }
-    public IEnumerator GetTodayStationeryRevenue(int StationeryID)
+    public IEnumerator GetTodayStationeryRevenue ( int StationeryID, System.Action<bool> OnComplete)
     {
-        UnityWebRequest request = UnityWebRequest.Get(
-                                                            $"http://localhost:3000/analytics/stationery/todayEarnings?StationeryID={StationeryID}"
-                                                     );
+        UnityWebRequest request = UnityWebRequest.Get
+        (
+            $"http://localhost:3000/analytics/stationery/todayEarnings?StationeryID={StationeryID}"
+        );
 
         yield return request.SendWebRequest();
 
         if (request.result != UnityWebRequest.Result.Success)
         {
-            Debug.LogError("Failed to get today's revenue: " + request.error);
+            Debug.LogError
+            (
+                "Failed to get today's revenue: "
+                + request.error
+            );
+
+            OnComplete(false);
             yield break;
         }
 
 #if UNITY_EDITOR
         Debug.Log(request.downloadHandler.text);
 #endif
-        EarningsResponse response =
-            JsonUtility.FromJson<EarningsResponse>(request.downloadHandler.text);
-        if (response == null)
+
+        EarningsResponse Response =
+            JsonUtility.FromJson<EarningsResponse>
+            (
+                request.downloadHandler.text
+            );
+
+        if (Response == null)
         {
             Debug.LogError("JSON Parsing Failed.");
+
+            OnComplete(false);
             yield break;
         }
 
-        if (!response.Success)
+        if (!Response.Success)
         {
-            Debug.LogError(response.Message);
+            Debug.LogError(Response.Message);
+
+            OnComplete(false);
             yield break;
         }
 
-        Debug.Log("Today's Revenue: " + response.Amount);
+        Debug.Log
+        (
+            "Today's Revenue: "
+            + Response.Amount
+        );
 
-        HomePageScript.RevenueToday.text = response.Amount.ToString("F2");
+        HomePageScript.RevenueToday.text =
+            Response.Amount.ToString("F2");
+
+        OnComplete(true);
     }
+
+
+
+
+
 
 
 
@@ -1572,6 +2087,14 @@ public class Scene3Backend : MonoBehaviour
 
 
 
+
+
+
+
+
+    //Try to make it so that if one pdf doesnt open, others dont open as well, and the message panel say "Couldn't open pdfs, try again later".
+
+    //To download Order PDFs
     public void DownloadOrderPrintsFromServer(OrderSummary Order)
     {
         foreach (PrintDetails Print in Order.Prints)
@@ -1594,8 +2117,7 @@ public class Scene3Backend : MonoBehaviour
             yield break;
         }
 
-        using (UnityWebRequest request =
-            UnityWebRequest.Get("http://localhost:3000/download/" + PrintID))
+        using (UnityWebRequest request = UnityWebRequest.Get("http://localhost:3000/download/" + PrintID))
         {
             request.downloadHandler = new DownloadHandlerFile(savePath);
 
@@ -1606,6 +2128,11 @@ public class Scene3Backend : MonoBehaviour
                 Debug.Log(new FileInfo(savePath).Length);
 
                 Debug.LogError(request.error);
+
+                Scene3ManagerScript.MessageText.text = "PrintPal couldn't open a PDF, try again later.";
+                Scene3ManagerScript.EnableMessagePanel();
+
+                Scene3ManagerScript.DisableInvisiblePanel();
             }
             else
             {
@@ -1617,6 +2144,10 @@ public class Scene3Backend : MonoBehaviour
             }
         }
     }
+
+
+
+
 
 
 

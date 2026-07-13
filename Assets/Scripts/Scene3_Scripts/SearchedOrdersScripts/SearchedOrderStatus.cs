@@ -238,12 +238,14 @@ public class SearchedOrderStatus : MonoBehaviour
 
         if (archiveStatusEnum == ArchiveStatusEnum.Archived)
         {
-            Scene3BackendScript.SetOrderAsUnarchived(Order.OrderID);
+            Scene3BackendScript.SetOrderAsUnarchived(Order.OrderID, this.gameObject);
         }
 
-        Scene3BackendScript.SetOrderAsPending(Order.OrderID);
+        Scene3ManagerScript.EnableInvisiblePanel();
 
-        Destroy(gameObject);
+        Scene3BackendScript.SetOrderAsPending(Order.OrderID, this.gameObject);
+
+        //Destroy(gameObject);
     }
     public void ClickedMarkAsCompleted()
     {
@@ -255,12 +257,14 @@ public class SearchedOrderStatus : MonoBehaviour
 
         if (archiveStatusEnum == ArchiveStatusEnum.Archived)
         {
-            Scene3BackendScript.SetOrderAsUnarchived(Order.OrderID);
+            Scene3BackendScript.SetOrderAsUnarchived(Order.OrderID, this.gameObject);
         }
 
-        Scene3BackendScript.SetOrderAsCompleted(Order.OrderID);
+        Scene3ManagerScript.EnableInvisiblePanel();
 
-        Destroy(gameObject);
+        Scene3BackendScript.SetOrderAsCompleted(Order.OrderID, this.gameObject);
+
+        //Destroy(gameObject);
     }
     public void ClickedMarkAsCollected()
     {
@@ -272,12 +276,14 @@ public class SearchedOrderStatus : MonoBehaviour
 
         if (archiveStatusEnum == ArchiveStatusEnum.Archived)
         {
-            Scene3BackendScript.SetOrderAsUnarchived(Order.OrderID);
+            Scene3BackendScript.SetOrderAsUnarchived(Order.OrderID, this.gameObject);
         }
 
-        Scene3BackendScript.SetOrderAsCollected(Order.OrderID);
+        Scene3ManagerScript.EnableInvisiblePanel();
 
-        Destroy(gameObject);
+        Scene3BackendScript.SetOrderAsCollected(Order.OrderID, this.gameObject);
+
+        //Destroy(gameObject);
     }
     public void ClickedArchiveOrderButton()
     {
@@ -287,9 +293,11 @@ public class SearchedOrderStatus : MonoBehaviour
             return;
         }
 
-        Scene3BackendScript.SetOrderAsArchived(Order.OrderID);
+        Scene3ManagerScript.EnableInvisiblePanel();
 
-        Destroy(gameObject);
+        Scene3BackendScript.SetOrderAsArchived(Order.OrderID, this.gameObject);
+
+        //Destroy(gameObject);
     }
 
 

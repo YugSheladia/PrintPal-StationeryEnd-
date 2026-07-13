@@ -13,17 +13,54 @@ public class SetPhoneNumber : MonoBehaviour
 
     [SerializeField] TMP_InputField PhoneNumberInput;
 
+
+
+
+
+
     public void ClickedSubmitButton()
     {
-        StationeryPhoneNumber StationeryPhoneNumberObject = new StationeryPhoneNumber();
-        StationeryPhoneNumberObject.PhoneNumber = PhoneNumberInput.text;
+        if(CheckPhoneNumberLength())
+        {
+            Scene2ManagerScript.EnableInvisiblePanel();
 
-        Scene2BackendScript.CheckPhoneNumberAvailability(StationeryPhoneNumberObject);
+            StationeryPhoneNumber StationeryPhoneNumberObject = new StationeryPhoneNumber();
+            StationeryPhoneNumberObject.PhoneNumber = PhoneNumberInput.text;
+
+            Scene2BackendScript.CheckPhoneNumberAvailability(StationeryPhoneNumberObject);
+        }
+        else
+        {
+            Scene2ManagerScript.EnableMessagePanel();
+
+            Scene2ManagerScript.DisableAllPanels();
+            Scene2ManagerScript.EnableSetPhoneNumberPanel();
+        }
+            
     }
 
     public void ClickedPreviousBUtton()
     {
         Scene2ManagerScript.DisableAllPanels();
         Scene2ManagerScript.EnableLoginPanel();
+    }
+
+
+
+
+
+
+    public bool CheckPhoneNumberLength()
+    {
+        if(PhoneNumberInput.text.Length != 10)
+        {
+            Scene2ManagerScript.MessageText.text = "Phone number has to be of 10 digits.";
+
+            return false;
+        }
+        else
+        {
+            return true;
+        }
     }
 }

@@ -148,9 +148,11 @@ public class PendingOrderStatus : MonoBehaviour
             return;
         }
 
-        Scene3BackendScript.SetOrderAsCompleted(Order.OrderID);
+        Scene3ManagerScript.EnableInvisiblePanel();
 
-        Destroy(gameObject);
+        Scene3BackendScript.SetOrderAsCompleted(Order.OrderID, this.gameObject);
+
+        //Destroy(gameObject);
     }
     public void ClickedMarkAsCollected()
     {
@@ -160,9 +162,11 @@ public class PendingOrderStatus : MonoBehaviour
             return;
         }
 
-        Scene3BackendScript.SetOrderAsCollected(Order.OrderID);
+        Scene3ManagerScript.EnableInvisiblePanel();
 
-        Destroy(gameObject);
+        Scene3BackendScript.SetOrderAsCollected(Order.OrderID, this.gameObject);
+
+        //Destroy(gameObject);
     }
     public void ClickedArchiveOrderButton()
     {
@@ -172,9 +176,11 @@ public class PendingOrderStatus : MonoBehaviour
             return;
         }
 
-        Scene3BackendScript.SetOrderAsArchived(Order.OrderID);
+        Scene3ManagerScript.EnableInvisiblePanel();
 
-        Destroy(gameObject);
+        Scene3BackendScript.SetOrderAsArchived(Order.OrderID, this.gameObject);
+
+        //Destroy(gameObject);
     }
 
 

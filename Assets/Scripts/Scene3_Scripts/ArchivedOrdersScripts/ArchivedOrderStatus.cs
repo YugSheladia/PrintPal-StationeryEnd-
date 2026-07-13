@@ -167,51 +167,221 @@ public class ArchivedOrderStatus : MonoBehaviour
 
 
 
-
-
-
     public void ClickedMarkAsPending()
     {
+        StartCoroutine(ClickedMarkAsPendingCoroutine());
+    }
+    IEnumerator ClickedMarkAsPendingCoroutine()
+    {
         if (Order == null)
         {
-            Debug.Log("Order is absent inside CollectedOrderStatus script.");
-            return;
+            Debug.Log
+            (
+                "Order is absent inside CollectedOrderStatus script."
+            );
+
+            yield break;
         }
 
-        Scene3BackendScript.SetOrderAsUnarchived(Order.OrderID);
+        Scene3ManagerScript.EnableInvisiblePanel();
 
-        Scene3BackendScript.SetOrderAsPending(Order.OrderID);
+        bool UnarchiveSuccess = false;
+
+        yield return StartCoroutine
+        (
+            Scene3BackendScript.SetOrderAsUnarchived
+            (
+                Order.OrderID,
+                Result => UnarchiveSuccess = Result
+            )
+        );
+
+        if (!UnarchiveSuccess)
+        {
+            OrderStatusChangeFailed();
+            yield break;
+        }
+
+        bool PendingSuccess = false;
+
+        yield return StartCoroutine
+        (
+            Scene3BackendScript.SetOrderAsPending
+            (
+                Order.OrderID,
+                Result => PendingSuccess = Result
+            )
+        );
+
+        if (!PendingSuccess)
+        {
+            OrderStatusChangeFailed();
+            yield break;
+        }
+
+        Scene3ManagerScript.DisableInvisiblePanel();
 
         Destroy(gameObject);
     }
+
+
+
+
     public void ClickedMarkAsCompleted()
     {
+        StartCoroutine(ClickedMarkAsCompletedCoroutine());
+    }
+    IEnumerator ClickedMarkAsCompletedCoroutine()
+    {
+        if (Order == null)
+        {
+            Debug.Log
+            (
+                "Order is absent inside CollectedOrderStatus script."
+            );
+
+            yield break;
+        }
+
+        Scene3ManagerScript.EnableInvisiblePanel();
+
+        bool UnarchiveSuccess = false;
+
+        yield return StartCoroutine
+        (
+            Scene3BackendScript.SetOrderAsUnarchived
+            (
+                Order.OrderID,
+                Result => UnarchiveSuccess = Result
+            )
+        );
+
+        if (!UnarchiveSuccess)
+        {
+            OrderStatusChangeFailed();
+            yield break;
+        }
+
+        bool CompletedSuccess = false;
+
+        yield return StartCoroutine
+        (
+            Scene3BackendScript.SetOrderAsCompleted
+            (
+                Order.OrderID,
+                Result => CompletedSuccess = Result
+            )
+        );
+
+        if (!CompletedSuccess)
+        {
+            OrderStatusChangeFailed();
+            yield break;
+        }
+
+        Scene3ManagerScript.DisableInvisiblePanel();
+
+        Destroy(gameObject);
+    }
+
+
+
+
+
+    public void ClickedMarkAsCollected()
+    {
+        StartCoroutine(ClickedMarkAsCollectedCoroutine());
+    }
+    IEnumerator ClickedMarkAsCollectedCoroutine()
+    {
+        if (Order == null)
+        {
+            Debug.Log
+            (
+                "Order is absent inside RTCOrderStatus script."
+            );
+
+            yield break;
+        }
+
+        Scene3ManagerScript.EnableInvisiblePanel();
+
+        bool UnarchiveSuccess = false;
+
+        yield return StartCoroutine
+        (
+            Scene3BackendScript.SetOrderAsUnarchived
+            (
+                Order.OrderID,
+                Result => UnarchiveSuccess = Result
+            )
+        );
+
+        if (!UnarchiveSuccess)
+        {
+            OrderStatusChangeFailed();
+            yield break;
+        }
+
+        bool CollectedSuccess = false;
+
+        yield return StartCoroutine
+        (
+            Scene3BackendScript.SetOrderAsCollected
+            (
+                Order.OrderID,
+                Result => CollectedSuccess = Result
+            )
+        );
+
+        if (!CollectedSuccess)
+        {
+            OrderStatusChangeFailed();
+            yield break;
+        }
+
+        Scene3ManagerScript.DisableInvisiblePanel();
+
+        Destroy(gameObject);
+    }
+
+
+
+
+
+
+    public void ClickedMarkAsUnarchived()
+    {
         if (Order == null)
         {
             Debug.Log("Order is absent inside CollectedOrderStatus script.");
             return;
         }
 
-        Scene3BackendScript.SetOrderAsUnarchived(Order.OrderID);
+        Scene3ManagerScript.EnableInvisiblePanel();
 
-        Scene3BackendScript.SetOrderAsCompleted(Order.OrderID);
+        Scene3BackendScript.SetOrderAsUnarchived(Order.OrderID, this.gameObject);
 
-        Destroy(gameObject);
+        //Destroy(gameObject);
     }
-    public void ClickedMarkAsCollected()
+
+
+
+
+
+    void OrderStatusChangeFailed()
     {
-        if (Order == null)
-        {
-            Debug.Log("Order is absent inside RTCOrderStatus script.");
-            return;
-        }
+        Scene3ManagerScript.DisableInvisiblePanel();
 
-        Scene3BackendScript.SetOrderAsUnarchived(Order.OrderID);
+        Scene3ManagerScript.DisableAllPanels();
+        Scene3ManagerScript.EnableHomePagePanel();
 
-        Scene3BackendScript.SetOrderAsCollected(Order.OrderID);
-
-        Destroy(gameObject);
+        Scene3ManagerScript.MessageText.text = "Something went wrong, try again later.";
+        Scene3ManagerScript.EnableMessagePanel();
     }
+
+
+
 
 
 
