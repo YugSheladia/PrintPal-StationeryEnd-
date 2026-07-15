@@ -17,11 +17,7 @@ public class HomePage : MonoBehaviour
     [SerializeField] Scene3Manager Scene3ManagerScript;
     [SerializeField] Scene3Backend Scene3BackendScript;
 
-    [SerializeField] PendingOrderStatusManager      PendingOrderStatusManagerScript;
-    [SerializeField] RTCOrderStatusManager          RTCOrderStatusManagerScript;
-    [SerializeField] CollectedOrderStatusManager    CollectedOrderStatusManagerScript;
-    [SerializeField] SearchedOrderStatusManager     SearchedOrderStatusManagerScript;
-    [SerializeField] ArchivedOrderStatusManager     ArchivedOrderStatusManagerScript;
+    [SerializeField] OrderStatusManager OrderStatusManagerScript;
 
     [SerializeField] TMP_Text StationeryName;
 
@@ -170,10 +166,10 @@ public class HomePage : MonoBehaviour
             yield break;
         }
 
-        PendingOrderStatusManagerScript.CreateOrderStatusPanels();
+        OrderStatusManagerScript.CreateOrderStatusPanels();
 
         Scene3ManagerScript.DisableAllPanels();
-        Scene3ManagerScript.EnablePendingOrdersPage();
+        Scene3ManagerScript.EnableOrdersPage();
     }
     public void ClickedCompletedOrdersButton()
     {
@@ -206,10 +202,10 @@ public class HomePage : MonoBehaviour
             yield break;
         }
 
-        RTCOrderStatusManagerScript.CreateOrderStatusPanels();
+        OrderStatusManagerScript.CreateOrderStatusPanels();
 
         Scene3ManagerScript.DisableAllPanels();
-        Scene3ManagerScript.EnableCompletedOrdersPage();
+        Scene3ManagerScript.EnableOrdersPage();
     }
     public void ClickedCollectedOrdersButton()
     {
@@ -242,10 +238,10 @@ public class HomePage : MonoBehaviour
             yield break;
         }
 
-        CollectedOrderStatusManagerScript.CreateOrderStatusPanels();
+        OrderStatusManagerScript.CreateOrderStatusPanels();
 
         Scene3ManagerScript.DisableAllPanels();
-        Scene3ManagerScript.EnableCollectedOrdersPage();
+        Scene3ManagerScript.EnableOrdersPage();
     }
     public void ClickedArchivedOrdersButton()
     {
@@ -278,10 +274,10 @@ public class HomePage : MonoBehaviour
             yield break;
         }
 
-        ArchivedOrderStatusManagerScript.CreateOrderStatusPanels();
+        OrderStatusManagerScript.CreateOrderStatusPanels();
 
         Scene3ManagerScript.DisableAllPanels();
-        Scene3ManagerScript.EnableArchivedOrdersPage();
+        Scene3ManagerScript.EnableOrdersPage();
     }
 
 
@@ -346,9 +342,9 @@ public class HomePage : MonoBehaviour
             yield break;
         }
 
-        SearchedOrderStatusManagerScript.CreateOrderStatusPanels();
+        OrderStatusManagerScript.CreateOrderStatusPanels();
 
         Scene3ManagerScript.DisableAllPanels();
-        Scene3ManagerScript.EnableSearchedOrdersPage();
+        Scene3ManagerScript.EnableOrdersPage();
     }
 }

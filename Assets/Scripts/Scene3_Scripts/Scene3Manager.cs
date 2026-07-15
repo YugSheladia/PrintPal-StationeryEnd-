@@ -15,11 +15,7 @@ public class Scene3Manager : MonoBehaviour
 
     [SerializeField] GameObject BlankPanel;
     [SerializeField] GameObject HomePagePanel;
-    [SerializeField] GameObject PendingOrdersPage;
-    [SerializeField] GameObject CompletedOrdersPage;
-    [SerializeField] GameObject CollectedOrdersPage;
-    [SerializeField] GameObject SearchedOrdersPage;
-    [SerializeField] GameObject ArchivedOrdersPage;
+    [SerializeField] GameObject OrdersPage;
 
 
     [SerializeField] GameObject InvisiblePanel;
@@ -44,11 +40,7 @@ public class Scene3Manager : MonoBehaviour
         DisableInvisiblePanel();
 
         DisableHomePagePanel();
-        DisablePendingOrdersPage();
-        DisableCompletedOrdersPage();
-        DisableCollectedOrdersPage();
-        DisableSearchedOrdersPage();
-        DisableArchivedOrdersPage();
+        DisableOrdersPage();
 
         DisableMessagePanel();
     }
@@ -135,53 +127,21 @@ public class Scene3Manager : MonoBehaviour
         DisableAllPanels();
         HomePagePanel.SetActive(true);
     }
-
-
-
-
     public void DisableHomePagePanel()
     {
         HomePagePanel.SetActive(false);
     }
-    public void EnablePendingOrdersPage()
+
+
+
+
+    public void EnableOrdersPage()
     {
-        PendingOrdersPage.SetActive(true);
+        OrdersPage.SetActive(true);
     }
-    public void DisablePendingOrdersPage()
+    public void DisableOrdersPage()
     {
-        PendingOrdersPage.SetActive(false);
-    }
-    public void EnableCompletedOrdersPage()
-    {
-        CompletedOrdersPage.SetActive(true);
-    }
-    public void DisableCompletedOrdersPage()
-    {
-        CompletedOrdersPage.SetActive(false);
-    }
-    public void EnableCollectedOrdersPage()
-    {
-        CollectedOrdersPage.SetActive(true);
-    }
-    public void DisableCollectedOrdersPage()
-    {
-        CollectedOrdersPage.SetActive(false);
-    }
-    public void EnableSearchedOrdersPage()
-    {
-        SearchedOrdersPage.SetActive(true);
-    }
-    public void DisableSearchedOrdersPage()
-    {
-        SearchedOrdersPage.SetActive(false);
-    }
-    public void EnableArchivedOrdersPage()
-    {
-        ArchivedOrdersPage.SetActive(true);
-    }
-    public void DisableArchivedOrdersPage()
-    {
-        ArchivedOrdersPage.SetActive(false);
+        OrdersPage.SetActive(false);
     }
 
 

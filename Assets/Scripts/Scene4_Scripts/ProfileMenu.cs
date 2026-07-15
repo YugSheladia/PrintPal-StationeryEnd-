@@ -7,22 +7,15 @@ public class ProfileMenu : MonoBehaviour
     [SerializeField] ViewProfile ViewProfileScript;
 
 
-    public void ClickedHomeButton()
-    {
-        SceneManager.LoadScene("Scene3_HomePage");
-    }
-    public void ClickedSettingsButton()
-    {
-        Debug.Log("Settings");
-    }
-
 
     public void ClickedViewProfileInfoButton()
     {
-        ViewProfileScript.UpdateProfileInfo();
+        Scene4ManagerScript.EnableInvisiblePanel();
 
-        Scene4ManagerScript.DisableAllPanels();
         Scene4ManagerScript.EnableViewProfileInfoPanel();
+
+        StartCoroutine(ViewProfileScript.UpdateProfileInfo());
+
     }
 
     public void ClickedLogoutButton()

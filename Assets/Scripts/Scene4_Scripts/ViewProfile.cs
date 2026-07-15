@@ -1,5 +1,6 @@
 using UnityEngine;
 using TMPro;
+using System.Collections;
 
 public class ViewProfile : MonoBehaviour
 {
@@ -16,9 +17,34 @@ public class ViewProfile : MonoBehaviour
 
 
 
-    public void UpdateProfileInfo()
+    public IEnumerator UpdateProfileInfo()
     {
-        Scene4BackendScript.StartCoroutine_GetStationeryInfoFromServer();
+        bool Success = false;
+
+        yield return (StartCoroutine(Scene4BackendScript.GetStationeryInfoFromServer(
+                                                                                        Result =>
+                                                                                        {
+                                                                                            Success = Result;
+                                                                                        }
+                                                                                    )
+                                                                                 ));
+
+        if(!Success)
+        {
+            Scene4ManagerScript.DisableAllPanels();
+
+            Scene4ManagerScript.MessageText.text = "Something went wrong, try again later.";
+            Scene4ManagerScript.EnableMessagePanel();
+
+            Scene4ManagerScript.EnableProfileMenuPanel();
+
+            yield break;
+        }
+
+        UpdateUI();
+
+        Scene4ManagerScript.DisableAllPanels();
+        Scene4ManagerScript.EnableViewProfileInfoPanel();
     }
 
     public void UpdateUI()
@@ -29,14 +55,13 @@ public class ViewProfile : MonoBehaviour
         EmailText.text          = Script1.StationeryInfoObject.Email;
     }
 
-
     public void ClickedEditButton()
     {
-        Scene4ManagerScript.DisableAllPanels();
-
-        UpdateProfileScript.SetExistingStationeryInfoInUI();
+        Scene4ManagerScript.EnableInvisiblePanel();
 
         Scene4ManagerScript.EnableUpdateProfilePanel();
+
+        StartCoroutine(UpdateProfileScript.UpdateProfileInfo());
     }
 
     public void ClickedPreviousPageButton()

@@ -18,7 +18,7 @@ public class Scene4Manager : MonoBehaviour
 
     [SerializeField] GameObject InvisiblePanel;
     [SerializeField] GameObject MessagePanel;
-    [SerializeField] TMP_Text MessageText;
+    [SerializeField] public TMP_Text MessageText;
 
 
 
@@ -38,14 +38,27 @@ public class Scene4Manager : MonoBehaviour
 
     public void DisableAllPanels()
     {
-        DisableBlankPanel();
         DisableProfileMenuPanel();
         DisableViewProfileInfoPanel();
         DisableUpdateProfilePanel();
+
+        DisableInvisiblePanel();
+        DisableMessagePanel();
     }
 
 
 
+    
+
+
+    public void EnableBlankPanel()
+    {
+        BlankPanel.SetActive(true);
+    }
+    public void DisableBlankPanel()
+    {
+        BlankPanel.SetActive(false);
+    }
     public void EnableInvisiblePanel()
     {
         InvisiblePanel.SetActive(true);
@@ -58,14 +71,6 @@ public class Scene4Manager : MonoBehaviour
 
 
 
-    public void EnableBlankPanel()
-    {
-        BlankPanel.SetActive(true);
-    }
-    public void DisableBlankPanel()
-    {
-        BlankPanel.SetActive(false);
-    }
     public void EnableProfileMenuPanel()
     {
         ProfileMenuPanel.SetActive(true);

@@ -7,6 +7,8 @@ using UnityEngine;
 using UnityEngine.Networking;
 using static Scene3Backend;
 
+
+
 //=========================================================================
 //To recieve EVERY INFO possible about a order issued.
 //=========================================================================
@@ -280,26 +282,6 @@ public class PrintDetails
 
 
 
-//
-[System.Serializable]
-public class UserInfo
-{
-    public int      UserID;
-    public string   PhoneNumber;
-    public string   Name;
-    public string   UPINumber;
-    public string   Email;
-    public string   Username;
-}
-
-[System.Serializable]
-public class UsernameResponse
-{
-    public bool Success;
-    public string Message;
-    public UserInfo User;
-}
-
 
 
 
@@ -328,8 +310,6 @@ public class Scene3Backend : MonoBehaviour
     public PrintSettingsSummaryWrapper ConfirmedPrintSettings = new();
 
     public PrintBillsSummaryWrapper ConfirmedPrintBills = new();
-
-
 
 
 
@@ -1013,13 +993,30 @@ public class Scene3Backend : MonoBehaviour
 
 
 
-    /// ////////////////
-
-    public void GetUsernameFromServer(int UserID, PendingOrderStatus PendingOrderStatusScript)
+    //Get name of the customer on bill.
+    [System.Serializable]
+    public class UserInfo
     {
-        StartCoroutine(GetUsername(UserID, PendingOrderStatusScript));
+        public int UserID;
+        public string PhoneNumber;
+        public string Name;
+        public string UPINumber;
+        public string Email;
+        public string Username;
     }
-    public IEnumerator GetUsername(int UserID, PendingOrderStatus PendingOrderStatusScript)
+
+    [System.Serializable]
+    public class UsernameResponse
+    {
+        public bool Success;
+        public string Message;
+        public UserInfo User;
+    }
+    public void GetUsernameFromServer(int UserID, OrderStatus OrderStatusScript)
+    {
+        StartCoroutine(GetUsername(UserID, OrderStatusScript));
+    }
+    public IEnumerator GetUsername(int UserID, OrderStatus OrderStatusScript)
     {
         UnityWebRequest request = UnityWebRequest.Get("http://localhost:3000/user/" + UserID);
 
@@ -1036,192 +1033,8 @@ public class Scene3Backend : MonoBehaviour
             {
                 Debug.Log("Username: " + response.User.Username);
 
-                PendingOrderStatusScript.UsernameString = response.User.Name;
-                PendingOrderStatusScript.UpdateUI();
-            }
-            else
-            {
-                Debug.LogWarning("User not found.");
-
-                Scene3ManagerScript.DisableAllPanels();
-                Scene3ManagerScript.EnableHomePagePanel();
-
-                Scene3ManagerScript.MessageText.text = "Something went wrong, try again later.";
-                Scene3ManagerScript.EnableMessagePanel();
-            }
-        }
-        else
-        {
-            Debug.LogError(request.error);
-
-            Scene3ManagerScript.DisableAllPanels();
-            Scene3ManagerScript.EnableHomePagePanel();
-
-            Scene3ManagerScript.MessageText.text = "Something went wrong, try again later.";
-            Scene3ManagerScript.EnableMessagePanel();
-        }
-    }
-    public void GetUsernameFromServer(int UserID, RTCOrderStatus RTCOrderStatusScript)
-    {
-        StartCoroutine(GetUsername(UserID, RTCOrderStatusScript));
-    }
-    public IEnumerator GetUsername(int UserID, RTCOrderStatus RTCOrderStatusScript)
-    {
-        UnityWebRequest request = UnityWebRequest.Get("http://localhost:3000/user/" + UserID);
-
-        yield return request.SendWebRequest();
-
-        if (request.result == UnityWebRequest.Result.Success)
-        {
-            string json = request.downloadHandler.text;
-            Debug.Log("Server Response:\n" + json);
-
-            UsernameResponse response = JsonUtility.FromJson<UsernameResponse>(json);
-
-            if (response.Success)
-            {
-                Debug.Log("Username: " + response.User.Username);
-
-                RTCOrderStatusScript.UsernameString = response.User.Name;
-                RTCOrderStatusScript.UpdateUI();
-            }
-            else
-            {
-                Debug.LogWarning("User not found.");
-
-                Scene3ManagerScript.DisableAllPanels();
-                Scene3ManagerScript.EnableHomePagePanel();
-
-                Scene3ManagerScript.MessageText.text = "Something went wrong, try again later.";
-                Scene3ManagerScript.EnableMessagePanel();
-            }
-        }
-        else
-        {
-            Debug.LogError(request.error);
-
-            Scene3ManagerScript.DisableAllPanels();
-            Scene3ManagerScript.EnableHomePagePanel();
-
-            Scene3ManagerScript.MessageText.text = "Something went wrong, try again later.";
-            Scene3ManagerScript.EnableMessagePanel();
-        }
-    }
-    public void GetUsernameFromServer(int UserID, CollectedOrderStatus CollectedOrderStatusScript)
-    {
-        StartCoroutine(GetUsername(UserID, CollectedOrderStatusScript));
-    }
-    public IEnumerator GetUsername(int UserID, CollectedOrderStatus CollectedOrderStatusScript)
-    {
-        UnityWebRequest request = UnityWebRequest.Get("http://localhost:3000/user/" + UserID);
-
-        yield return request.SendWebRequest();
-
-        if (request.result == UnityWebRequest.Result.Success)
-        {
-            string json = request.downloadHandler.text;
-            Debug.Log("Server Response:\n" + json);
-
-            UsernameResponse response = JsonUtility.FromJson<UsernameResponse>(json);
-
-            if (response.Success)
-            {
-                Debug.Log("Username: " + response.User.Username);
-
-                CollectedOrderStatusScript.UsernameString = response.User.Name;
-                CollectedOrderStatusScript.UpdateUI();
-            }
-            else
-            {
-                Debug.LogWarning("User not found.");
-
-                Scene3ManagerScript.DisableAllPanels();
-                Scene3ManagerScript.EnableHomePagePanel();
-
-                Scene3ManagerScript.MessageText.text = "Something went wrong, try again later.";
-                Scene3ManagerScript.EnableMessagePanel();
-            }
-        }
-        else
-        {
-            Debug.LogError(request.error);
-
-            Scene3ManagerScript.DisableAllPanels();
-            Scene3ManagerScript.EnableHomePagePanel();
-
-            Scene3ManagerScript.MessageText.text = "Something went wrong, try again later.";
-            Scene3ManagerScript.EnableMessagePanel();
-        }
-    }
-    public void GetUsernameFromServer(int UserID, SearchedOrderStatus SearchedOrderStatusScript)
-    {
-        StartCoroutine(GetUsername(UserID, SearchedOrderStatusScript));
-    }
-    public IEnumerator GetUsername(int UserID, SearchedOrderStatus SearchedOrderStatusScript)
-    {
-        UnityWebRequest request = UnityWebRequest.Get("http://localhost:3000/user/" + UserID);
-
-        yield return request.SendWebRequest();
-
-        if (request.result == UnityWebRequest.Result.Success)
-        {
-            string json = request.downloadHandler.text;
-            Debug.Log("Server Response:\n" + json);
-
-            UsernameResponse response = JsonUtility.FromJson<UsernameResponse>(json);
-
-            if (response.Success)
-            {
-                Debug.Log("Username: " + response.User.Username);
-
-                SearchedOrderStatusScript.UsernameString = response.User.Name;
-                SearchedOrderStatusScript.UpdateUI();
-            }
-            else
-            {
-                Debug.LogWarning("User not found.");
-
-                Scene3ManagerScript.DisableAllPanels();
-                Scene3ManagerScript.EnableHomePagePanel();
-
-                Scene3ManagerScript.MessageText.text = "Something went wrong, try again later.";
-                Scene3ManagerScript.EnableMessagePanel();
-            }
-        }
-        else
-        {
-            Debug.LogError(request.error);
-
-            Scene3ManagerScript.DisableAllPanels();
-            Scene3ManagerScript.EnableHomePagePanel();
-
-            Scene3ManagerScript.MessageText.text = "Something went wrong, try again later.";
-            Scene3ManagerScript.EnableMessagePanel();
-        }
-    }
-    public void GetUsernameFromServer(int UserID, ArchivedOrderStatus ArchivedOrderStatusScript)
-    {
-        StartCoroutine(GetUsername(UserID, ArchivedOrderStatusScript));
-    }
-    public IEnumerator GetUsername(int UserID, ArchivedOrderStatus ArchivedOrderStatusScript)
-    {
-        UnityWebRequest request = UnityWebRequest.Get("http://localhost:3000/user/" + UserID);
-
-        yield return request.SendWebRequest();
-
-        if (request.result == UnityWebRequest.Result.Success)
-        {
-            string json = request.downloadHandler.text;
-            Debug.Log("Server Response:\n" + json);
-
-            UsernameResponse response = JsonUtility.FromJson<UsernameResponse>(json);
-
-            if (response.Success)
-            {
-                Debug.Log("Username: " + response.User.Username);
-
-                ArchivedOrderStatusScript.UsernameString = response.User.Name;
-                ArchivedOrderStatusScript.UpdateUI();
+                OrderStatusScript.UsernameString = response.User.Name;
+                OrderStatusScript.UpdateUI();
             }
             else
             {
@@ -1252,10 +1065,6 @@ public class Scene3Backend : MonoBehaviour
 
 
 
-
-
-
-    //
 
     //To set Order's status.
     [System.Serializable]
@@ -1340,10 +1149,6 @@ public class Scene3Backend : MonoBehaviour
 
         Destroy(Panel);
     }
-
-
-
-
 
 
 
@@ -1525,10 +1330,6 @@ public class Scene3Backend : MonoBehaviour
 
 
 
-
-
-
-
     public void SetOrderAsArchived(int OrderID, GameObject Panel)
     {
         StartCoroutine(Coroutine_SetOrderAsArchived(OrderID, Panel));
@@ -1577,7 +1378,6 @@ public class Scene3Backend : MonoBehaviour
             Scene3ManagerScript.EnableMessagePanel();
         }
     }
-
 
 
 
@@ -1765,9 +1565,6 @@ public class Scene3Backend : MonoBehaviour
 
 
 
-
-
-
     //Order count -
     [System.Serializable]
     public class OrderCountResponse
@@ -1884,7 +1681,6 @@ public class Scene3Backend : MonoBehaviour
 
         OnComplete(true);
     }
-
 
 
 
@@ -2092,56 +1888,94 @@ public class Scene3Backend : MonoBehaviour
 
 
 
-    //Try to make it so that if one pdf doesnt open, others dont open as well, and the message panel say "Couldn't open pdfs, try again later".
 
-    //To download Order PDFs
     public void DownloadOrderPrintsFromServer(OrderSummary Order)
     {
+        StartCoroutine(Coroutine_DownloadAllPDFs(Order));
+    }
+
+    IEnumerator Coroutine_DownloadAllPDFs(OrderSummary Order)
+    {
+        List<string> PDFPaths = new List<string>();
+
         foreach (PrintDetails Print in Order.Prints)
         {
-            StartCoroutine(Coroutine_DownloadPDF(Print.PrintID));
+            bool Success = false;
+            string PDFPath = null;
+
+            yield return StartCoroutine(
+                Coroutine_DownloadPDF(
+                    Print.PrintID,
+                    (Result, Path) =>
+                    {
+                        Success = Result;
+                        PDFPath = Path;
+                    }
+                )
+            );
+
+            if (!Success)
+            {
+                Scene3ManagerScript.MessageText.text =
+                    "PrintPal couldn't open a PDF, try again later.";
+
+                Scene3ManagerScript.EnableMessagePanel();
+                Scene3ManagerScript.DisableInvisiblePanel();
+
+                yield break;
+            }
+
+            PDFPaths.Add(PDFPath);
+        }
+
+        // Every PDF succeeded.
+        foreach (string PDFPath in PDFPaths)
+        {
+            Application.OpenURL("file://" + PDFPath);
         }
     }
-    IEnumerator Coroutine_DownloadPDF(int PrintID)
+
+    IEnumerator Coroutine_DownloadPDF( int PrintID, System.Action<bool, string> OnComplete )
     {
-        string savePath = Path.Combine(
+        string SavePath = Path.Combine(
             Application.persistentDataPath,
             PrintID + ".pdf"
         );
 
-        // If already downloaded, just open it.
-        if (File.Exists(savePath))
+        // Already downloaded.
+        if (File.Exists(SavePath))
         {
-            Debug.Log("PDF already exists. Opening...");
-            Application.OpenURL("file://" + savePath);
+            Debug.Log("PDF already exists.");
+
+            OnComplete(true, SavePath);
             yield break;
         }
 
-        using (UnityWebRequest request = UnityWebRequest.Get("http://localhost:3000/download/" + PrintID))
+        using (UnityWebRequest Request = UnityWebRequest.Get(
+            "http://localhost:3000/download/" + PrintID
+        ))
         {
-            request.downloadHandler = new DownloadHandlerFile(savePath);
+            Request.downloadHandler = new DownloadHandlerFile(SavePath);
 
-            yield return request.SendWebRequest();
+            yield return Request.SendWebRequest();
 
-            if (request.result != UnityWebRequest.Result.Success)
+            if (Request.result != UnityWebRequest.Result.Success)
             {
-                Debug.Log(new FileInfo(savePath).Length);
+                Debug.LogError(Request.error);
 
-                Debug.LogError(request.error);
+                if (File.Exists(SavePath))
+                {
+                    File.Delete(SavePath);
+                }
 
-                Scene3ManagerScript.MessageText.text = "PrintPal couldn't open a PDF, try again later.";
-                Scene3ManagerScript.EnableMessagePanel();
-
-                Scene3ManagerScript.DisableInvisiblePanel();
+                OnComplete(false, null);
+                yield break;
             }
-            else
-            {
-                Debug.Log("Saved to: " + savePath);
 
-                Debug.Log(new FileInfo(savePath).Length);
+            Debug.Log("Saved to: " + SavePath);
+            Debug.Log(new FileInfo(SavePath).Length);
 
-                Application.OpenURL("file://" + savePath);
-            }
+            OnComplete(true, SavePath);
         }
     }
 
@@ -2170,7 +2004,6 @@ public class Scene3Backend : MonoBehaviour
         public PrinterInfo[] printers;
     }
    
-
     public void ClickedViewAllPrintersButton()
     {
         StartCoroutine(GetPrinters());

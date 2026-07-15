@@ -1,5 +1,6 @@
 using UnityEngine;
 using TMPro;
+using System.Collections;
 
 public class UpdatedStationeryInfo
 {
@@ -14,16 +15,53 @@ public class UpdateProfile : MonoBehaviour
     [SerializeField] Scene4Manager Scene4ManagerScript;
     [SerializeField] Scene4Backend Scene4BackendScript;
 
+    [SerializeField] ViewProfile ViewProfileScript;
+
     [SerializeField] TMP_InputField StationeryNameInput;
     [SerializeField] TMP_InputField UPINumberInput;
     [SerializeField] TMP_InputField EmailInput;
 
 
 
-    public void SetExistingStationeryInfoInUI()
-    {
-        Scene4BackendScript.StartCoroutine_GetStationeryInfoFromServer();
 
+    UpdatedStationeryInfo UpdatedStationeryInfoObject = new UpdatedStationeryInfo();
+
+
+
+
+    public IEnumerator UpdateProfileInfo()
+    {
+        bool Success = false;
+
+        yield return (StartCoroutine(Scene4BackendScript.GetStationeryInfoFromServer(
+                                                                                        Result =>
+                                                                                        {
+                                                                                            Success = Result;
+                                                                                        }
+                                                                                    )
+                                                                                 ));
+
+        if (!Success)
+        {
+            Scene4ManagerScript.DisableAllPanels();
+
+            Scene4ManagerScript.MessageText.text = "Something went wrong, try again later.";
+            Scene4ManagerScript.EnableMessagePanel();
+
+            Scene4ManagerScript.EnableProfileMenuPanel();
+
+            yield break;
+        }
+
+        UpdateUI();
+
+        Scene4ManagerScript.DisableAllPanels();
+        Scene4ManagerScript.EnableUpdateProfilePanel();
+    }
+
+
+    public void UpdateUI()
+    {
         StationeryNameInput.text    = Script1.StationeryInfoObject.StationeryName;
         UPINumberInput.text         = Script1.StationeryInfoObject.UPINumber;
         EmailInput.text             = Script1.StationeryInfoObject.Email;
@@ -32,7 +70,7 @@ public class UpdateProfile : MonoBehaviour
 
     public void ClickedSubmitButton()
     {
-        UpdatedStationeryInfo UpdatedStationeryInfoObject = new UpdatedStationeryInfo();
+        Scene4ManagerScript.EnableInvisiblePanel();
 
         UpdatedStationeryInfoObject.PhoneNumber     = Script1.StationeryInfoObject.PhoneNumber;
 
@@ -40,7 +78,41 @@ public class UpdateProfile : MonoBehaviour
         UpdatedStationeryInfoObject.UPINumber       = UPINumberInput.text;
         UpdatedStationeryInfoObject.Email           = EmailInput.text;
 
-        Scene4BackendScript.StartCoroutine_UpdateStationeryInfoInServer(UpdatedStationeryInfoObject);
+        StartCoroutine(UpdateInfoInServer());
+    }
+
+
+    public IEnumerator UpdateInfoInServer()
+    {
+        bool Success = false;
+
+        yield return StartCoroutine(
+                                    Scene4BackendScript.UpdateStationeryInfoInServer(
+                                    UpdatedStationeryInfoObject, Result =>
+                                    {
+                                    Success = Result;
+                                    }));
+
+        if (!Success)
+        {
+            Scene4ManagerScript.DisableAllPanels();
+
+            Scene4ManagerScript.MessageText.text = "Something went wrong, try again later.";
+            Scene4ManagerScript.EnableMessagePanel();
+
+            Scene4ManagerScript.EnableUpdateProfilePanel();
+
+            yield break;
+        }
+
+        ViewProfileScript.UpdateUI();
+
+        Scene4ManagerScript.DisableAllPanels();
+
+        Scene4ManagerScript.MessageText.text = "Profile info updated successfully.";
+        Scene4ManagerScript.EnableMessagePanel();
+
+        Scene4ManagerScript.EnableViewProfileInfoPanel();
     }
 
 
