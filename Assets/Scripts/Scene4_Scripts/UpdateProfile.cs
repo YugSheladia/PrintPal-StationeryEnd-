@@ -5,7 +5,10 @@ using System.Collections;
 public class UpdatedStationeryInfo
 {
     public string PhoneNumber;
+
     public string StationeryName;
+    public string StationeryLocation;
+
     public string UPINumber;
     public string Email;
 }
@@ -18,6 +21,7 @@ public class UpdateProfile : MonoBehaviour
     [SerializeField] ViewProfile ViewProfileScript;
 
     [SerializeField] TMP_InputField StationeryNameInput;
+    [SerializeField] TMP_InputField StationeryLocationInput;
     [SerializeField] TMP_InputField UPINumberInput;
     [SerializeField] TMP_InputField EmailInput;
 
@@ -62,9 +66,11 @@ public class UpdateProfile : MonoBehaviour
 
     public void UpdateUI()
     {
-        StationeryNameInput.text    = Script1.StationeryInfoObject.StationeryName;
-        UPINumberInput.text         = Script1.StationeryInfoObject.UPINumber;
-        EmailInput.text             = Script1.StationeryInfoObject.Email;
+        StationeryNameInput.text        = Script1.StationeryInfoObject.StationeryName;
+        StationeryLocationInput.text    = Script1.StationeryInfoObject.StationeryLocation;
+
+        UPINumberInput.text             = Script1.StationeryInfoObject.UPINumber;
+        EmailInput.text                 = Script1.StationeryInfoObject.Email;
     }
 
 
@@ -72,11 +78,12 @@ public class UpdateProfile : MonoBehaviour
     {
         Scene4ManagerScript.EnableInvisiblePanel();
 
-        UpdatedStationeryInfoObject.PhoneNumber     = Script1.StationeryInfoObject.PhoneNumber;
+        UpdatedStationeryInfoObject.PhoneNumber         = Script1.StationeryInfoObject.PhoneNumber;
 
-        UpdatedStationeryInfoObject.StationeryName  = StationeryNameInput.text;
-        UpdatedStationeryInfoObject.UPINumber       = UPINumberInput.text;
-        UpdatedStationeryInfoObject.Email           = EmailInput.text;
+        UpdatedStationeryInfoObject.StationeryName      = StationeryNameInput.text;
+        UpdatedStationeryInfoObject.StationeryLocation  = StationeryLocationInput.text;
+        UpdatedStationeryInfoObject.UPINumber           = UPINumberInput.text;
+        UpdatedStationeryInfoObject.Email               = EmailInput.text;
 
         StartCoroutine(UpdateInfoInServer());
     }

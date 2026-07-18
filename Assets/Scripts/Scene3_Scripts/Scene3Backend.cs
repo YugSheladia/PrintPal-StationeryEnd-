@@ -1,6 +1,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using System.IO;
+using System.Text;
 using TMPro;
 using UnityEditor.SceneManagement;
 using UnityEngine;
@@ -66,6 +67,8 @@ public class PrintSummary
     public string PDFName;
 
     public int TotalPages;
+
+    public int Status;
 
     public bool failedToDownloadPrint = false;
 }
@@ -1888,13 +1891,7 @@ public class Scene3Backend : MonoBehaviour
 
 
 
-
-    public void DownloadOrderPrintsFromServer(OrderSummary Order)
-    {
-        StartCoroutine(Coroutine_DownloadAllPDFs(Order));
-    }
-
-    IEnumerator Coroutine_DownloadAllPDFs(OrderSummary Order)
+    public IEnumerator Coroutine_DownloadAllPDFs (OrderSummary Order, System.Action<bool, List<string>> OnComplete)
     {
         List<string> PDFPaths = new List<string>();
 
@@ -1903,8 +1900,10 @@ public class Scene3Backend : MonoBehaviour
             bool Success = false;
             string PDFPath = null;
 
-            yield return StartCoroutine(
-                Coroutine_DownloadPDF(
+            yield return StartCoroutine
+            (
+                Coroutine_DownloadPDF
+                (
                     Print.PrintID,
                     (Result, Path) =>
                     {
@@ -1916,28 +1915,20 @@ public class Scene3Backend : MonoBehaviour
 
             if (!Success)
             {
-                Scene3ManagerScript.MessageText.text =
-                    "PrintPal couldn't open a PDF, try again later.";
-
-                Scene3ManagerScript.EnableMessagePanel();
-                Scene3ManagerScript.DisableInvisiblePanel();
-
+                OnComplete(false, null);
                 yield break;
             }
 
             PDFPaths.Add(PDFPath);
         }
 
-        // Every PDF succeeded.
-        foreach (string PDFPath in PDFPaths)
-        {
-            Application.OpenURL("file://" + PDFPath);
-        }
+        OnComplete(true, PDFPaths);
     }
 
-    IEnumerator Coroutine_DownloadPDF( int PrintID, System.Action<bool, string> OnComplete )
+    IEnumerator Coroutine_DownloadPDF(int PrintID, System.Action<bool, string> OnComplete)
     {
-        string SavePath = Path.Combine(
+        string SavePath = Path.Combine
+        (
             Application.persistentDataPath,
             PrintID + ".pdf"
         );
@@ -1951,7 +1942,8 @@ public class Scene3Backend : MonoBehaviour
             yield break;
         }
 
-        using (UnityWebRequest Request = UnityWebRequest.Get(
+        using (UnityWebRequest Request = UnityWebRequest.Get
+        (
             "http://localhost:3000/download/" + PrintID
         ))
         {
@@ -1984,58 +1976,155 @@ public class Scene3Backend : MonoBehaviour
 
 
 
+    public string ServerURL = "http://localhost:3000";
 
-
-
-
-    //new stuff -
     [System.Serializable]
-    public class PrinterInfo
+    public class ValidatePrintRequest
     {
-        public string deviceId;
-        public string name;
+        public int OrderID;
+        public int StationeryID;
     }
 
     [System.Serializable]
-    public class PrintersResponse
+    public class ValidatePrintResponse
     {
-        public bool success;
-        public string message;
-        public PrinterInfo[] printers;
+        public bool Success;
+        public string Message;
+        public int TotalPrints;
     }
-   
-    public void ClickedViewAllPrintersButton()
+
+    [System.Serializable]
+    public class StartPrintRequest
     {
-        StartCoroutine(GetPrinters());
+        public int OrderID;
+        public int StationeryID;
+        public string PrinterName;
     }
-    public IEnumerator GetPrinters()
+
+    [System.Serializable]
+    public class StartPrintResponse
     {
-        using (UnityWebRequest request = UnityWebRequest.Get("http://localhost:3000/printers"))
+        public bool Success;
+        public string Message;
+    }
+
+
+    public void ValidateOrderForPrinting(int OrderID)
+    {
+        StartCoroutine(Coroutine_ValidateOrderForPrinting(OrderID));
+    }
+    IEnumerator Coroutine_ValidateOrderForPrinting(int OrderID)
+    {
+        ValidatePrintRequest Request = new ValidatePrintRequest()
         {
-            yield return request.SendWebRequest();
+            OrderID = OrderID,
+            StationeryID = Script1.StationeryInfoObject.StationeryID
+        };
 
-            if (request.result != UnityWebRequest.Result.Success)
-            {
-                Debug.LogError(request.error);
-                yield break;
-            }
+        string JsonData = JsonUtility.ToJson(Request);
 
-            PrintersResponse response =
-                JsonUtility.FromJson<PrintersResponse>(request.downloadHandler.text);
+        UnityWebRequest RequestObject = new UnityWebRequest(
+            ServerURL + "/printOrder/validate",
+            "POST"
+        );
 
-            if (!response.success)
-            {
-                Debug.LogError(response.message);
-                yield break;
-            }
+        byte[] Body = Encoding.UTF8.GetBytes(JsonData);
 
-            Debug.Log("Installed Printers:");
+        RequestObject.uploadHandler = new UploadHandlerRaw(Body);
+        RequestObject.downloadHandler = new DownloadHandlerBuffer();
+        RequestObject.SetRequestHeader("Content-Type", "application/json");
 
-            foreach (PrinterInfo Printer in response.printers)
-            {
-                Debug.Log(Printer.name);
-            }
+        yield return RequestObject.SendWebRequest();
+
+        if (RequestObject.result != UnityWebRequest.Result.Success)
+        {
+            Debug.LogError(RequestObject.error);
+
+            Scene3ManagerScript.DisableInvisiblePanel();
+
+            yield break;
+        }
+
+        ValidatePrintResponse Response =
+            JsonUtility.FromJson<ValidatePrintResponse>(
+                RequestObject.downloadHandler.text
+            );
+
+        if (Response.Success)
+        {
+            StartPrintingOrder(OrderID);
+        }
+        else
+        {
+            Debug.Log(Response.Message);
+
+            Scene3ManagerScript.DisableInvisiblePanel();
         }
     }
+    public void StartPrintingOrder(int OrderID)
+    {
+        StartCoroutine(Coroutine_StartPrintingOrder(OrderID));
+    }
+    IEnumerator Coroutine_StartPrintingOrder(int OrderID)
+    {
+        StartPrintRequest Request = new StartPrintRequest()
+        {
+            OrderID = OrderID,
+            StationeryID = Script1.StationeryInfoObject.StationeryID,
+            PrinterName = "Canon E470 series"
+        };
+
+        string JsonData = JsonUtility.ToJson(Request);
+
+        UnityWebRequest RequestObject = new UnityWebRequest(
+            ServerURL + "/printOrder/start",
+            "POST"
+        );
+
+        byte[] Body = Encoding.UTF8.GetBytes(JsonData);
+
+        RequestObject.uploadHandler = new UploadHandlerRaw(Body);
+        RequestObject.downloadHandler = new DownloadHandlerBuffer();
+        RequestObject.SetRequestHeader("Content-Type", "application/json");
+
+        yield return RequestObject.SendWebRequest();
+
+        if (RequestObject.result != UnityWebRequest.Result.Success)
+        {
+            Debug.Log(
+            $"HTTP {RequestObject.responseCode}\n" +
+            $"Error: {RequestObject.error}\n" +
+            $"Body: {RequestObject.downloadHandler.text}"
+);
+
+            Scene3ManagerScript.DisableInvisiblePanel();
+
+            yield break;
+        }
+
+        StartPrintResponse Response =
+            JsonUtility.FromJson<StartPrintResponse>(
+                RequestObject.downloadHandler.text
+            );
+
+        if (Response.Success)
+        {
+            Debug.Log(Response.Message);
+
+            Scene3ManagerScript.DisableInvisiblePanel();
+
+            // Refresh your order lists here.
+            // Example:
+            // GetPendingOrders();
+            // GetCompletedOrders();
+        }
+        else
+        {
+            Debug.Log(Response.Message);
+
+            Scene3ManagerScript.DisableInvisiblePanel();
+        }
+    }
+
 }
 

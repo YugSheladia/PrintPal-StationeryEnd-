@@ -1,3 +1,4 @@
+using System.Collections;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
@@ -376,8 +377,60 @@ public class OrderStatus : MonoBehaviour
 
 
 
-    public void DownloadAllPrintsFromOrder()
+
+
+    public void ClickedOpenButton()
     {
-        Scene3BackendScript.DownloadOrderPrintsFromServer(Order);
+        StartCoroutine
+        (
+            Scene3BackendScript.Coroutine_DownloadAllPDFs
+            (
+                Order,
+                (Success, PDFPaths) =>
+                {
+                    if (!Success)
+                    {
+                        Scene3ManagerScript.MessageText.text = "PrintPal couldn't open a PDF, try again later.";
+
+                        Scene3ManagerScript.EnableMessagePanel();
+                        Scene3ManagerScript.DisableInvisiblePanel();
+
+                        return;
+                    }
+
+                    foreach (string PDFPath in PDFPaths)
+                    {
+                        Application.OpenURL("file://" + PDFPath);
+                    }
+                }
+            )
+        );
     }
+
+    public void ClickedPrintButton()
+    {
+        StartCoroutine
+        (
+            Scene3BackendScript.Coroutine_DownloadAllPDFs
+            (
+                Order,
+                (Success, PDFPaths) =>
+                {
+                    if (!Success)
+                    {
+                        Scene3ManagerScript.MessageText.text =
+                            "PrintPal couldn't download a PDF, try again later.";
+
+                        Scene3ManagerScript.EnableMessagePanel();
+                        Scene3ManagerScript.DisableInvisiblePanel();
+
+                        return;
+                    }
+
+                    Scene3BackendScript.ValidateOrderForPrinting(Order.OrderID);
+                }
+            )
+        );
+    }
+
 }

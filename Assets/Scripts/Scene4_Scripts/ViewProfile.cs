@@ -10,6 +10,7 @@ public class ViewProfile : MonoBehaviour
     [SerializeField] UpdateProfile UpdateProfileScript;
 
     [SerializeField] TMP_Text StationeryNameText;
+    [SerializeField] TMP_Text StationeryLocationText;
     [SerializeField] TMP_Text StationeryIDText;
     [SerializeField] TMP_Text PhoneNumberText;
     [SerializeField] TMP_Text EmailText;
@@ -49,7 +50,9 @@ public class ViewProfile : MonoBehaviour
 
     public void UpdateUI()
     {
-        StationeryNameText.text = Script1.StationeryInfoObject.StationeryName;
+        StationeryNameText.text     = Script1.StationeryInfoObject.StationeryName;
+        StationeryLocationText.text = Script1.StationeryInfoObject.StationeryLocation;
+
         StationeryIDText.text   = Script1.StationeryInfoObject.StationeryID.ToString();
         PhoneNumberText.text    = Script1.StationeryInfoObject.PhoneNumber;
         EmailText.text          = Script1.StationeryInfoObject.Email;

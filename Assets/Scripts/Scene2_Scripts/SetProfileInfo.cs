@@ -1,38 +1,68 @@
 using UnityEngine;
 using TMPro;
+using UnityEngine.SceneManagement;
 
 public class SetProfileInfo : MonoBehaviour
 {
     [SerializeField] Scene2Manager Scene2ManagerScript;
     [SerializeField] Scene2Backend Scene2BackendScript;
 
+    [SerializeField] SelectPrinters SelectPrintersScript;
+
     [SerializeField] TMP_InputField StationeryNameInput;
     [SerializeField] TMP_InputField UPINumberInput;
     [SerializeField] TMP_InputField EmailInput;
-
-
+    [SerializeField] TMP_InputField LocationInput;
 
 
 
 
     public void ClickedSubmitButton()
     {
-        if(CheckProfileInfo())
+        if (CheckProfileInfo())
         {
             Scene2ManagerScript.EnableInvisiblePanel();
 
-            Scene2BackendScript.StationeryInfoWrapperObject.StationeryInfoObject.StationeryName = StationeryNameInput.text;
-            Scene2BackendScript.StationeryInfoWrapperObject.StationeryInfoObject.UPINumber = UPINumberInput.text;
-            Scene2BackendScript.StationeryInfoWrapperObject.StationeryInfoObject.Email = EmailInput.text;
+            Scene2BackendScript.StationeryInfoWrapperObject.StationeryInfoObject.StationeryName =
+                StationeryNameInput.text;
 
-            Scene2BackendScript.VerifyStationeryInfo();
+            Scene2BackendScript.StationeryInfoWrapperObject.StationeryInfoObject.StationeryLocation =
+                LocationInput.text;
+
+            Scene2BackendScript.StationeryInfoWrapperObject.StationeryInfoObject.UPINumber =
+                UPINumberInput.text;
+
+            Scene2BackendScript.StationeryInfoWrapperObject.StationeryInfoObject.Email =
+                EmailInput.text;
+
+            StartCoroutine
+            (
+                Scene2BackendScript.SubmitStationeryInfoToServer
+                (
+                    (Success, ErrorMessage) =>
+                    {
+                        if (Success)
+                        {
+                            SceneManager.LoadScene("Scene3_HomePage");
+                        }
+                        else
+                        {
+                            Scene2ManagerScript.DisableAllPanels();
+                            Scene2ManagerScript.EnableSetProfileInfoPanel();
+
+                            Scene2ManagerScript.MessageText.text = ErrorMessage;
+                            Scene2ManagerScript.EnableMessagePanel();
+                        }
+                    }
+                )
+            );
         }
         else
         {
-            Scene2ManagerScript.EnableMessagePanel();
-
             Scene2ManagerScript.DisableAllPanels();
             Scene2ManagerScript.EnableSetProfileInfoPanel();
+
+            Scene2ManagerScript.EnableMessagePanel();
         }
     }
 

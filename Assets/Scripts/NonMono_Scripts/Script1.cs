@@ -15,6 +15,20 @@ public static class Script1
     }
 
 
+    public static void SetStationeryInfo2(UpdatedStationeryInfo Info)
+    {
+        if (Info != null)
+        {
+            PrintStationeryInfo();
+        }
+
+        StationeryInfoObject.StationeryName     = Info.StationeryName;
+        StationeryInfoObject.StationeryLocation = Info.StationeryLocation;
+        StationeryInfoObject.Email              = Info.Email;
+        StationeryInfoObject.UPINumber          = Info.UPINumber;
+    }
+
+
     public static void PrintStationeryInfo()
     {
         if (StationeryInfoObject == null)
@@ -23,10 +37,11 @@ public static class Script1
             return;
         }
 
-        Debug.Log("StationeryName   = " + StationeryInfoObject.StationeryName   +
-                  "\nStationeryID     = " + StationeryInfoObject.StationeryID     +
-                  "\nUPI Number       = " + StationeryInfoObject.UPINumber        +
-                  "\nPhone Number     = " + StationeryInfoObject.PhoneNumber      +
-                  "\nEmail            = " + StationeryInfoObject.Email);  
+        Debug.Log("StationeryName       = " + StationeryInfoObject.StationeryName       +
+                  "\nStationerLocation  = " + StationeryInfoObject.StationeryLocation   +
+                  "\nStationeryID       = " + StationeryInfoObject.StationeryID         +
+                  "\nUPI Number         = " + StationeryInfoObject.UPINumber            +
+                  "\nPhone Number       = " + StationeryInfoObject.PhoneNumber          +
+                  "\nEmail              = " + StationeryInfoObject.Email);  
     }
 }

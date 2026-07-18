@@ -16,6 +16,7 @@ public class StationeryInfo
     public string Password;
 
     public string StationeryName;
+    public string StationeryLocation;
     public string UPINumber;
     public string Email;
 
@@ -23,14 +24,21 @@ public class StationeryInfo
 
     public void PrintStationeryDetails()
     {
-        Debug.Log("StationeryID         = " + StationeryID      +
-                  "\nPhone Number       = " + PhoneNumber       +
-                  "\nPassword           = " + Password          +
-                  "\nStationery Name    = " + StationeryName    +
-                  "\nUPI Number         = " + UPINumber         + 
-                  "\nEmail              = " + Email);
+        Debug.Log("StationeryID             = " + StationeryID          +
+                  "\nPhone Number           = " + PhoneNumber           +
+                  "\nPassword               = " + Password              +
+                  "\nStationery Name        = " + StationeryName        +
+                  "\nStationery Location    = " + StationeryLocation    +
+                  "\nUPI Number             = " + UPINumber             + 
+                  "\nEmail                  = " + Email);
     }
 }
+
+
+
+
+
+
 
 public class Scene2Manager : MonoBehaviour
 {
@@ -39,6 +47,7 @@ public class Scene2Manager : MonoBehaviour
     [SerializeField] GameObject SetPhoneNumberPanel;
     [SerializeField] GameObject SetPasswordPanel;
     [SerializeField] GameObject SetProfileInfoPanel;
+    [SerializeField] GameObject SelectPrintersPanel;
 
     [SerializeField] GameObject InvisiblePanel;
     [SerializeField] GameObject MessagePanel;
@@ -67,6 +76,7 @@ public class Scene2Manager : MonoBehaviour
         DisableSetPhoneNumberPanel();
         DisableSetPasswordPanel();
         DisableSetProfileInfoPanel();
+        DisableSelectPrintersPanel();
     }
 
 
@@ -125,7 +135,14 @@ public class Scene2Manager : MonoBehaviour
     {
         SetProfileInfoPanel.SetActive(false);
     }
-
+    public void EnableSelectPrintersPanel()
+    {
+        SelectPrintersPanel.SetActive(true);
+    }
+    public void DisableSelectPrintersPanel()
+    {
+        SelectPrintersPanel.SetActive(false);
+    }
 
 
 

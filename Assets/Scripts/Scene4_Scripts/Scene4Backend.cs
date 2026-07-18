@@ -35,115 +35,79 @@ public class Scene4Backend : MonoBehaviour
     }
     public IEnumerator UpdateStationeryInfoInServer ( UpdatedStationeryInfo UpdatedStationeryInfoObject, System.Action<bool> OnComplete )
     {
-        Debug.Log("1");
         string UpdatedStationeryInfoJSON = JsonUtility.ToJson(UpdatedStationeryInfoObject);
 
-        Debug.Log("2");
         byte[] UpdatedStationeryInfoRaw = System.Text.Encoding.UTF8.GetBytes(UpdatedStationeryInfoJSON);
 
-        Debug.Log("3");
         UnityWebRequest request = new UnityWebRequest(
                                                         "http://localhost:3000/update-stationeryUser",
                                                         "POST"
                                                      );
 
-        Debug.Log("4");
         request.uploadHandler = new UploadHandlerRaw(UpdatedStationeryInfoRaw);
 
-        Debug.Log("5");
         request.downloadHandler = new DownloadHandlerBuffer();
 
-        Debug.Log("6");
         request.SetRequestHeader(
                                     "Content-Type",
                                     "application/json"
                                 );
 
-        Debug.Log("7");
         yield return request.SendWebRequest();
 
-        Debug.Log("8");
         if (request.result == UnityWebRequest.Result.Success)
         {
-            Debug.Log("9");
             string ServerResponseJSON = request.downloadHandler.text;
 
-            Debug.Log("10");
             Debug.Log
             (
                 "Raw Server Response : \n"
                 + ServerResponseJSON
             );
 
-            Debug.Log("11");
             UpdatedStationeryInfoWrapper Response =
                 JsonUtility.FromJson<UpdatedStationeryInfoWrapper>
                 (
                     ServerResponseJSON
                 );
 
-            Debug.Log("12");
             if (Response == null)
             {
-                Debug.Log("13");
                 Debug.LogError("JSON Parsing Failed.");
 
-                Debug.Log("14");
                 OnComplete?.Invoke(false);
 
-                Debug.Log("15");
                 yield break;
             }
 
-            Debug.Log("16");
             if (!Response.Success)
             {
-                Debug.Log("17");
                 Debug.LogError
                 (
                     "Server Error: "
                     + Response.Message
                 );
 
-                Debug.Log("18");
                 OnComplete?.Invoke(false);
 
-                Debug.Log("19");
                 yield break;
             }
 
-            Debug.Log("20");
-            Script1.StationeryInfoObject.StationeryName =
-                UpdatedStationeryInfoObject.StationeryName;
+            Script1.SetStationeryInfo2(UpdatedStationeryInfoObject);
 
-            Debug.Log("21");
-            Script1.StationeryInfoObject.UPINumber =
-                UpdatedStationeryInfoObject.UPINumber;
-
-            Debug.Log("22");
-            Script1.StationeryInfoObject.Email =
-                UpdatedStationeryInfoObject.Email;
-
-
-            Debug.Log("23");
             OnComplete?.Invoke(true);
         }
         else
         {
-            Debug.Log("24");
             Debug.LogError(request.error);
 
-            Debug.Log("25");
             OnComplete?.Invoke(false);
 
-            Debug.Log("26");
             Scene4ManagerScript.DisableInvisiblePanel();
 
-            Debug.Log("27");
             Scene4ManagerScript.MessageText.text = "Something went wrong, try again later.";
             Scene4ManagerScript.EnableMessagePanel();
-            
-            Debug.Log("28");
+
             yield break;
         }
     }

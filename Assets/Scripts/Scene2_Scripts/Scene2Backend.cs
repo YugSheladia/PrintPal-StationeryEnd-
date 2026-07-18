@@ -46,7 +46,7 @@ public class StationeryInfoVerificationResponse
 public class Scene2Backend : MonoBehaviour
 {
     [SerializeField] Scene2Manager Scene2ManagerScript;
-
+    [SerializeField] SelectPrinters SelectPrintersScript;
 
 
     public StationeryInfoWrapper StationeryInfoWrapperObject = new StationeryInfoWrapper();
@@ -57,15 +57,12 @@ public class Scene2Backend : MonoBehaviour
 
 
 
-
-
-
     //Login verification.
-    public void VerifyLoginInfo(LoginInfo LoginInfoObject)
-    {
-        StartCoroutine(SubmitLoginInfoToServer(LoginInfoObject));
-    }
-    IEnumerator SubmitLoginInfoToServer(LoginInfo LoginInfoObject)
+    public IEnumerator SubmitLoginInfoToServer
+(
+    LoginInfo LoginInfoObject,
+    System.Action<bool, string> OnComplete
+)
     {
         string LoginInfoJSON = JsonUtility.ToJson(LoginInfoObject);
 
@@ -97,43 +94,53 @@ public class Scene2Backend : MonoBehaviour
 
         if (request.responseCode == 200 && ResponseObject.Success)
         {
+            bool Success = false;
+
             yield return StartCoroutine
             (
                 GetStationeryInfoFromServer
                 (
-                    ResponseObject.StationeryInfoObject.PhoneNumber
+                    ResponseObject.StationeryInfoObject.PhoneNumber,
+                    (Result) =>
+                    {
+                        Success = Result;
+                    }
                 )
             );
 
-            Debug.Log("Unity - Successfully logged in.");
-        }
-        else
-        {
-            Scene2ManagerScript.DisableAllPanels();
-            Scene2ManagerScript.EnableLoginPanel();
-
-            if (request.responseCode == 404)
+            if (Success)
             {
-                Scene2ManagerScript.MessageText.text =
-                    "Phone number doesn't exist.";
-            }
-            else if (request.responseCode == 401)
-            {
-                Scene2ManagerScript.MessageText.text =
-                    "Incorrect password.";
-            }
-            else if (request.responseCode == 500)
-            {
-                Scene2ManagerScript.MessageText.text =
-                    "Database error. Please try again.";
+                OnComplete?.Invoke(true, "");
             }
             else
             {
-                Scene2ManagerScript.MessageText.text =
-                    "Something went wrong. Please try again.";
+                OnComplete?.Invoke
+                (
+                    false,
+                    "Failed to retrieve stationery information."
+                );
             }
+        }
+        else
+        {
+            string ErrorMessage;
 
-            Scene2ManagerScript.EnableMessagePanel();
+            if (request.responseCode == 404)
+            {
+                ErrorMessage = "Phone number doesn't exist.";
+            }
+            else if (request.responseCode == 401)
+            {
+                ErrorMessage = "Incorrect password.";
+            }
+            else if (request.responseCode == 500)
+            {
+                ErrorMessage = "Database error. Please try again.";
+            }
+            else
+            {
+                ErrorMessage = "Something went wrong. Please try again.";
+            }
 
             Debug.LogError
             (
@@ -142,54 +149,59 @@ public class Scene2Backend : MonoBehaviour
                 + " | "
                 + ResponseObject?.Message
             );
+
+            OnComplete?.Invoke(false, ErrorMessage);
         }
     }
-    IEnumerator GetStationeryInfoFromServer(string PhoneNumber)
+    IEnumerator GetStationeryInfoFromServer
+(
+    string PhoneNumber,
+    System.Action<bool> OnComplete
+)
     {
-        UnityWebRequest request = UnityWebRequest.Get(  
-                                                        "http://localhost:3000/stationeryInfo/" 
-                                                        + PhoneNumber
-                                                     );
+        UnityWebRequest request = UnityWebRequest.Get
+        (
+            "http://localhost:3000/stationeryInfo/" + PhoneNumber
+        );
 
         yield return request.SendWebRequest();
 
         if (request.result == UnityWebRequest.Result.Success)
         {
             string ServerResponseJSON = request.downloadHandler.text;
+
             Debug.Log("Raw Server response = \n" + ServerResponseJSON);
 
-            StationeryInfoWrapper StationeryInfoWrapperObject = JsonUtility.FromJson<StationeryInfoWrapper>(ServerResponseJSON);
+            StationeryInfoWrapper StationeryInfoWrapperObject =
+                JsonUtility.FromJson<StationeryInfoWrapper>(ServerResponseJSON);
 
             if (StationeryInfoWrapperObject.Success)
             {
                 Debug.Log("Stationery info received");
 
-                Script1.SetStationeryInfo(StationeryInfoWrapperObject.StationeryInfoObject);
+                Script1.SetStationeryInfo
+                (
+                    StationeryInfoWrapperObject.StationeryInfoObject
+                );
 
-                SceneManager.LoadScene("Scene3_HomePage");
+                OnComplete?.Invoke(true);
             }
             else
             {
                 Debug.LogError("User not found");
 
-                Scene2ManagerScript.MessageText.text = "User not found.\nRestart the app if you think this is a mistake";
-                Scene2ManagerScript.EnableMessagePanel();
-
-                Scene2ManagerScript.DisableAllPanels();
-                Scene2ManagerScript.EnableLoginPanel();
+                OnComplete?.Invoke(false);
             }
         }
         else
         {
             Debug.LogError(request.error);
 
-            Scene2ManagerScript.MessageText.text = "An error occured.\nRestart the app if you think this is a mistake";
-            Scene2ManagerScript.EnableMessagePanel();
-
-            Scene2ManagerScript.DisableAllPanels();
-            Scene2ManagerScript.EnableLoginPanel();
+            OnComplete?.Invoke(false);
         }
     }
+
+
 
 
 
@@ -203,70 +215,83 @@ public class Scene2Backend : MonoBehaviour
         public bool Success;
         public string Message;
     }
-    public void CheckPhoneNumberAvailability(StationeryPhoneNumber StationeryPhoneNumberObject)
-    {
-        StartCoroutine(SubmitPhoneNumberToServer(StationeryPhoneNumberObject));
-    }
-    IEnumerator SubmitPhoneNumberToServer(StationeryPhoneNumber StationeryPhoneNumberObject)
+    public IEnumerator SubmitPhoneNumberToServer
+    (
+        StationeryPhoneNumber StationeryPhoneNumberObject,
+        System.Action<bool, string> OnComplete
+    )
     {
         string StationeryPhoneNumberJSON = JsonUtility.ToJson(StationeryPhoneNumberObject);
 
         byte[] StationeryPhoneNumberRaw = System.Text.Encoding.UTF8.GetBytes(StationeryPhoneNumberJSON);
 
-        UnityWebRequest request = new UnityWebRequest(
-                                                        "http://localhost:3000/stationeryPhoneNumberAvailability",
-                                                        "POST"
-                                                     );
+        UnityWebRequest request = new UnityWebRequest
+        (
+            "http://localhost:3000/stationeryPhoneNumberAvailability",
+            "POST"
+        );
 
-        request.uploadHandler = new UploadHandlerRaw(StationeryPhoneNumberRaw);
+        request.uploadHandler =
+            new UploadHandlerRaw(StationeryPhoneNumberRaw);
 
-        request.downloadHandler = new DownloadHandlerBuffer();
+        request.downloadHandler =
+            new DownloadHandlerBuffer();
 
-        request.SetRequestHeader(
-                                    "Content-Type",
-                                    "application/json"
-                                );
+        request.SetRequestHeader
+        (
+            "Content-Type",
+            "application/json"
+        );
 
         yield return request.SendWebRequest();
 
         if (request.result == UnityWebRequest.Result.Success)
         {
             string ServerResponseJSON = request.downloadHandler.text;
-            Debug.Log("Raw Server Response : \n" + ServerResponseJSON);
 
-            PhoneNumberAvailabilityResponse ServerResponseObject = JsonUtility.FromJson<PhoneNumberAvailabilityResponse>(ServerResponseJSON);
+            Debug.Log("Raw Server Response :\n" + ServerResponseJSON);
 
-            if (ServerResponseObject.Success == true)
+            PhoneNumberAvailabilityResponse ServerResponseObject =
+                JsonUtility.FromJson<PhoneNumberAvailabilityResponse>
+                (
+                    ServerResponseJSON
+                );
+
+            if (ServerResponseObject.Success)
             {
                 Debug.Log("Phone Number Available");
 
-                StationeryInfoWrapperObject.StationeryInfoObject.PhoneNumber = StationeryPhoneNumberObject.PhoneNumber;
+                StationeryInfoWrapperObject
+                    .StationeryInfoObject
+                    .PhoneNumber = StationeryPhoneNumberObject.PhoneNumber;
 
-                Scene2ManagerScript.DisableAllPanels();
-                Scene2ManagerScript.EnableSetPasswordPanel();
+                OnComplete?.Invoke(true, "");
             }
             else
             {
                 Debug.Log("Number already taken.");
 
-                Scene2ManagerScript.MessageText.text = "Phone number already taken.";
-                Scene2ManagerScript.EnableMessagePanel();
-
-                Scene2ManagerScript.DisableAllPanels();
-                Scene2ManagerScript.EnableSetPhoneNumberPanel();
+                OnComplete?.Invoke
+                (
+                    false,
+                    "Phone number already taken."
+                );
             }
         }
         else
         {
             Debug.LogError(request.error);
 
-            Scene2ManagerScript.MessageText.text = "An error occured.\nRestart the app if you think this is a mistake";
-            Scene2ManagerScript.EnableMessagePanel();
-
-            Scene2ManagerScript.DisableAllPanels();
-            Scene2ManagerScript.EnableSetPhoneNumberPanel();
+            OnComplete?.Invoke
+            (
+                false,
+                "An error occurred.\nRestart the app if you think this is a mistake."
+            );
         }
     }
+
+
+
 
 
 
@@ -274,29 +299,31 @@ public class Scene2Backend : MonoBehaviour
 
 
     //Creating a stationery account.
-    public void VerifyStationeryInfo()
+    public IEnumerator SubmitStationeryInfoToServer
+    (
+        System.Action<bool, string> OnComplete
+    )
     {
-        StartCoroutine(SubmitStationeryInfoToServer());
-    }
-    IEnumerator SubmitStationeryInfoToServer()
-    {
-        string StationeryInfoObjectJSON = JsonUtility.ToJson(StationeryInfoWrapperObject.StationeryInfoObject);
+        string StationeryInfoObjectJSON =
+            JsonUtility.ToJson(StationeryInfoWrapperObject.StationeryInfoObject);
 
-        byte[] UserInfoObjectRaw = System.Text.Encoding.UTF8.GetBytes(StationeryInfoObjectJSON);
+        byte[] UserInfoObjectRaw =
+            System.Text.Encoding.UTF8.GetBytes(StationeryInfoObjectJSON);
 
-        UnityWebRequest request = new UnityWebRequest(
-                                                        "http://localhost:3000/create-stationeryUser",
-                                                        "POST"
-                                                     );
+        UnityWebRequest request = new UnityWebRequest
+        (
+            "http://localhost:3000/create-stationeryUser",
+            "POST"
+        );
 
         request.uploadHandler = new UploadHandlerRaw(UserInfoObjectRaw);
-
         request.downloadHandler = new DownloadHandlerBuffer();
 
-        request.SetRequestHeader(
-                                    "Content-Type",
-                                    "application/json"
-                                );
+        request.SetRequestHeader
+        (
+            "Content-Type",
+            "application/json"
+        );
 
         yield return request.SendWebRequest();
 
@@ -304,26 +331,115 @@ public class Scene2Backend : MonoBehaviour
         {
             string ServerResponseJSON = request.downloadHandler.text;
 
-            Debug.Log("Raw Server Response : \n" + ServerResponseJSON);
+            Debug.Log("Raw Server Response :\n" + ServerResponseJSON);
 
-            StationeryInfoVerificationResponse ResponseObject = 
-                JsonUtility.FromJson<StationeryInfoVerificationResponse>(ServerResponseJSON);
+            StationeryInfoVerificationResponse ResponseObject =
+                JsonUtility.FromJson<StationeryInfoVerificationResponse>
+                (
+                    ServerResponseJSON
+                );
 
-            StationeryInfoWrapperObject.StationeryInfoObject.StationeryID = ResponseObject.StationeryID;
+            StationeryInfoWrapperObject.StationeryInfoObject.StationeryID =
+                ResponseObject.StationeryID;
 
-            Script1.SetStationeryInfo(StationeryInfoWrapperObject.StationeryInfoObject);
+            Script1.SetStationeryInfo
+            (
+                StationeryInfoWrapperObject.StationeryInfoObject
+            );
 
-            SceneManager.LoadScene("Scene3_HomePage");
+            OnComplete?.Invoke(true, "");
         }
         else
         {
             Debug.LogError(request.error);
 
-            Scene2ManagerScript.MessageText.text = "An error occured.\nRestart the app if you think this is a mistake";
-            Scene2ManagerScript.EnableMessagePanel();
+            OnComplete?.Invoke
+            (
+                false,
+                "An error occurred.\nRestart the app if you think this is a mistake."
+            );
+        }
+    }
 
-            Scene2ManagerScript.DisableAllPanels();
-            Scene2ManagerScript.EnableSetProfileInfoPanel();
+
+
+
+
+
+
+
+
+    [System.Serializable]
+    public class PrinterInfo
+    {
+        public string name;
+        public string status;
+        public bool isDefault;
+    }
+
+    [System.Serializable]
+    public class PrintersResponse
+    {
+        public bool success;
+        public string message;
+        public PrinterInfo[] printers;
+    }
+
+    public IEnumerator GetPrinters(System.Action<PrinterInfo[]> OnComplete)
+    {
+        using (UnityWebRequest Request =
+            UnityWebRequest.Get("http://localhost:3000/printers"))
+        {
+            yield return Request.SendWebRequest();
+
+            if (Request.result != UnityWebRequest.Result.Success)
+            {
+                Debug.LogError
+                (
+                    "Failed to get printers: " +
+                    Request.error
+                );
+
+                OnComplete?.Invoke(null);
+
+                yield break;
+            }
+
+            string ResponseText = Request.downloadHandler.text;
+
+            Debug.Log("Raw = " +  ResponseText);
+
+            PrintersResponse Response =
+                JsonUtility.FromJson<PrintersResponse>(ResponseText);
+
+            if (Response == null)
+            {
+                Debug.LogError("Printer response is null.");
+
+                OnComplete?.Invoke(null);
+
+                yield break;
+            }
+
+            if (!Response.success)
+            {
+                Debug.LogError(Response.message);
+
+                OnComplete?.Invoke(null);
+
+                yield break;
+            }
+
+            if (Response.printers == null)
+            {
+                Debug.LogError("Printers array is null.");
+
+                OnComplete?.Invoke(null);
+
+                yield break;
+            }
+
+            OnComplete?.Invoke(Response.printers);
         }
     }
 

@@ -347,4 +347,16 @@ public class HomePage : MonoBehaviour
         Scene3ManagerScript.DisableAllPanels();
         Scene3ManagerScript.EnableOrdersPage();
     }
+
+
+
+
+
+
+
+
+    public void ClickedGetAllPrinters()
+    {
+        Debug.Log("Pressed ViewAllPrinters");
+    }
 }

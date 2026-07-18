@@ -1,5 +1,7 @@
-using UnityEngine;
+using NUnit.Framework;
 using TMPro;
+using UnityEngine;
+using UnityEngine.SceneManagement;
 
 public class LoginInfo
 {
@@ -11,6 +13,8 @@ public class Login : MonoBehaviour
 {
     [SerializeField] Scene2Manager Scene2ManagerScript;
     [SerializeField] Scene2Backend Scene2BackendScript;
+
+    [SerializeField] SelectPrinters SelectPrintersScript;
 
     [SerializeField] TMP_InputField PhoneNumberInput;
     [SerializeField] TMP_InputField PasswordInput;
@@ -24,7 +28,7 @@ public class Login : MonoBehaviour
 
     public void ClickedSubmitbutton()
     {
-        if(CheckLoginInfo())
+        if (CheckLoginInfo())
         {
             Scene2ManagerScript.EnableInvisiblePanel();
 
@@ -33,16 +37,37 @@ public class Login : MonoBehaviour
             LoginInfoObject.PhoneNumber = PhoneNumberInput.text;
             LoginInfoObject.Password = PasswordInput.text;
 
-            Scene2BackendScript.VerifyLoginInfo(LoginInfoObject);
+            StartCoroutine
+            (
+                Scene2BackendScript.SubmitLoginInfoToServer
+                (
+                    LoginInfoObject,
+
+                    (Success, ErrorMessage) =>
+                    {
+                        if (Success)
+                        {
+                            SceneManager.LoadScene("Scene3_HomePage");
+                        }
+                        else
+                        {
+                            Scene2ManagerScript.DisableAllPanels();
+                            Scene2ManagerScript.EnableLoginPanel();
+
+                            Scene2ManagerScript.MessageText.text = ErrorMessage;
+                            Scene2ManagerScript.EnableMessagePanel();
+                        }
+                    }
+                )
+            );
         }
         else
         {
-            Scene2ManagerScript.EnableMessagePanel();
-
             Scene2ManagerScript.DisableAllPanels();
             Scene2ManagerScript.EnableLoginPanel();
+
+            Scene2ManagerScript.EnableMessagePanel();
         }
-            
     }
 
     public void ClickedCreateNewAccount()
@@ -55,7 +80,13 @@ public class Login : MonoBehaviour
 
 
 
+    public void ClickedGetPrintersButton()
+    {
+        Scene2ManagerScript.EnableInvisiblePanel();
+        Scene2ManagerScript.EnableSelectPrintersPanel();
 
+        SelectPrintersScript.GetConnectedPrinters();
+    }
 
 
 

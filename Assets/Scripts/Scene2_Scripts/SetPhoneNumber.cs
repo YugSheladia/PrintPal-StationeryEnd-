@@ -20,23 +20,46 @@ public class SetPhoneNumber : MonoBehaviour
 
     public void ClickedSubmitButton()
     {
-        if(CheckPhoneNumberLength())
+        if (CheckPhoneNumberLength())
         {
             Scene2ManagerScript.EnableInvisiblePanel();
 
             StationeryPhoneNumber StationeryPhoneNumberObject = new StationeryPhoneNumber();
+
             StationeryPhoneNumberObject.PhoneNumber = PhoneNumberInput.text;
 
-            Scene2BackendScript.CheckPhoneNumberAvailability(StationeryPhoneNumberObject);
+            StartCoroutine
+            (
+                Scene2BackendScript.SubmitPhoneNumberToServer
+                (
+                    StationeryPhoneNumberObject,
+
+                    (Success, ErrorMessage) =>
+                    {
+                        if (Success)
+                        {
+                            Scene2ManagerScript.DisableAllPanels();
+                            Scene2ManagerScript.EnableSetPasswordPanel();
+                        }
+                        else
+                        {
+                            Scene2ManagerScript.DisableAllPanels();
+                            Scene2ManagerScript.EnableSetPhoneNumberPanel();
+
+                            Scene2ManagerScript.MessageText.text = ErrorMessage;
+                            Scene2ManagerScript.EnableMessagePanel();
+                        }
+                    }
+                )
+            );
         }
         else
         {
-            Scene2ManagerScript.EnableMessagePanel();
-
             Scene2ManagerScript.DisableAllPanels();
             Scene2ManagerScript.EnableSetPhoneNumberPanel();
+
+            Scene2ManagerScript.EnableMessagePanel();
         }
-            
     }
 
     public void ClickedPreviousBUtton()
