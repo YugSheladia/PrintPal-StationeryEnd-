@@ -17,9 +17,9 @@ public class Scene1Manager : MonoBehaviour
         DisableAllPanels();
         EnableLoadingScreen();
 
-        StartCoroutine(LoadNextPanelAfterDelay());
+        StartCoroutine(LoadScene2AfterDelay());
     }
-    IEnumerator LoadNextPanelAfterDelay()
+    IEnumerator LoadScene2AfterDelay()
     {
         yield return new WaitForSeconds(Delay);
 

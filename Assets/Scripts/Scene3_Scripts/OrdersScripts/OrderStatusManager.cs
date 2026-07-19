@@ -62,4 +62,18 @@ public class OrderStatusManager : MonoBehaviour
             Destroy(Child.gameObject);
         }
     }
+
+
+
+    public void RemoveOrderPanel(int OrderID)
+    {
+        foreach (OrderStatus Panel in OrderStatusListParent.GetComponentsInChildren<OrderStatus>())
+        {
+            if (Panel.Order.OrderID == OrderID)
+            {
+                Destroy(Panel.gameObject);
+                return;
+            }
+        }
+    }
 }

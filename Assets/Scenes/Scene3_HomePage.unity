@@ -2643,6 +2643,7 @@ GameObject:
   - component: {fileID: 459761573}
   - component: {fileID: 459761578}
   - component: {fileID: 459761577}
+  - component: {fileID: 459761579}
   m_Layer: 5
   m_Name: MainCanvas
   m_TagString: Untagged
@@ -2767,6 +2768,7 @@ MonoBehaviour:
     Success: 0
     Message: 
     PrintBills: []
+  ServerURL: http://localhost:3000
 --- !u!114 &459761578
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -2787,6 +2789,25 @@ MonoBehaviour:
   InvisiblePanel: {fileID: 178179303}
   MessagePanel: {fileID: 1651761918}
   MessageText: {fileID: 1613573904}
+--- !u!114 &459761579
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 459761572}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 72ffbe419b6555c47bdb528ac969c059, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PrintManager
+  Scene3BackendScript: {fileID: 459761577}
+  SelectedPrinter:
+    Name: 
+    IsSelected: 0
+    IsOnline: 0
+    IsBusy: 0
+    AutomaticPrinting: 0
 --- !u!1 &504548482
 GameObject:
   m_ObjectHideFlags: 0

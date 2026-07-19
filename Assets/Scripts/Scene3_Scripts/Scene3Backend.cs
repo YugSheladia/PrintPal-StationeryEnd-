@@ -208,6 +208,8 @@ public class PrintDetails
 
     public string PDFName;
 
+    public string LocalPDFPath;
+
     public PageSelectionEnum PageSelection = PageSelectionEnum.AllPages;
 
     public SideSelectionEnum SideSelection = SideSelectionEnum.SingleSided;
@@ -1891,10 +1893,156 @@ public class Scene3Backend : MonoBehaviour
 
 
 
-    public IEnumerator Coroutine_DownloadAllPDFs (OrderSummary Order, System.Action<bool, List<string>> OnComplete)
-    {
-        List<string> PDFPaths = new List<string>();
 
+    public string ServerURL = "http://localhost:3000";
+
+    [System.Serializable]
+    public class ValidatePrintRequest
+    {
+        public int OrderID;
+        public int StationeryID;
+    }
+
+    [System.Serializable]
+    public class ValidatePrintResponse
+    {
+        public bool Success;
+        public string Message;
+        public int TotalPrints;
+    }
+
+    [System.Serializable]
+    public class StartPrintRequest
+    {
+        public int OrderID;
+        public int StationeryID;
+        public string PrinterName;
+    }
+
+    [System.Serializable]
+    public class StartPrintResponse
+    {
+        public bool Success;
+        public string Message;
+    }
+
+
+    public void StartPrintJob(OrderSummary Order)
+    {
+        StartCoroutine(Coroutine_CreatePrintJob(Order));
+    }
+    IEnumerator Coroutine_CreatePrintJob(OrderSummary Order)
+    {
+        //Validation is to check whether all the info relating to the order, i.e. Prints, PrintSettings, PrintBills, etc all exist.
+        ValidatePrintRequest Request = new ValidatePrintRequest()
+        {
+            OrderID = Order.OrderID,
+            StationeryID = Script1.StationeryInfoObject.StationeryID
+        };
+
+        string JsonData = JsonUtility.ToJson(Request);
+
+        UnityWebRequest RequestObject = new UnityWebRequest
+        (
+            ServerURL + "/printOrder/validate",
+            "POST"
+        );
+
+        byte[] Body = Encoding.UTF8.GetBytes(JsonData);
+
+        RequestObject.uploadHandler = new UploadHandlerRaw(Body);
+        RequestObject.downloadHandler = new DownloadHandlerBuffer();
+        RequestObject.SetRequestHeader("Content-Type", "application/json");
+
+        yield return RequestObject.SendWebRequest();
+
+        if (RequestObject.result != UnityWebRequest.Result.Success)
+        {
+            Debug.LogError(RequestObject.responseCode);
+            Debug.LogError(RequestObject.error);
+            Debug.LogError(RequestObject.downloadHandler.text);
+
+            Scene3ManagerScript.DisableInvisiblePanel();
+            yield break;
+        }
+
+        ValidatePrintResponse Response =
+            JsonUtility.FromJson<ValidatePrintResponse>
+            (
+                RequestObject.downloadHandler.text
+            );
+
+        if (!Response.Success)
+        {
+            Scene3ManagerScript.MessageText.text = Response.Message;
+
+            Scene3ManagerScript.EnableMessagePanel();
+            Scene3ManagerScript.DisableInvisiblePanel();
+
+            yield break;
+        }
+
+        Debug.Log("All Prints validated.");
+
+
+        //Downloading all PDFS in the app's file directory ( if they haven't been already ).
+        yield return StartCoroutine
+        (
+            Coroutine_DownloadAllPDFs
+            (
+                Order,
+                Success =>
+                {
+                    if (!Success)
+                    {
+                        Scene3ManagerScript.MessageText.text =
+                            "PrintPal couldn't download all PDFs.";
+
+                        Scene3ManagerScript.EnableMessagePanel();
+                        Scene3ManagerScript.DisableInvisiblePanel();
+
+                        return;
+                    }
+
+                    Debug.Log("Downloaded All PDFs.");
+                    
+                    //Create a PrintJob.
+                    PrintJob Job = PrintManager.Instance.CreatePrintJob
+                    (
+                        Order,
+                        PrintManager.Instance.SelectedPrinter
+                    );
+
+                    if (Job == null)
+                    {
+                        Scene3ManagerScript.MessageText.text =
+                            "Failed to prepare print job.";
+
+                        Scene3ManagerScript.EnableMessagePanel();
+                        Scene3ManagerScript.DisableInvisiblePanel();
+
+                        return;
+                    }
+
+                    Debug.Log("Job created.");
+
+                    Job.PrintJobDetails();
+
+                    //Queing the Job.
+                    PrintManager.Instance.QueuePrintJob(Job);
+
+                    Debug.Log("Current Queue = ");
+                    PrintManager.Instance.Queue.DisplayQueueInfo();
+                    
+                }
+            )
+        );
+        Scene3ManagerScript.DisableInvisiblePanel();
+    }
+
+
+    public IEnumerator Coroutine_DownloadAllPDFs(OrderSummary Order, System.Action<bool> OnComplete)
+    {
         foreach (PrintDetails Print in Order.Prints)
         {
             bool Success = false;
@@ -1915,16 +2063,15 @@ public class Scene3Backend : MonoBehaviour
 
             if (!Success)
             {
-                OnComplete(false, null);
+                OnComplete(false);
                 yield break;
             }
 
-            PDFPaths.Add(PDFPath);
+            Print.LocalPDFPath = PDFPath;
         }
 
-        OnComplete(true, PDFPaths);
+        OnComplete(true);
     }
-
     IEnumerator Coroutine_DownloadPDF(int PrintID, System.Action<bool, string> OnComplete)
     {
         string SavePath = Path.Combine
@@ -1972,48 +2119,14 @@ public class Scene3Backend : MonoBehaviour
     }
 
 
-
-
-
-
-    public string ServerURL = "http://localhost:3000";
-
-    [System.Serializable]
-    public class ValidatePrintRequest
+    public IEnumerator CompletePrintedOrder ( int OrderID )
     {
-        public int OrderID;
-        public int StationeryID;
+        yield return StartCoroutine
+        (
+            Coroutine_CompletePrintedOrder(OrderID)
+        );
     }
-
-    [System.Serializable]
-    public class ValidatePrintResponse
-    {
-        public bool Success;
-        public string Message;
-        public int TotalPrints;
-    }
-
-    [System.Serializable]
-    public class StartPrintRequest
-    {
-        public int OrderID;
-        public int StationeryID;
-        public string PrinterName;
-    }
-
-    [System.Serializable]
-    public class StartPrintResponse
-    {
-        public bool Success;
-        public string Message;
-    }
-
-
-    public void ValidateOrderForPrinting(int OrderID)
-    {
-        StartCoroutine(Coroutine_ValidateOrderForPrinting(OrderID));
-    }
-    IEnumerator Coroutine_ValidateOrderForPrinting(int OrderID)
+    IEnumerator Coroutine_CompletePrintedOrder(int OrderID)
     {
         ValidatePrintRequest Request = new ValidatePrintRequest()
         {
@@ -2023,8 +2136,9 @@ public class Scene3Backend : MonoBehaviour
 
         string JsonData = JsonUtility.ToJson(Request);
 
-        UnityWebRequest RequestObject = new UnityWebRequest(
-            ServerURL + "/printOrder/validate",
+        UnityWebRequest RequestObject = new UnityWebRequest
+        (
+            ServerURL + "/printOrder/complete",
             "POST"
         );
 
@@ -2038,64 +2152,9 @@ public class Scene3Backend : MonoBehaviour
 
         if (RequestObject.result != UnityWebRequest.Result.Success)
         {
+            Debug.LogError(RequestObject.responseCode);
             Debug.LogError(RequestObject.error);
-
-            Scene3ManagerScript.DisableInvisiblePanel();
-
-            yield break;
-        }
-
-        ValidatePrintResponse Response =
-            JsonUtility.FromJson<ValidatePrintResponse>(
-                RequestObject.downloadHandler.text
-            );
-
-        if (Response.Success)
-        {
-            StartPrintingOrder(OrderID);
-        }
-        else
-        {
-            Debug.Log(Response.Message);
-
-            Scene3ManagerScript.DisableInvisiblePanel();
-        }
-    }
-    public void StartPrintingOrder(int OrderID)
-    {
-        StartCoroutine(Coroutine_StartPrintingOrder(OrderID));
-    }
-    IEnumerator Coroutine_StartPrintingOrder(int OrderID)
-    {
-        StartPrintRequest Request = new StartPrintRequest()
-        {
-            OrderID = OrderID,
-            StationeryID = Script1.StationeryInfoObject.StationeryID,
-            PrinterName = "Canon E470 series"
-        };
-
-        string JsonData = JsonUtility.ToJson(Request);
-
-        UnityWebRequest RequestObject = new UnityWebRequest(
-            ServerURL + "/printOrder/start",
-            "POST"
-        );
-
-        byte[] Body = Encoding.UTF8.GetBytes(JsonData);
-
-        RequestObject.uploadHandler = new UploadHandlerRaw(Body);
-        RequestObject.downloadHandler = new DownloadHandlerBuffer();
-        RequestObject.SetRequestHeader("Content-Type", "application/json");
-
-        yield return RequestObject.SendWebRequest();
-
-        if (RequestObject.result != UnityWebRequest.Result.Success)
-        {
-            Debug.Log(
-            $"HTTP {RequestObject.responseCode}\n" +
-            $"Error: {RequestObject.error}\n" +
-            $"Body: {RequestObject.downloadHandler.text}"
-);
+            Debug.LogError(RequestObject.downloadHandler.text);
 
             Scene3ManagerScript.DisableInvisiblePanel();
 
@@ -2103,28 +2162,64 @@ public class Scene3Backend : MonoBehaviour
         }
 
         StartPrintResponse Response =
-            JsonUtility.FromJson<StartPrintResponse>(
+            JsonUtility.FromJson<StartPrintResponse>
+            (
                 RequestObject.downloadHandler.text
             );
 
-        if (Response.Success)
+        if (!Response.Success)
         {
-            Debug.Log(Response.Message);
+            Debug.LogError(Response.Message);
 
             Scene3ManagerScript.DisableInvisiblePanel();
 
-            // Refresh your order lists here.
-            // Example:
-            // GetPendingOrders();
-            // GetCompletedOrders();
+            yield break;
         }
-        else
-        {
-            Debug.Log(Response.Message);
 
-            Scene3ManagerScript.DisableInvisiblePanel();
+        Debug.Log
+        (
+            $"Order {OrderID} marked as completed."
+        );
+
+        //--------------------------------------------------
+        // Refresh Pending Orders
+        //--------------------------------------------------
+
+        bool PendingSuccess = false;
+
+        yield return StartCoroutine
+        (
+            GetPendingOrders
+            (
+                Script1.StationeryInfoObject.StationeryID,
+                Result => PendingSuccess = Result
+            )
+        );
+
+        //--------------------------------------------------
+        // Refresh Completed Orders
+        //--------------------------------------------------
+
+        bool CompletedSuccess = false;
+
+        yield return StartCoroutine
+        (
+            GetCompletedOrders
+            (
+                Script1.StationeryInfoObject.StationeryID,
+                Result => CompletedSuccess = Result
+            )
+        );
+
+        if (!PendingSuccess || !CompletedSuccess)
+        {
+            Debug.LogWarning
+            (
+                "Failed to refresh order lists."
+            );
         }
+
+        Scene3ManagerScript.DisableInvisiblePanel();
     }
-
 }
 

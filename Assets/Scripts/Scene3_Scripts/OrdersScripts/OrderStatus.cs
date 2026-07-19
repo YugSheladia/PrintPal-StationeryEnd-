@@ -379,6 +379,8 @@ public class OrderStatus : MonoBehaviour
 
 
 
+
+
     public void ClickedOpenButton()
     {
         StartCoroutine
@@ -386,11 +388,12 @@ public class OrderStatus : MonoBehaviour
             Scene3BackendScript.Coroutine_DownloadAllPDFs
             (
                 Order,
-                (Success, PDFPaths) =>
+                Success =>
                 {
                     if (!Success)
                     {
-                        Scene3ManagerScript.MessageText.text = "PrintPal couldn't open a PDF, try again later.";
+                        Scene3ManagerScript.MessageText.text =
+                            "PrintPal couldn't open a PDF, try again later.";
 
                         Scene3ManagerScript.EnableMessagePanel();
                         Scene3ManagerScript.DisableInvisiblePanel();
@@ -398,9 +401,12 @@ public class OrderStatus : MonoBehaviour
                         return;
                     }
 
-                    foreach (string PDFPath in PDFPaths)
+                    foreach (PrintDetails Print in Order.Prints)
                     {
-                        Application.OpenURL("file://" + PDFPath);
+                        Application.OpenURL
+                        (
+                            "file://" + Print.LocalPDFPath
+                        );
                     }
                 }
             )
@@ -409,28 +415,11 @@ public class OrderStatus : MonoBehaviour
 
     public void ClickedPrintButton()
     {
-        StartCoroutine
-        (
-            Scene3BackendScript.Coroutine_DownloadAllPDFs
-            (
-                Order,
-                (Success, PDFPaths) =>
-                {
-                    if (!Success)
-                    {
-                        Scene3ManagerScript.MessageText.text =
-                            "PrintPal couldn't download a PDF, try again later.";
+        Debug.Log("Clicked Print Button.");
 
-                        Scene3ManagerScript.EnableMessagePanel();
-                        Scene3ManagerScript.DisableInvisiblePanel();
+        //Scene3ManagerScript.EnableInvisiblePanel();
 
-                        return;
-                    }
-
-                    Scene3BackendScript.ValidateOrderForPrinting(Order.OrderID);
-                }
-            )
-        );
+        Scene3BackendScript.StartPrintJob(Order);
     }
 
 }
