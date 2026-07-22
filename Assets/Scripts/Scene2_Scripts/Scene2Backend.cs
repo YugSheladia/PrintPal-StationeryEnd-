@@ -59,10 +59,10 @@ public class Scene2Backend : MonoBehaviour
 
     //Login verification.
     public IEnumerator SubmitLoginInfoToServer
-(
-    LoginInfo LoginInfoObject,
-    System.Action<bool, string> OnComplete
-)
+    (
+        LoginInfo LoginInfoObject,
+        System.Action<bool, string> OnComplete
+    )
     {
         string LoginInfoJSON = JsonUtility.ToJson(LoginInfoObject);
 
@@ -154,10 +154,10 @@ public class Scene2Backend : MonoBehaviour
         }
     }
     IEnumerator GetStationeryInfoFromServer
-(
-    string PhoneNumber,
-    System.Action<bool> OnComplete
-)
+    (
+        string PhoneNumber,
+        System.Action<bool> OnComplete
+    )
     {
         UnityWebRequest request = UnityWebRequest.Get
         (

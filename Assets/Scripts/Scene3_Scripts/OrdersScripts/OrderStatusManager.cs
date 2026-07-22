@@ -19,7 +19,7 @@ public class OrderStatusManager : MonoBehaviour
     {
         foreach (OrderSummary Order in Scene3BackendScript.ConfirmedOrders.Orders)
         {
-            Debug.Log("OrderID = " + Order.OrderID);
+            //Debug.Log("OrderID = " + Order.OrderID);
 
             CreateOrderStatusPanel(Order);
         }

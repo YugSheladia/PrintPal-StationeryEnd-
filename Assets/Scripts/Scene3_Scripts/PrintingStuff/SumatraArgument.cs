@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.Text;
 
 public static class SumatraArguments
@@ -10,48 +11,95 @@ public static class SumatraArguments
     {
         PrintDetails Print = Document.Print;
 
-        StringBuilder Settings = new StringBuilder();
+        List<string> Settings = new List<string>();
 
-        Settings.Append($"printer=\"{Printer.Name}\"");
+        //--------------------------------------------------
+        // Copies
+        //--------------------------------------------------
 
         if (Print.Copies > 1)
-            Settings.Append($",copies={Print.Copies}");
+            Settings.Add($"{Print.Copies}x");
+
+        //--------------------------------------------------
+        // Duplex
+        //--------------------------------------------------
 
         if (Print.SideSelection == SideSelectionEnum.DoubleSided)
-            Settings.Append(",duplex");
+            Settings.Add("duplex");
+
+        //--------------------------------------------------
+        // Collation
+        //--------------------------------------------------
 
         if (Print.CollatedOrNot == CollatedOrNotEnum.Collated)
-            Settings.Append(",collate");
+            Settings.Add("collate");
+
+        //--------------------------------------------------
+        // Orientation
+        //--------------------------------------------------
 
         if (Print.Orientation == OrientationEnum.Landscape)
-            Settings.Append(",landscape");
+            Settings.Add("landscape");
+
+        //--------------------------------------------------
+        // Color
+        //--------------------------------------------------
 
         if (Print.Color == ColorEnum.BlackAndWhite)
-            Settings.Append(",monochrome");
+            Settings.Add("monochrome");
+
+        //--------------------------------------------------
+        // Pages Per Sheet
+        //--------------------------------------------------
 
         switch (Print.PagesPerSheet)
         {
             case PagesPerSheetEnum._2:
-                Settings.Append(",2x");
+                Settings.Add("2x");
                 break;
 
             case PagesPerSheetEnum._4:
-                Settings.Append(",4x");
+                Settings.Add("4x");
                 break;
 
             case PagesPerSheetEnum._8:
-                Settings.Append(",8x");
+                Settings.Add("8x");
                 break;
 
             case PagesPerSheetEnum._16:
-                Settings.Append(",16x");
+                Settings.Add("16x");
                 break;
         }
 
-        return
-            $"-silent " +
-            $"-print-to \"{Printer.Name}\" " +
-            $"-print-settings \"{Settings}\" " +
-            $"\"{Print.LocalPDFPath}\"";
+        //--------------------------------------------------
+        // Page Selection (if supported by Sumatra)
+        //--------------------------------------------------
+
+        switch (Print.PageSelection)
+        {
+            case PageSelectionEnum.OddPages:
+                Settings.Add("odd");
+                break;
+
+            case PageSelectionEnum.EvenPages:
+                Settings.Add("even");
+                break;
+        }
+
+        string PrintSettings = string.Join(",", Settings);
+
+        StringBuilder Arguments = new StringBuilder();
+
+        Arguments.Append("-silent ");
+        Arguments.Append($"-print-to \"{Printer.Name}\" ");
+
+        if (!string.IsNullOrEmpty(PrintSettings))
+        {
+            Arguments.Append($"-print-settings \"{PrintSettings}\" ");
+        }
+
+        Arguments.Append($"\"{Print.LocalPDFPath}\"");
+
+        return Arguments.ToString();
     }
 }

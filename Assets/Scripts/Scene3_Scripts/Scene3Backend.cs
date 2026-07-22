@@ -325,7 +325,7 @@ public class Scene3Backend : MonoBehaviour
     //To get orders, beloing to a stationery, of a specific status.
     public IEnumerator GetPendingOrders ( int StationeryID, System.Action<bool> OnComplete )
     {
-        Debug.Log("Downloading Pending Orders...");
+        //Debug.Log("Downloading Pending Orders...");
 
         ConfirmedOrders.Orders                  = new OrderSummary[0];
         ConfirmedPrints.Prints                  = new PrintSummary[0];
@@ -1030,13 +1030,13 @@ public class Scene3Backend : MonoBehaviour
         if (request.result == UnityWebRequest.Result.Success)
         {
             string json = request.downloadHandler.text;
-            Debug.Log("Server Response:\n" + json);
+            //Debug.Log("Server Response:\n" + json);
 
             UsernameResponse response = JsonUtility.FromJson<UsernameResponse>(json);
 
             if (response.Success)
             {
-                Debug.Log("Username: " + response.User.Username);
+                //Debug.Log("Username: " + response.User.Username);
 
                 OrderStatusScript.UsernameString = response.User.Name;
                 OrderStatusScript.UpdateUI();

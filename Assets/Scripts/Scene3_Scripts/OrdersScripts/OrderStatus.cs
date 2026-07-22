@@ -73,7 +73,7 @@ public class OrderStatus : MonoBehaviour
     public OrderSummary Order;
     public void SetOrder(OrderSummary Order)
     {
-        Debug.Log("Inside SetOrder()");
+        //Debug.Log("Inside SetOrder()");
         this.Order = Order;
     }
     public void UpdateUI()
@@ -166,9 +166,9 @@ public class OrderStatus : MonoBehaviour
         OrderOTP.text                   = Order.OrderOTP.ToString();
         
 
-        print("OrderID                      = " + Order.OrderID.ToString()      +
-              "\nOrderOTP                   = " + Order.OrderOTP.ToString()     +
-              "\nApproximate time left      = " + Order.ApproximateTimeLeft);
+        //print("OrderID                      = " + Order.OrderID.ToString()      +
+        //      "\nOrderOTP                   = " + Order.OrderOTP.ToString()     +
+        //      "\nApproximate time left      = " + Order.ApproximateTimeLeft);
     }
 
 

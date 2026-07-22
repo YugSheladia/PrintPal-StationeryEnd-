@@ -106,7 +106,7 @@ public class PrintManager : MonoBehaviour
 
         if (!IsPrinting)
         {
-            //StartNextJob();
+            StartNextJob();
         }
     }
 
@@ -133,7 +133,7 @@ public class PrintManager : MonoBehaviour
         );
     }
 
-    IEnumerator Coroutine_PrintJob( PrintJob Job )
+    IEnumerator Coroutine_PrintJob ( PrintJob Job )
     {
         Debug.Log($"Printing Order {Job.OrderID}");
 
@@ -172,8 +172,10 @@ public class PrintManager : MonoBehaviour
             }
 
             Job.Progress =
-                (float)(Job.Documents.IndexOf(Document) + 1)
-                / Job.Documents.Count;
+                    (float)(Job.Documents.IndexOf(Document) + 1)
+                    / Job.Documents.Count;
+
+            Debug.Log("Progress = " + Job.Progress);
         }
 
         Job.Status = PrintJobStatus.Completed;
@@ -190,8 +192,10 @@ public class PrintManager : MonoBehaviour
         StartNextJob();
     }
 
-    IEnumerator Coroutine_PrintDocument ( PrintDocument Document, Action<bool> OnComplete )
+    IEnumerator Coroutine_PrintDocument(PrintDocument Document, Action<bool> OnComplete)
     {
+        Debug.Log("Printing PrintID = " + Document.Print.PrintID);
+
         //--------------------------------------------------
         // Submit to Windows.
         //--------------------------------------------------
@@ -217,6 +221,7 @@ public class PrintManager : MonoBehaviour
             yield break;
         }
 
+        /*
         //--------------------------------------------------
         // Wait until Windows finishes printing.
         //--------------------------------------------------
@@ -253,10 +258,11 @@ public class PrintManager : MonoBehaviour
 
             yield break;
         }
+        */
 
         Debug.Log
         (
-            $"Finished printing PrintID {Document.Print.PrintID}"
+            $"Submitted PrintID {Document.Print.PrintID} to the Windows print queue."
         );
 
         OnComplete(true);
