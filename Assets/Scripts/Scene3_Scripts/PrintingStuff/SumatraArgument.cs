@@ -13,45 +13,41 @@ public static class SumatraArguments
 
         List<string> Settings = new List<string>();
 
-        //--------------------------------------------------
-        // Copies
-        //--------------------------------------------------
 
+
+
+        // Copies ( Works )
         if (Print.Copies > 1)
             Settings.Add($"{Print.Copies}x");
 
-        //--------------------------------------------------
-        // Duplex
-        //--------------------------------------------------
 
+
+        // Duplex
         if (Print.SideSelection == SideSelectionEnum.DoubleSided)
             Settings.Add("duplex");
 
-        //--------------------------------------------------
-        // Collation
-        //--------------------------------------------------
+     
 
+        // Collation
         if (Print.CollatedOrNot == CollatedOrNotEnum.Collated)
             Settings.Add("collate");
 
-        //--------------------------------------------------
-        // Orientation
-        //--------------------------------------------------
 
+
+        // Orientation ( Works )
         if (Print.Orientation == OrientationEnum.Landscape)
             Settings.Add("landscape");
 
-        //--------------------------------------------------
-        // Color
-        //--------------------------------------------------
 
+
+        // Color
         if (Print.Color == ColorEnum.BlackAndWhite)
             Settings.Add("monochrome");
 
-        //--------------------------------------------------
-        // Pages Per Sheet
-        //--------------------------------------------------
 
+
+
+        // Pages Per Sheet ( Doesn't work )
         switch (Print.PagesPerSheet)
         {
             case PagesPerSheetEnum._2:
@@ -71,10 +67,9 @@ public static class SumatraArguments
                 break;
         }
 
-        //--------------------------------------------------
+        
+        
         // Page Selection (if supported by Sumatra)
-        //--------------------------------------------------
-
         switch (Print.PageSelection)
         {
             case PageSelectionEnum.OddPages:
@@ -85,6 +80,9 @@ public static class SumatraArguments
                 Settings.Add("even");
                 break;
         }
+
+
+
 
         string PrintSettings = string.Join(",", Settings);
 

@@ -27,23 +27,85 @@ public class PrintJob
     // Document Progress
     //==================================================
 
-    public int TotalDocuments;
+    public int TotalDocuments
+    {
+        get
+        {
+            return Documents.Count;
+        }
+    }
 
-    public int DocumentsPrinted;
+    public int DocumentsPrinted
+    {
+        get
+        {
+            int count = 0;
+
+            foreach (PrintDocument document in Documents)
+            {
+                if (document.Status == PrintDocumentStatus.Completed)
+                {
+                    count++;
+                }
+            }
+
+            return count;
+        }
+    }
 
     //==================================================
     // Page Progress
     //==================================================
 
-    public int TotalPages;
+    public int TotalPages
+    {
+        get
+        {
+            int pages = 0;
 
-    public int PagesPrinted;
+            foreach (PrintDocument document in Documents)
+            {
+                if (document.Print != null)
+                {
+                    pages += document.Print.Pages;
+                }
+            }
+
+            return pages;
+        }
+    }
+
+    public int PagesPrinted
+    {
+        get
+        {
+            int pages = 0;
+
+            foreach (PrintDocument document in Documents)
+            {
+                pages += document.PagesPrinted;
+            }
+
+            return pages;
+        }
+    }
 
     //==================================================
     // Overall Progress
     //==================================================
 
-    public float Progress;
+    public float Progress
+    {
+        get
+        {
+            if (TotalPages == 0)
+            {
+                return 0f;
+            }
+
+            return Mathf.Clamp01((float)PagesPrinted / TotalPages);
+        }
+    }
 
     //==================================================
     // Retry
@@ -62,12 +124,21 @@ public class PrintJob
         UnityEngine.Debug.Log("OrderID = " + OrderID);
 
         UnityEngine.Debug.Log("Printer info = ");
-        UnityEngine.Debug.Log("Printer name                 = " + Printer.Name);
-        UnityEngine.Debug.Log("Printer ID                   = " + Printer.PrinterID);
-        UnityEngine.Debug.Log("Printer IsSelected           = " + Printer.IsSelected);
-        UnityEngine.Debug.Log("Printer IsOnline             = " + Printer.IsOnline);
-        UnityEngine.Debug.Log("Printer IsBusy               = " + Printer.IsBusy);
-        UnityEngine.Debug.Log("Printer Automatic printing   = " + Printer.AutomaticPrinting);
+
+        if(Printer != null)
+        {
+            UnityEngine.Debug.Log("Printer name                 = " + Printer.Name);
+            UnityEngine.Debug.Log("Printer ID                   = " + Printer.PrinterID);
+            UnityEngine.Debug.Log("Printer IsSelected           = " + Printer.IsSelected);
+            UnityEngine.Debug.Log("Printer IsOnline             = " + Printer.IsOnline);
+            UnityEngine.Debug.Log("Printer IsBusy               = " + Printer.IsBusy);
+            UnityEngine.Debug.Log("Printer Automatic printing   = " + Printer.AutomaticPrinting);
+        }
+        else
+        {
+            UnityEngine.Debug.Log("Printer is NULL.");
+        }
+
 
         UnityEngine.Debug.Log("PrintID of all prints = ");
         foreach (PrintDocument document in Documents)

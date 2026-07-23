@@ -1,4 +1,6 @@
 using UnityEngine;
+using System.Collections.Generic;
+using Unity.VisualScripting;
 
 public static class Script1
 {
@@ -43,5 +45,20 @@ public static class Script1
         //          "\nUPI Number         = " + StationeryInfoObject.UPINumber            +
         //          "\nPhone Number       = " + StationeryInfoObject.PhoneNumber          +
         //          "\nEmail              = " + StationeryInfoObject.Email);  
+    }
+
+
+
+    public static List<Printer> SelectedPrinters = new();
+    public static void SetPrinters(List<Printer> printers)
+    {
+        SelectedPrinters = printers;
+    }
+    public static void PrintAllPrinterDetails()
+    {
+        foreach(Printer Printer in SelectedPrinters)
+        {
+            Debug.Log("Printer = " + Printer.Name);
+        }
     }
 }

@@ -15,8 +15,6 @@ using UnityEngine;
 public static class WindowsPrinter
 {
 
-
-
     private static readonly string SumatraPath =
     Path.Combine
     (

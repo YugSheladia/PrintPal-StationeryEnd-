@@ -2221,5 +2221,6 @@ public class Scene3Backend : MonoBehaviour
 
         Scene3ManagerScript.DisableInvisiblePanel();
     }
+
 }
 

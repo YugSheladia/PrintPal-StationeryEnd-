@@ -1,4 +1,6 @@
 using System.Collections;
+using System.Collections.Generic;
+using System.Text;
 using UnityEngine;
 using UnityEngine.Networking;
 using UnityEngine.SceneManagement;
@@ -45,6 +47,8 @@ public class StationeryInfoVerificationResponse
 
 public class Scene2Backend : MonoBehaviour
 {
+    public string ServerURL = "http://localhost:3000";
+
     [SerializeField] Scene2Manager Scene2ManagerScript;
     [SerializeField] SelectPrinters SelectPrintersScript;
 
@@ -101,25 +105,50 @@ public class Scene2Backend : MonoBehaviour
                 GetStationeryInfoFromServer
                 (
                     ResponseObject.StationeryInfoObject.PhoneNumber,
-                    (Result) =>
+                    Result =>
                     {
                         Success = Result;
                     }
                 )
             );
 
-            if (Success)
-            {
-                OnComplete?.Invoke(true, "");
-            }
-            else
+            if (!Success)
             {
                 OnComplete?.Invoke
                 (
                     false,
                     "Failed to retrieve stationery information."
                 );
+
+                yield break;
             }
+
+            bool PrintersRetrieved = false;
+
+            yield return StartCoroutine
+            (
+                GetApprovedPrintersFromServer
+                (
+                    Script1.StationeryInfoObject.StationeryID,
+                    Result =>
+                    {
+                        PrintersRetrieved = Result;
+                    }
+                )
+            );
+
+            if (!PrintersRetrieved)
+            {
+                OnComplete?.Invoke
+                (
+                    false,
+                    "Failed to retrieve approved printers."
+                );
+
+                yield break;
+            }
+
+            OnComplete?.Invoke(true, "");
         }
         else
         {
@@ -153,6 +182,10 @@ public class Scene2Backend : MonoBehaviour
             OnComplete?.Invoke(false, ErrorMessage);
         }
     }
+
+
+
+    //On succesful login, this is to retrive info about a stationery.
     IEnumerator GetStationeryInfoFromServer
     (
         string PhoneNumber,
@@ -199,6 +232,94 @@ public class Scene2Backend : MonoBehaviour
 
             OnComplete?.Invoke(false);
         }
+    }
+
+
+
+
+
+
+
+    //On succesful login, this is to retrieve info about a stationery.
+    [System.Serializable]
+    public class ApprovedPrinter
+    {
+        public string PrinterName;
+    }
+
+    [System.Serializable]
+    public class GetApprovedPrintersResponse
+    {
+        public bool Success;
+
+        public ApprovedPrinter[] Printers;
+    }
+
+    IEnumerator GetApprovedPrintersFromServer
+    (
+        int StationeryID,
+        System.Action<bool> OnComplete
+    )
+    {
+        UnityWebRequest request = UnityWebRequest.Get
+        (
+            "http://localhost:3000/stationery/printers/" + StationeryID
+        );
+
+        yield return request.SendWebRequest();
+
+        if (request.result != UnityWebRequest.Result.Success)
+        {
+            Debug.LogError(request.error);
+
+            OnComplete?.Invoke(false);
+            yield break;
+        }
+
+        Debug.Log
+        (
+            "Raw Printer Response =\n" +
+            request.downloadHandler.text
+        );
+
+        GetApprovedPrintersResponse response =
+            JsonUtility.FromJson<GetApprovedPrintersResponse>
+            (
+                request.downloadHandler.text
+            );
+
+        if (!response.Success)
+        {
+            Debug.LogError("Failed to retrieve approved printers.");
+
+            OnComplete?.Invoke(false);
+            yield break;
+        }
+
+        List<Printer> printers = new();
+
+        foreach (ApprovedPrinter approvedPrinter in response.Printers)
+        {
+            Printer printer = new Printer();
+
+            printer.Name = approvedPrinter.PrinterName;
+            printer.IsSelected = true;
+
+            // These will be updated later after querying Windows.
+            printer.IsOnline = false;
+            printer.IsBusy = false;
+            printer.AutomaticPrinting = false;
+
+            printers.Add(printer);
+        }
+
+        Script1.SetPrinters(printers);
+
+        Debug.Log($"Retrieved {printers.Count} approved printers.");
+
+        Script1.PrintAllPrinterDetails();
+
+        OnComplete?.Invoke(true);
     }
 
 
@@ -368,7 +489,7 @@ public class Scene2Backend : MonoBehaviour
 
 
 
-
+    //To get all the connected printers usinfg a server request.
     [System.Serializable]
     public class PrinterInfo
     {
@@ -387,8 +508,7 @@ public class Scene2Backend : MonoBehaviour
 
     public IEnumerator GetPrinters(System.Action<PrinterInfo[]> OnComplete)
     {
-        using (UnityWebRequest Request =
-            UnityWebRequest.Get("http://localhost:3000/printers"))
+        using (UnityWebRequest Request = UnityWebRequest.Get("http://localhost:3000/printers"))
         {
             yield return Request.SendWebRequest();
 
@@ -443,4 +563,104 @@ public class Scene2Backend : MonoBehaviour
         }
     }
 
+
+
+
+
+
+
+    // To save printer preference in Unity.
+    [System.Serializable]
+    public class SaveStationeryPrintersRequest
+    {
+        public int StationeryID;
+
+        public List<Printer> Printers = new List<Printer>();
+    }
+
+    [System.Serializable]
+    public class SaveStationeryPrintersResponse
+    {
+        public bool Success;
+
+        public string Message;
+    }
+
+    public void SaveApprovedPrinters
+    (
+        List<Printer> SelectedPrinters,
+        System.Action<bool> OnComplete
+    )
+    {
+        StartCoroutine
+        (
+            Coroutine_SaveApprovedPrinters
+            (
+                SelectedPrinters,
+                OnComplete
+            )
+        );
+    }
+
+    IEnumerator Coroutine_SaveApprovedPrinters
+    (
+        List<Printer> SelectedPrinters,
+        System.Action<bool> OnComplete
+    )
+    {
+        SaveStationeryPrintersRequest Request = new SaveStationeryPrintersRequest();
+
+        Request.StationeryID = Script1.StationeryInfoObject.StationeryID;
+
+        Request.Printers = SelectedPrinters;
+
+        string Json = JsonUtility.ToJson(Request);
+
+        UnityWebRequest RequestObject = new UnityWebRequest
+        (
+            ServerURL + "/stationery/printers",
+            "POST"
+        );
+
+        byte[] Body = Encoding.UTF8.GetBytes(Json);
+
+        RequestObject.uploadHandler = new UploadHandlerRaw(Body);
+        RequestObject.downloadHandler = new DownloadHandlerBuffer();
+
+        RequestObject.SetRequestHeader
+        (
+            "Content-Type",
+            "application/json"
+        );
+
+        yield return RequestObject.SendWebRequest();
+
+        if (RequestObject.result != UnityWebRequest.Result.Success)
+        {
+            Debug.LogError(RequestObject.error);
+
+            OnComplete?.Invoke(false);
+
+            yield break;
+        }
+
+        SaveStationeryPrintersResponse Response =
+        JsonUtility.FromJson<SaveStationeryPrintersResponse>
+        (
+            RequestObject.downloadHandler.text
+        );
+
+        if (!Response.Success)
+        {
+            Debug.LogError(Response.Message);
+
+            OnComplete?.Invoke(false);
+
+            yield break;
+        }
+
+        Debug.Log("Approved printers saved.");
+
+        OnComplete?.Invoke(true);
+    }
 }

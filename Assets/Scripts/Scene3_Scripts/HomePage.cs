@@ -32,12 +32,18 @@ public class HomePage : MonoBehaviour
     [SerializeField] public TMP_Text CurrentDate;
     [SerializeField] public TMP_Text RevenueToday;
 
+    [SerializeField] public TMP_Text TotalConnectedPrinters;
+
 
 
     private void Start()
     {
         StationeryName.text = Script1.StationeryInfoObject.StationeryName;
+        TotalConnectedPrinters.text = "Connected printers : " + Script1.SelectedPrinters.Count; 
     }
+
+
+
 
 
     public void ClickedRefreshButton()
@@ -108,7 +114,7 @@ public class HomePage : MonoBehaviour
     }
     public void ClickedSettingsButton()
     {
-        Debug.Log("Settings");
+        SceneManager.LoadScene("Scene5_Settings");
     }
 
 

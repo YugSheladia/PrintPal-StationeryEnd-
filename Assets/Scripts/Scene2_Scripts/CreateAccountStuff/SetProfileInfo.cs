@@ -43,12 +43,17 @@ public class SetProfileInfo : MonoBehaviour
                     {
                         if (Success)
                         {
-                            SceneManager.LoadScene("Scene3_HomePage");
+                            Scene2ManagerScript.EnableSelectPrintersPanel();
+
+                            Scene2ManagerScript.MessageText.text = "Account created successfully";
+                            Scene2ManagerScript.EnableMessagePanel();
+
+                            GetPrinters();
                         }
                         else
                         {
                             Scene2ManagerScript.DisableAllPanels();
-                            Scene2ManagerScript.EnableSetProfileInfoPanel();
+                            Scene2ManagerScript.EnableSelectPrintersPanel();
 
                             Scene2ManagerScript.MessageText.text = ErrorMessage;
                             Scene2ManagerScript.EnableMessagePanel();
@@ -65,15 +70,38 @@ public class SetProfileInfo : MonoBehaviour
             Scene2ManagerScript.EnableMessagePanel();
         }
     }
-
-
-
-
     public void ClickedPreviousPage()
     {
         Scene2ManagerScript.DisableAllPanels();
         Scene2ManagerScript.EnableSetPasswordPanel();
     }
+    public void GetPrinters()
+    {
+        Scene2ManagerScript.EnableInvisiblePanel();
+
+        SelectPrintersScript.GetConnectedPrinters
+        (
+            Result =>
+            {
+                if(Result)
+                {
+                    Scene2ManagerScript.DisableAllPanels();
+                    Scene2ManagerScript.EnableSelectPrintersPanel();
+                }
+                else
+                {
+                    Scene2ManagerScript.DisableAllPanels();
+
+                    Scene2ManagerScript.EnableSetProfileInfoPanel();
+                    Scene2ManagerScript.EnableMessagePanel();
+                }
+            }
+        );
+    }
+
+
+
+
 
 
 

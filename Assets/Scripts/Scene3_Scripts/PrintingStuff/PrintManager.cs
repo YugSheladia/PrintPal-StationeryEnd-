@@ -31,26 +31,19 @@ public class PrintManager : MonoBehaviour
     {
         SelectedPrinter = new Printer()
         {
-            Name = "Canon E470 series"
+            //Name = "Canon E470 series"
+            Name = "Canon MF3010 (Copy 2)"
         };
     }
 
 
 
-    public PrintJob CreatePrintJob ( OrderSummary Order, Printer Printer )
+    public PrintJob CreatePrintJob(OrderSummary Order, Printer Printer)
     {
         PrintJob Job = new PrintJob();
 
         Job.OrderID = Order.OrderID;
         Job.Printer = Printer;
-
-        Job.TotalDocuments = Order.Prints.Count;
-        Job.DocumentsPrinted = 0;
-
-        Job.TotalPages = 0;
-        Job.PagesPrinted = 0;
-
-        Job.Progress = 0f;
 
         Job.Status = PrintJobStatus.Waiting;
         Job.StatusMessage = "Waiting...";
@@ -67,11 +60,11 @@ public class PrintManager : MonoBehaviour
                 return null;
             }
 
-            Job.TotalPages += Print.Pages;
+            // TotalDocuments / TotalPages / PagesPrinted / Progress on
+            // PrintJob are all computed from Documents, so they don't
+            // (and can't) get assigned here directly.
 
             PrintDocument Document = new PrintDocument(Print);
-
-            Document.Print = Print;
 
             Job.Documents.Add(Document);
         }
@@ -83,7 +76,7 @@ public class PrintManager : MonoBehaviour
 
 
 
-    public void QueuePrintJob ( PrintJob Job )
+    public void QueuePrintJob(PrintJob Job)
     {
         if (Queue.ContainsOrder(Job.OrderID))
         {
@@ -133,24 +126,28 @@ public class PrintManager : MonoBehaviour
         );
     }
 
-    IEnumerator Coroutine_PrintJob ( PrintJob Job )
+    IEnumerator Coroutine_PrintJob(PrintJob Job)
     {
         Debug.Log($"Printing Order {Job.OrderID}");
 
         Job.Status = PrintJobStatus.Printing;
+        Job.StatusMessage = "Printing...";
 
         foreach (PrintDocument Document in Job.Documents)
         {
             bool Success = false;
+            string FailureMessage = "";
 
             yield return StartCoroutine
             (
                 Coroutine_PrintDocument
                 (
+                    Job,
                     Document,
-                    Result =>
+                    (ResultSuccess, ResultMessage) =>
                     {
-                        Success = Result;
+                        Success = ResultSuccess;
+                        FailureMessage = ResultMessage;
                     }
                 )
             );
@@ -159,10 +156,14 @@ public class PrintManager : MonoBehaviour
             {
                 Debug.LogError
                 (
-                    $"Failed to print PrintID {Document.Print.PrintID}"
+                    $"Failed to print PrintID {Document.Print.PrintID}: {FailureMessage}"
                 );
 
+                Document.Status = PrintDocumentStatus.Failed;
+                Document.StatusMessage = FailureMessage;
+
                 Job.Status = PrintJobStatus.Failed;
+                Job.StatusMessage = FailureMessage + "\nJob failed while printing " + Document.Print.PrintID;
 
                 Queue.Dequeue();
 
@@ -171,14 +172,16 @@ public class PrintManager : MonoBehaviour
                 yield break;
             }
 
-            Job.Progress =
-                    (float)(Job.Documents.IndexOf(Document) + 1)
-                    / Job.Documents.Count;
+            Document.Status = PrintDocumentStatus.Completed;
+            Document.StatusMessage = "Completed";
 
+            // Job.Progress is computed from Documents/PagesPrinted, so
+            // it's already accurate here - no manual bump needed.
             Debug.Log("Progress = " + Job.Progress);
         }
 
         Job.Status = PrintJobStatus.Completed;
+        Job.StatusMessage = "Completed";
 
         Queue.Dequeue();
 
@@ -192,9 +195,16 @@ public class PrintManager : MonoBehaviour
         StartNextJob();
     }
 
-    IEnumerator Coroutine_PrintDocument(PrintDocument Document, Action<bool> OnComplete)
+    IEnumerator Coroutine_PrintDocument
+    (
+        PrintJob Job,
+        PrintDocument Document,
+        Action<bool, string> OnComplete
+    )
     {
         Debug.Log("Printing PrintID = " + Document.Print.PrintID);
+
+        Document.StatusMessage = "Submitting to printer...";
 
         //--------------------------------------------------
         // Submit to Windows.
@@ -216,55 +226,65 @@ public class PrintManager : MonoBehaviour
                 Debug.LogException(Result.Exception);
             }
 
-            OnComplete(false);
+            OnComplete(false, Result.Message);
 
             yield break;
         }
 
-        /*
+        Debug.Log
+        (
+            $"Submitted PrintID {Document.Print.PrintID} to the Windows print queue. Watching for completion..."
+        );
+
         //--------------------------------------------------
-        // Wait until Windows finishes printing.
+        // Don't call this "done" yet - Sumatra exiting only means
+        // Windows accepted the job, not that it finished printing.
+        // Watch the actual spooler job through to completion.
         //--------------------------------------------------
 
-        bool Finished = false;
+        Document.Status = PrintDocumentStatus.Printing;
+        Document.StatusMessage = "Printing...";
+
         bool Success = false;
         string Message = "";
 
         yield return StartCoroutine
         (
-            PrintMonitor.WaitForCompletion
+            PrintMonitor.MonitorPrintJob
             (
                 SelectedPrinter,
                 Document,
-                (ResultSuccess, ResultMessage) =>
+                OnProgress: (PagesPrinted, TotalPages) =>
                 {
-                    Finished = true;
+                    Document.PagesPrinted = PagesPrinted;
+                },
+                OnPaused: (Reason, PauseMessage) =>
+                {
+                    // Something needs the user's attention (paper,
+                    // offline, jam...). Surface it on the job without
+                    // killing the queue - it'll auto-resume if fixed.
+                    Job.Status = PrintJobStatus.Paused;
+                    Job.StatusMessage = PauseMessage;
+                    Document.StatusMessage = PauseMessage;
+
+                    Debug.LogWarning($"Order {Job.OrderID} paused: {PauseMessage}");
+                },
+                OnResumed: () =>
+                {
+                    Job.Status = PrintJobStatus.Printing;
+                    Job.StatusMessage = "Printing...";
+                    Document.StatusMessage = "Printing...";
+
+                    Debug.Log($"Order {Job.OrderID} resumed.");
+                },
+                OnComplete: (ResultSuccess, ResultMessage) =>
+                {
                     Success = ResultSuccess;
                     Message = ResultMessage;
                 }
             )
         );
 
-        while (!Finished)
-        {
-            yield return null;
-        }
-
-        if (!Success)
-        {
-            Debug.LogError(Message);
-
-            OnComplete(false);
-
-            yield break;
-        }
-        */
-
-        Debug.Log
-        (
-            $"Submitted PrintID {Document.Print.PrintID} to the Windows print queue."
-        );
-
-        OnComplete(true);
+        OnComplete(Success, Message);
     }
 }

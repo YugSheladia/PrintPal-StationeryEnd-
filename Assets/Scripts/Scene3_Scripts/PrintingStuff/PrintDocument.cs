@@ -1,4 +1,9 @@
+using System;
+using UnityEngine;
+
+
 [System.Serializable]
+
 public class PrintDocument
 {
     // Actual print data
@@ -18,9 +23,9 @@ public class PrintDocument
         get
         {
             if (Print == null || Print.Pages <= 0)
-                return 0;
+                return 0f;
 
-            return (float)PagesPrinted / Print.Pages;
+            return Mathf.Clamp01((float)PagesPrinted / Print.Pages);
         }
     }
 

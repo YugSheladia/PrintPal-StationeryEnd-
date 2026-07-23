@@ -35,6 +35,11 @@ public static class Win32PrintSpooler
         out uint JobsReturned
     );
 
+
+
+
+
+
     //==================================================
     // Public API
     //==================================================
@@ -178,6 +183,35 @@ public static class Win32PrintSpooler
                     StringComparison.OrdinalIgnoreCase
                 )
             )
+            {
+                return Job;
+            }
+        }
+
+        return null;
+    }
+
+
+
+
+
+
+    // Look up a specific job once you already know its JobId.
+    // Prefer this over FindJob(name) once a job has been pinned,
+    // since filenames aren't guaranteed unique across the queue.
+    public static Win32Structures.JOB_INFO_1? GetJob
+    (
+        string PrinterName,
+        int JobID
+    )
+    {
+        foreach
+        (
+            Win32Structures.JOB_INFO_1 Job
+            in GetJobs(PrinterName)
+        )
+        {
+            if (Job.JobId == JobID)
             {
                 return Job;
             }

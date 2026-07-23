@@ -80,14 +80,6 @@ public class Login : MonoBehaviour
 
 
 
-    public void ClickedGetPrintersButton()
-    {
-        Scene2ManagerScript.EnableInvisiblePanel();
-        Scene2ManagerScript.EnableSelectPrintersPanel();
-
-        SelectPrintersScript.GetConnectedPrinters();
-    }
-
 
 
 
