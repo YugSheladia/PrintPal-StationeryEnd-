@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Text;
 using UnityEngine;
 using UnityEngine.Networking;
+using static Scene2Backend;
 
 
 
@@ -23,7 +24,7 @@ public class Scene5Backend : MonoBehaviour
 
 
 
-    //To get all the connected printers using a server request.
+    //To get all printers connected to the PC using a server request.
     public IEnumerator GetPrinters(System.Action<Scene2Backend.PrinterInfo[]> OnComplete)
     {
         using (UnityWebRequest Request = UnityWebRequest.Get("http://localhost:3000/printers"))
@@ -89,7 +90,7 @@ public class Scene5Backend : MonoBehaviour
 
 
 
-    // To get saved stationery printers.
+    // To get printers saved in database - StationeryPrinters.
     public IEnumerator GetApprovedPrintersFromServer
     (
         int StationeryID,
@@ -152,6 +153,63 @@ public class Scene5Backend : MonoBehaviour
             printers.Add(printer);
         }
 
+        //--------------------------------------------------
+        // Cross-reference with live Windows printer status - the same
+        // call SelectPrinters uses at setup - so IsOnline/IsBusy reflect
+        // reality instead of a hardcoded placeholder.
+        //--------------------------------------------------
+
+        bool LiveStatusFetched = false;
+
+        yield return StartCoroutine
+        (
+            GetPrinters
+            (
+                LivePrinters =>
+                {
+                    LiveStatusFetched = LivePrinters != null;
+
+                    if (LivePrinters == null)
+                    {
+                        Debug.LogWarning
+                        (
+                            "Couldn't fetch live printer status - approved printers will show as offline until this succeeds."
+                        );
+
+                        return;
+                    }
+
+                    foreach (Printer ApprovedPrinter in printers)
+                    {
+                        PrinterInfo Match = System.Array.Find
+                        (
+                            LivePrinters,
+                            LivePrinter => LivePrinter.name == ApprovedPrinter.Name
+                        );
+
+                        if (Match != null)
+                        {
+                            ApprovedPrinter.IsOnline = Match.status != "Offline";
+
+                            ApprovedPrinter.IsBusy =
+                                Match.status == "Busy"
+                                ||
+                                Match.status == "Printing";
+                        }
+                        else
+                        {
+                            Debug.LogWarning
+                            (
+                                $"Approved printer '{ApprovedPrinter.Name}' not found among currently connected printers - marking offline."
+                            );
+
+                            ApprovedPrinter.IsOnline = false;
+                        }
+                    }
+                }
+            )
+        );
+
         Script1.SetPrinters(printers);
 
         Debug.Log($"Retrieved {printers.Count} approved printers.");
@@ -163,14 +221,14 @@ public class Scene5Backend : MonoBehaviour
 
 
 
-    
 
 
 
 
 
 
-    // To save printer preference in server.
+
+    // To save the printers which were selecteed in 'Settings -> Update Printer' in database - StationeryPrinters.
     public void SaveApprovedPrinters
     (
         List<Printer> SelectedPrinters,

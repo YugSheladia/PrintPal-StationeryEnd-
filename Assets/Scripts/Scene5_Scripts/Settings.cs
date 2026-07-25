@@ -69,8 +69,6 @@ public class Settings : MonoBehaviour
     }
     public void GetPrinters()
     {
-        Scene5ManagerScript.EnableInvisiblePanel();
-
         UpdatePrintersScript.GetConnectedPrinters
         (
             Result =>
@@ -92,6 +90,7 @@ public class Settings : MonoBehaviour
             }
         );
     }
+
 
 
     public void ClickedPreviousPage()

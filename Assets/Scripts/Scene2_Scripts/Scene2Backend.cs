@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Text;
 using UnityEngine;
 using UnityEngine.Networking;
-using UnityEngine.SceneManagement;
 
 
 
@@ -91,7 +90,7 @@ public class Scene2Backend : MonoBehaviour
 
         string ServerResponse = request.downloadHandler.text;
 
-        Debug.Log("Raw server response = \n" + ServerResponse);
+        Debug.Log("Raw server response #1 = \n" + ServerResponse);
 
         LoginInfoVerificationResponse ResponseObject =
             JsonUtility.FromJson<LoginInfoVerificationResponse>(ServerResponse);
@@ -203,7 +202,7 @@ public class Scene2Backend : MonoBehaviour
         {
             string ServerResponseJSON = request.downloadHandler.text;
 
-            Debug.Log("Raw Server response = \n" + ServerResponseJSON);
+            Debug.Log("Raw Server response #2 = \n" + ServerResponseJSON); 
 
             StationeryInfoWrapper StationeryInfoWrapperObject =
                 JsonUtility.FromJson<StationeryInfoWrapper>(ServerResponseJSON);
@@ -240,7 +239,7 @@ public class Scene2Backend : MonoBehaviour
 
 
 
-    //On succesful login, this is to retrieve info about a stationery.
+    //On succesful login, this is to retrieve Stationery approved Printers from the Server.
     [System.Serializable]
     public class ApprovedPrinter
     {
@@ -272,6 +271,8 @@ public class Scene2Backend : MonoBehaviour
         {
             Debug.LogError(request.error);
 
+            Scene2ManagerScript.MessageText.text = "Failed to retrieve approved printers\nTry again later.";
+
             OnComplete?.Invoke(false);
             yield break;
         }
@@ -292,9 +293,23 @@ public class Scene2Backend : MonoBehaviour
         {
             Debug.LogError("Failed to retrieve approved printers.");
 
+            Scene2ManagerScript.MessageText.text = "Failed to retrieve approved printers\nTry again later.";
+
             OnComplete?.Invoke(false);
             yield break;
         }
+
+        if (response.Printers == null)
+        {
+            Debug.LogError("Approved printer list is null.");
+
+            Scene2ManagerScript.MessageText.text = "Failed to retrieve approved printers\nTry again later.";
+
+            OnComplete?.Invoke(false);
+            yield break;
+        }
+
+        // --- Replace the tail of Scene2Backend.GetApprovedPrintersFromServer with this ---
 
         List<Printer> printers = new();
 
@@ -305,23 +320,86 @@ public class Scene2Backend : MonoBehaviour
             printer.Name = approvedPrinter.PrinterName;
             printer.IsSelected = true;
 
-            // These will be updated later after querying Windows.
+            // Placeholder until the live-status merge below fills these
+            // in - only stays like this if that merge can't find a match.
             printer.IsOnline = false;
+
             printer.IsBusy = false;
-            printer.AutomaticPrinting = false;
 
             printers.Add(printer);
         }
 
+        //--------------------------------------------------
+        // Cross-reference with live Windows printer status - the same
+        // call SelectPrinters uses at setup - so IsOnline/IsBusy reflect
+        // reality instead of a hardcoded placeholder.
+        //--------------------------------------------------
+
+        yield return StartCoroutine
+        (
+            GetPrinters
+            (
+                LivePrinters =>
+                {
+                    if (LivePrinters == null)
+                    {
+                        Debug.LogWarning
+                        (
+                            "Couldn't fetch live printer status - approved printers will show as offline until this succeeds."
+                        );
+
+                        return;
+                    }
+
+                    foreach (Printer ApprovedPrinter in printers)
+                    {
+                        PrinterInfo Match = System.Array.Find
+                        (
+                            LivePrinters,
+                            LivePrinter => LivePrinter.name == ApprovedPrinter.Name
+                        );
+
+                        if (Match != null)
+                        {
+                            ApprovedPrinter.IsOnline = Match.status != "Offline";
+
+                            ApprovedPrinter.IsBusy =
+                                Match.status == "Busy"
+                                ||
+                                Match.status == "Printing";
+                        }
+                        else
+                        {
+                            Debug.LogWarning
+                            (
+                                $"Approved printer '{ApprovedPrinter.Name}' not found among currently connected printers - marking offline."
+                            );
+
+                            ApprovedPrinter.IsOnline = false;
+                        }
+                    }
+                }
+            )
+        );
+
         Script1.SetPrinters(printers);
+
+        // In case PrintManager is a persistent singleton that already
+        // ran Start() before login finished.
+        PrintManager.Instance?.RefreshWorkersFromApprovedPrinters();
 
         Debug.Log($"Retrieved {printers.Count} approved printers.");
 
         Script1.PrintAllPrinterDetails();
 
         OnComplete?.Invoke(true);
-    }
 
+
+        // --- Apply the exact same change to Scene5Backend.GetApprovedPrintersFromServer.
+        //     It's structurally identical, just using Scene2Backend.PrinterInfo /
+        //     Scene2Backend.ApprovedPrinter qualifiers since it reuses those nested
+        //     types, and its own local GetPrinters(...) method. ---
+    }
 
 
 
@@ -489,7 +567,8 @@ public class Scene2Backend : MonoBehaviour
 
 
 
-    //To get all the connected printers usinfg a server request.
+    //To get all the connected printers using a server request.
+
     [System.Serializable]
     public class PrinterInfo
     {

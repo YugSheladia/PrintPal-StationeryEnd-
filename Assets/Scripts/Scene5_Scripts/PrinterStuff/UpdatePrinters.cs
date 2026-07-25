@@ -74,9 +74,6 @@ public class UpdatePrinters : MonoBehaviour
             )
         );
     }
-
-
-
     void CreatePrinterPanel(Printer printer)
     {
         GameObject panelObject = Instantiate
@@ -117,8 +114,9 @@ public class UpdatePrinters : MonoBehaviour
 
                 if (!Success)
                 {
-                    Scene5ManagerScript.MessageText.text = "Failed to save approved printers.";
+                    Scene5ManagerScript.DisableInvisiblePanel();
 
+                    Scene5ManagerScript.MessageText.text = "Failed to save approved printers.";
                     Scene5ManagerScript.EnableMessagePanel();
 
                     return;
@@ -128,7 +126,10 @@ public class UpdatePrinters : MonoBehaviour
 
                 Script1.PrintAllPrinterDetails();
 
+                Scene5ManagerScript.DisableInvisiblePanel();
+
                 Scene5ManagerScript.MessageText.text = "Printer selection has been updated.";
+                Scene5ManagerScript.EnableMessagePanel();
             }
         );
     }

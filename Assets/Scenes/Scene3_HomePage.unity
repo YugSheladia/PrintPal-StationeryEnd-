@@ -2803,14 +2803,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 72ffbe419b6555c47bdb528ac969c059, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PrintManager
+  Scene3ManagerScript: {fileID: 459761578}
   Scene3BackendScript: {fileID: 459761577}
-  SelectedPrinter:
-    Name: 
-    PrinterID: 
-    IsSelected: 0
-    IsOnline: 0
-    IsBusy: 0
-    AutomaticPrinting: 0
 --- !u!1 &504548482
 GameObject:
   m_ObjectHideFlags: 0
@@ -7778,7 +7772,7 @@ RectTransform:
   m_AnchorMin: {x: 0, y: 0}
   m_AnchorMax: {x: 1, y: 1}
   m_AnchoredPosition: {x: 0, y: 0}
-  m_SizeDelta: {x: 0, y: 0}
+  m_SizeDelta: {x: -32.000008, y: -24}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &1613573904
 MonoBehaviour:
@@ -7827,12 +7821,12 @@ MonoBehaviour:
   m_faceColor:
     serializedVersion: 2
     rgba: 4294967295
-  m_fontSize: 40
+  m_fontSize: 36
   m_fontSizeBase: 40
   m_fontWeight: 400
-  m_enableAutoSizing: 0
+  m_enableAutoSizing: 1
   m_fontSizeMin: 18
-  m_fontSizeMax: 72
+  m_fontSizeMax: 36
   m_fontStyle: 0
   m_HorizontalAlignment: 2
   m_VerticalAlignment: 512

@@ -1892,7 +1892,7 @@ public class Scene3Backend : MonoBehaviour
 
 
 
-
+    //Printing process -
 
     public string ServerURL = "http://localhost:3000";
 
@@ -2006,11 +2006,11 @@ public class Scene3Backend : MonoBehaviour
 
                     Debug.Log("Downloaded All PDFs.");
                     
-                    //Create a PrintJob.
+                    //At this point, all prints of an order has been validated and has been downloaded, meaning
+                    // it is safe to start the printing process, whose 1st step is to Create a PrintJob.
                     PrintJob Job = PrintManager.Instance.CreatePrintJob
                     (
-                        Order,
-                        PrintManager.Instance.SelectedPrinter
+                        Order
                     );
 
                     if (Job == null)
@@ -2029,11 +2029,7 @@ public class Scene3Backend : MonoBehaviour
                     Job.PrintJobDetails();
 
                     //Queing the Job.
-                    PrintManager.Instance.QueuePrintJob(Job);
-
-                    Debug.Log("Current Queue = ");
-                    PrintManager.Instance.Queue.DisplayQueueInfo();
-                    
+                    PrintManager.Instance.QueuePrintJob(Job);                    
                 }
             )
         );

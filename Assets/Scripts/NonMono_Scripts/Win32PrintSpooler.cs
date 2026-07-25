@@ -35,11 +35,6 @@ public static class Win32PrintSpooler
         out uint JobsReturned
     );
 
-
-
-
-
-
     //==================================================
     // Public API
     //==================================================
@@ -191,11 +186,6 @@ public static class Win32PrintSpooler
         return null;
     }
 
-
-
-
-
-
     // Look up a specific job once you already know its JobId.
     // Prefer this over FindJob(name) once a job has been pinned,
     // since filenames aren't guaranteed unique across the queue.
@@ -218,6 +208,35 @@ public static class Win32PrintSpooler
         }
 
         return null;
+    }
+
+    public static bool IsPrinterResponding
+    (
+        string PrinterName
+    )
+    {
+        Win32Structures.PRINTER_DEFAULTS Defaults =
+            new Win32Structures.PRINTER_DEFAULTS();
+
+        Defaults.DesiredAccess =
+            Win32Structures.PRINTER_ACCESS_USE;
+
+        if
+        (
+            !OpenPrinter
+            (
+                PrinterName,
+                out IntPtr PrinterHandle,
+                ref Defaults
+            )
+        )
+        {
+            return false;
+        }
+
+        ClosePrinter(PrinterHandle);
+
+        return true;
     }
 
     public static bool IsDocumentInQueue
