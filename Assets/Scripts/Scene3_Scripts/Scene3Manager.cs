@@ -16,6 +16,7 @@ public class Scene3Manager : MonoBehaviour
     [SerializeField] GameObject BlankPanel;
     [SerializeField] GameObject HomePagePanel;
     [SerializeField] GameObject OrdersPage;
+    [SerializeField] GameObject RevenuePage;
 
 
     [SerializeField] GameObject InvisiblePanel;
@@ -26,9 +27,10 @@ public class Scene3Manager : MonoBehaviour
 
 
 
-
     private void Start()
     {
+        Debug.Log("Scene3Manager.Start()");
+
         DisableAllPanels();
         EnableHomePagePanel();
     }
@@ -41,6 +43,7 @@ public class Scene3Manager : MonoBehaviour
 
         DisableHomePagePanel();
         DisableOrdersPage();
+        DisableRevenuePage();
 
         DisableMessagePanel();
     }
@@ -69,63 +72,10 @@ public class Scene3Manager : MonoBehaviour
 
     public void EnableHomePagePanel()
     {
-        EnableBlankPanel();
-        EnableInvisiblePanel();
+        Debug.Log("EnableHomePagePanel()");
 
-        StartCoroutine(EnableHomePagePanelCoroutine());
-    }
-    IEnumerator EnableHomePagePanelCoroutine()
-    {
-        HomePageScript.CurrentDate.text =
-            DateTime.Now.ToString("dd-MM-yyyy");
-
-        bool RevenueSuccess = false;
-
-        yield return StartCoroutine
-        (
-            Scene3BackendScript.GetTodayStationeryRevenue
-            (
-                Script1.StationeryInfoObject.StationeryID,
-                Result => RevenueSuccess = Result
-            )
-        );
-
-        if (!RevenueSuccess)
-        {
-            Debug.LogError("Failed To Load Today's Revenue.");
-
-            DisableAllPanels();
-
-            MessageText.text = "Something went wrong, try again later.";
-            EnableMessagePanel();
-
-            yield break;
-        }
-
-        bool OrdersCountSuccess = false;
-
-        yield return StartCoroutine
-        (
-            Scene3BackendScript.GetOrdersCount
-            (
-                Result => OrdersCountSuccess = Result
-            )
-        );
-
-        if (!OrdersCountSuccess)
-        {
-            Debug.LogError("Failed To Load Order Counts.");
-
-            DisableAllPanels();
-
-            MessageText.text = "Something went wrong, try again later.";
-            EnableMessagePanel();
-
-            yield break;
-        }
-
-        DisableAllPanels();
         HomePagePanel.SetActive(true);
+        HomePageScript.StartHomePage();
     }
     public void DisableHomePagePanel()
     {
@@ -145,6 +95,15 @@ public class Scene3Manager : MonoBehaviour
     }
 
 
+
+    public void EnableRevenuePage()
+    {
+        RevenuePage.SetActive(true);
+    }
+    public void DisableRevenuePage()
+    {
+        RevenuePage.SetActive(false);
+    }
 
 
 

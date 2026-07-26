@@ -61,4 +61,14 @@ public static class Script1
             Debug.Log("Printer = " + Printer.Name);
         }
     }
+
+
+    public static bool GetAutomaticPrintingValue()
+    {
+        return StationeryInfoObject.AutomaticPrinting;
+    }
+    public static void SetAutomaticPrintingValue(bool automaticPrinting)
+    {
+        StationeryInfoObject.AutomaticPrinting =  automaticPrinting;
+    }
 }

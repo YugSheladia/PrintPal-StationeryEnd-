@@ -1,6 +1,7 @@
-using UnityEngine;
 using System.Collections;
 using TMPro;
+using UnityEngine;
+using UnityEngine.SceneManagement;
 
 public class Scene5Manager : MonoBehaviour
 {
@@ -112,4 +113,20 @@ public class Scene5Manager : MonoBehaviour
         MessagePanel.SetActive(false);
         MessagePanelCoroutine = null;
     }
+
+
+
+
+
+
+    //Control Panel
+    public void ClickedHomePageButton()
+    {
+        SceneManager.LoadScene("Scene3_HomePage");
+    }
+    public void ClickedAccountButton()
+    {
+        SceneManager.LoadScene("Scene4_UpdateProfileInfo");
+    }
+
 }

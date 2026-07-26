@@ -1,5 +1,3 @@
-using System;
-using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -18,6 +16,37 @@ public class PrintManager : MonoBehaviour
     public List<PrinterWorker> Workers = new List<PrinterWorker>();
 
     int NextWorkerIndex = 0;
+
+
+
+
+    private readonly HashSet<int> ProcessingOrders = new();
+    public bool IsOrderBeingProcessed(int OrderID)
+    {
+        return ProcessingOrders.Contains(OrderID);
+    }
+
+    public void BeginProcessingOrder(int OrderID)
+    {
+        ProcessingOrders.Add(OrderID);
+    }
+
+    public void EndProcessingOrder(int OrderID)
+    {
+        ProcessingOrders.Remove(OrderID);
+    }
+
+    public bool IsOrderAlreadyHandled(int OrderID)
+    {
+        return
+                ProcessingOrders.Contains(OrderID)
+                || 
+                AnyWorkerHasOrder(OrderID);
+    }
+
+
+
+
 
 
 
@@ -114,36 +143,28 @@ public class PrintManager : MonoBehaviour
 
         return Job;
     }
-    public void QueuePrintJob(PrintJob Job)
+    public bool QueuePrintJob(PrintJob Job)
     {
         if (AnyWorkerHasOrder(Job.OrderID))
         {
-            Debug.Log
-            (
-                $"Order {Job.OrderID} is already queued."
-            );
-
-            return;
+            return false;
         }
 
         PrinterWorker Worker = PickNextWorker();
 
         if (Worker == null)
         {
-            Debug.LogError
-            (
-                $"No available printers to queue Order {Job.OrderID}."
-            );
-
             Job.Status = PrintJobStatus.Failed;
             Job.StatusMessage = "No printers available.";
 
-            return;
+            return false;
         }
 
         Worker.Enqueue(Job);
+
+        return true;
     }
-    bool AnyWorkerHasOrder(int OrderID)
+    public bool AnyWorkerHasOrder(int OrderID)
     {
         foreach (PrinterWorker Worker in Workers)
         {

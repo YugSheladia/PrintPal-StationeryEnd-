@@ -1,5 +1,6 @@
 using UnityEngine;
 using UnityEngine.SceneManagement;
+using UnityEngine.UI;
 
 public class Settings : MonoBehaviour
 {
@@ -8,6 +9,103 @@ public class Settings : MonoBehaviour
 
     [SerializeField] ViewPrinters ViewPrintersScript;
     [SerializeField] UpdatePrinters UpdatePrintersScript;
+
+    [SerializeField] GameObject ErrorPanel;
+
+
+    [SerializeField] private GameObject ToggleOffImage;
+    [SerializeField] private GameObject ToggleOnImage;
+
+    bool Toogle = false;
+
+
+
+
+
+    private void Start()
+    {
+        GetAutomaticPrintingStatus();
+    }
+    public void GetAutomaticPrintingStatus()
+    {
+        StartCoroutine
+        (
+            Scene5BackendScript.GetAutomaticPrinting
+            (
+                Script1.StationeryInfoObject.StationeryID,
+                AutomaticPrinting =>
+                {
+                    if (AutomaticPrinting == null)
+                    {
+                        Debug.LogError("Failed to retrieve automatic printing setting.");
+
+                        Scene5ManagerScript.MessageText.text = "Failed to get automatic printing settings from server\n" +
+                                                                "Restart the app and try again.";
+                        Scene5ManagerScript.EnableMessagePanel();
+
+                        ErrorPanel.SetActive(true);
+
+                        return;
+                    }
+
+                    ErrorPanel.SetActive(false);
+
+                    Toogle = AutomaticPrinting.Value;
+                    Script1.SetAutomaticPrintingValue(Toogle);
+
+                    UpdateUI();
+                }
+            )
+        );
+    }
+    public void ClickedAutomaticPrintingToggleButton()
+    {
+        Scene5ManagerScript.EnableInvisiblePanel();
+
+        Toogle = !Toogle;
+
+        StartCoroutine
+        (
+            Scene5BackendScript.SetAutomaticPrinting
+            (
+                Script1.StationeryInfoObject.StationeryID,
+                Toogle,
+                Success =>
+                {
+                    if (!Success)
+                    {
+                        Toogle = !Toogle;
+                        Scene5ManagerScript.MessageText.text = "Something went wrong, try again later.";
+                        Scene5ManagerScript.EnableMessagePanel();
+
+                        Scene5ManagerScript.DisableInvisiblePanel();
+                        return;
+                    }
+
+                    UpdateUI();
+
+                    if(Toogle)
+                    {
+                        Scene5ManagerScript.MessageText.text = "Automatic printing has been turned on.";
+                    }
+                    else
+                    {
+                        Scene5ManagerScript.MessageText.text = "Automatic printing has been turned off.";
+                    }
+                    Scene5ManagerScript.EnableMessagePanel();
+
+                    Script1.SetAutomaticPrintingValue(Toogle);
+
+                    Scene5ManagerScript.DisableInvisiblePanel();
+                }
+            )
+        );
+    }
+    public void UpdateUI()
+    {
+        ToggleOnImage.SetActive(Toogle);
+        ToggleOffImage.SetActive(!Toogle);
+    }
 
 
 
@@ -57,9 +155,6 @@ public class Settings : MonoBehaviour
             )
         );
     }
-
-
-
     public void ClickedUpdatePrinters()
     {
         Scene5ManagerScript.EnableInvisiblePanel();
@@ -67,6 +162,10 @@ public class Settings : MonoBehaviour
 
         GetPrinters();
     }
+
+
+
+
     public void GetPrinters()
     {
         UpdatePrintersScript.GetConnectedPrinters
@@ -90,6 +189,7 @@ public class Settings : MonoBehaviour
             }
         );
     }
+
 
 
 

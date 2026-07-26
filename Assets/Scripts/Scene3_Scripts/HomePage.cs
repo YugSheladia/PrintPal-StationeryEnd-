@@ -19,6 +19,8 @@ public class HomePage : MonoBehaviour
 
     [SerializeField] OrderStatusManager OrderStatusManagerScript;
 
+    [SerializeField] RevenuePageManager RevenuePageManagerScript;
+
     [SerializeField] TMP_Text StationeryName;
 
     [SerializeField] TMP_Dropdown IDSwitchDropdown;
@@ -29,17 +31,50 @@ public class HomePage : MonoBehaviour
     [SerializeField] public TMP_Text TotalFinishedOrdersText;
     [SerializeField] public TMP_Text TotalCollectedOrdersText;
 
+    public string TotalPendingOrders;
+    public string TotalFinishedOrders;
+    public string TotalCollectedOrders;
+
     [SerializeField] public TMP_Text CurrentDate;
     [SerializeField] public TMP_Text RevenueToday;
 
     [SerializeField] public TMP_Text TotalConnectedPrinters;
 
+    [SerializeField] public GameObject Disconnected;
 
 
-    private void Start()
+
+    public void StartHomePage()
     {
+        Debug.Log("HomePage.Start()");
         StationeryName.text = Script1.StationeryInfoObject.StationeryName;
-        TotalConnectedPrinters.text = "Connected printers : " + Script1.SelectedPrinters.Count; 
+
+        TotalConnectedPrinters.text =
+            "Connected printers : " + Script1.SelectedPrinters.Count;
+
+        StartCoroutine(InitializeHomePage());
+    }
+    IEnumerator InitializeHomePage()
+    {
+        Debug.Log("InitializeHomePage()");
+
+        // Initial refresh
+        yield return StartCoroutine
+        (
+            ClickedRefreshButtonCoroutine()
+        );
+
+        // Only start polling if Automatic Printing is enabled
+        if (Script1.GetAutomaticPrintingValue())
+        {
+            Debug.Log("Automatic Printing = true.");
+            Scene3BackendScript.StartAutomaticPrinting();
+        }
+        else
+        {
+            Debug.Log("Automatic Printing = false.");
+            Scene3BackendScript.StopAutomaticPrinting();
+        }
     }
 
 
@@ -48,61 +83,19 @@ public class HomePage : MonoBehaviour
 
     public void ClickedRefreshButton()
     {
+        Debug.Log("ClickedRefreshButton()");
         StartCoroutine(ClickedRefreshButtonCoroutine());
     }
     IEnumerator ClickedRefreshButtonCoroutine()
     {
         Scene3ManagerScript.EnableInvisiblePanel();
 
-        CurrentDate.text = DateTime.Now.ToString("dd-MM-yyyy");
-
-        bool RevenueSuccess = false;
-
-        yield return StartCoroutine
-        (
-            Scene3BackendScript.GetTodayStationeryRevenue
-            (
-                Script1.StationeryInfoObject.StationeryID,
-                Result => RevenueSuccess = Result
-            )
-        );
-
-        if (!RevenueSuccess)
-        {
-            RefreshFailed();
-            yield break;
-        }
-
-        bool OrdersCountSuccess = false;
-
-        yield return StartCoroutine
-        (
-            Scene3BackendScript.GetOrdersCount
-            (
-                Result => OrdersCountSuccess = Result
-            )
-        );
-
-        if (!OrdersCountSuccess)
-        {
-            RefreshFailed();
-            yield break;
-        }
+        yield return StartCoroutine(Scene3BackendScript.Coroutine_RefreshUI());
 
         Scene3ManagerScript.DisableInvisiblePanel();
-
-        Scene3ManagerScript.DisableAllPanels();
         Scene3ManagerScript.EnableHomePagePanel();
     }
-    void RefreshFailed()
-    {
-        Scene3ManagerScript.DisableAllPanels();
-
-        Scene3ManagerScript.MessageText.text = "Something went wrong, try again later.";
-
-        Scene3ManagerScript.EnableMessagePanel();
-    }
-
+   
 
 
 
@@ -289,6 +282,14 @@ public class HomePage : MonoBehaviour
 
 
 
+
+    public void ClickedRevenueButton()
+    {
+        Scene3ManagerScript.EnableInvisiblePanel();
+
+        Scene3ManagerScript.EnableRevenuePage();
+        RevenuePageManagerScript.LoadRevenue(Script1.StationeryInfoObject.StationeryID);
+    }
 
 
 

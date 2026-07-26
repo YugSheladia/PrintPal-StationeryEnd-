@@ -1,12 +1,11 @@
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using System.Text;
 using TMPro;
-using UnityEditor.SceneManagement;
 using UnityEngine;
 using UnityEngine.Networking;
-using static Scene3Backend;
 
 
 
@@ -302,8 +301,8 @@ public class PrintDetails
 
 public class Scene3Backend : MonoBehaviour
 {
-    [SerializeField] HomePage       HomePageScript;
-    [SerializeField] Scene3Manager  Scene3ManagerScript;
+    [SerializeField] HomePage HomePageScript;
+    [SerializeField] Scene3Manager Scene3ManagerScript;
 
 
 
@@ -323,14 +322,14 @@ public class Scene3Backend : MonoBehaviour
 
 
     //To get orders, beloing to a stationery, of a specific status.
-    public IEnumerator GetPendingOrders ( int StationeryID, System.Action<bool> OnComplete )
+    public IEnumerator GetPendingOrders(int StationeryID, System.Action<bool> OnComplete)
     {
         //Debug.Log("Downloading Pending Orders...");
 
-        ConfirmedOrders.Orders                  = new OrderSummary[0];
-        ConfirmedPrints.Prints                  = new PrintSummary[0];
-        ConfirmedPrintSettings.PrintSettings    = new PrintSettingsSummary[0];
-        ConfirmedPrintBills.PrintBills          = new PrintBillsSummary[0];
+        ConfirmedOrders.Orders = new OrderSummary[0];
+        ConfirmedPrints.Prints = new PrintSummary[0];
+        ConfirmedPrintSettings.PrintSettings = new PrintSettingsSummary[0];
+        ConfirmedPrintBills.PrintBills = new PrintBillsSummary[0];
 
         UnityWebRequest request = UnityWebRequest.Get
         (
@@ -398,14 +397,14 @@ public class Scene3Backend : MonoBehaviour
 
         OnComplete(true);
     }
-    public IEnumerator GetCompletedOrders ( int StationeryID, System.Action<bool> OnComplete)
+    public IEnumerator GetCompletedOrders(int StationeryID, System.Action<bool> OnComplete)
     {
         Debug.Log("Downloading Completed Orders...");
 
-        ConfirmedOrders.Orders                  = new OrderSummary[0];
-        ConfirmedPrints.Prints                  = new PrintSummary[0];
-        ConfirmedPrintSettings.PrintSettings    = new PrintSettingsSummary[0];
-        ConfirmedPrintBills.PrintBills          = new PrintBillsSummary[0];
+        ConfirmedOrders.Orders = new OrderSummary[0];
+        ConfirmedPrints.Prints = new PrintSummary[0];
+        ConfirmedPrintSettings.PrintSettings = new PrintSettingsSummary[0];
+        ConfirmedPrintBills.PrintBills = new PrintBillsSummary[0];
 
         UnityWebRequest request = UnityWebRequest.Get
         (
@@ -481,14 +480,14 @@ public class Scene3Backend : MonoBehaviour
 
         OnComplete(true);
     }
-    public IEnumerator GetCollectedOrders ( int StationeryID, System.Action<bool> OnComplete)
+    public IEnumerator GetCollectedOrders(int StationeryID, System.Action<bool> OnComplete)
     {
         Debug.Log("Downloading Collected Orders...");
 
-        ConfirmedOrders.Orders                          = new OrderSummary[0];
-        ConfirmedPrints.Prints                          = new PrintSummary[0];
-        ConfirmedPrintSettings.PrintSettings            = new PrintSettingsSummary[0];
-        ConfirmedPrintBills.PrintBills                  = new PrintBillsSummary[0];
+        ConfirmedOrders.Orders = new OrderSummary[0];
+        ConfirmedPrints.Prints = new PrintSummary[0];
+        ConfirmedPrintSettings.PrintSettings = new PrintSettingsSummary[0];
+        ConfirmedPrintBills.PrintBills = new PrintBillsSummary[0];
 
         UnityWebRequest request = UnityWebRequest.Get
         (
@@ -564,14 +563,14 @@ public class Scene3Backend : MonoBehaviour
 
         OnComplete(true);
     }
-    public IEnumerator GetArchivedOrders ( int StationeryID, System.Action<bool> OnComplete )
+    public IEnumerator GetArchivedOrders(int StationeryID, System.Action<bool> OnComplete)
     {
         Debug.Log("Downloading Archived Orders...");
 
-        ConfirmedOrders.Orders                  = new OrderSummary[0];
-        ConfirmedPrints.Prints                  = new PrintSummary[0];
-        ConfirmedPrintSettings.PrintSettings    = new PrintSettingsSummary[0];
-        ConfirmedPrintBills.PrintBills          = new PrintBillsSummary[0];
+        ConfirmedOrders.Orders = new OrderSummary[0];
+        ConfirmedPrints.Prints = new PrintSummary[0];
+        ConfirmedPrintSettings.PrintSettings = new PrintSettingsSummary[0];
+        ConfirmedPrintBills.PrintBills = new PrintBillsSummary[0];
 
         UnityWebRequest request = UnityWebRequest.Get
         (
@@ -874,9 +873,9 @@ public class Scene3Backend : MonoBehaviour
 
     //Making a PrintDetails object for each prints of each order ( of a specific order status ).
 
-    public Dictionary  <int, PrintSettingsSummary> SettingsDictionary  = new();
-    public Dictionary  <int, PrintBillsSummary>    BillsDictionary     = new();
-    public Dictionary  <int, List<PrintSummary>>   PrintsDictionary    = new();
+    public Dictionary<int, PrintSettingsSummary> SettingsDictionary = new();
+    public Dictionary<int, PrintBillsSummary> BillsDictionary = new();
+    public Dictionary<int, List<PrintSummary>> PrintsDictionary = new();
     void BuildPrintDetails()
     {
         Debug.Log("Building Print Details...");
@@ -1137,7 +1136,7 @@ public class Scene3Backend : MonoBehaviour
             )
         );
     }
-    void HandleStandaloneStatusChange ( bool Success, GameObject Panel )
+    void HandleStandaloneStatusChange(bool Success, GameObject Panel)
     {
         Scene3ManagerScript.DisableInvisiblePanel();
 
@@ -1157,7 +1156,7 @@ public class Scene3Backend : MonoBehaviour
 
 
 
-    public IEnumerator SetOrderAsPending ( int OrderID, System.Action<bool> OnComplete )
+    public IEnumerator SetOrderAsPending(int OrderID, System.Action<bool> OnComplete)
     {
         OrderIDRequest requestBody = new();
         requestBody.OrderID = OrderID;
@@ -1200,7 +1199,7 @@ public class Scene3Backend : MonoBehaviour
 
         OnComplete(true);
     }
-    public IEnumerator SetOrderAsCompleted ( int OrderID, System.Action<bool> OnComplete )
+    public IEnumerator SetOrderAsCompleted(int OrderID, System.Action<bool> OnComplete)
     {
         OrderIDRequest requestBody = new();
         requestBody.OrderID = OrderID;
@@ -1243,7 +1242,7 @@ public class Scene3Backend : MonoBehaviour
 
         OnComplete(true);
     }
-    public IEnumerator SetOrderAsCollected ( int OrderID, System.Action<bool> OnComplete )
+    public IEnumerator SetOrderAsCollected(int OrderID, System.Action<bool> OnComplete)
     {
         OrderIDRequest requestBody = new();
         requestBody.OrderID = OrderID;
@@ -1286,7 +1285,7 @@ public class Scene3Backend : MonoBehaviour
 
         OnComplete(true);
     }
-    public IEnumerator SetOrderAsUnarchived ( int OrderID, System.Action<bool> OnComplete )
+    public IEnumerator SetOrderAsUnarchived(int OrderID, System.Action<bool> OnComplete)
     {
         OrderIDRequest requestBody = new();
         requestBody.OrderID = OrderID;
@@ -1394,14 +1393,14 @@ public class Scene3Backend : MonoBehaviour
 
 
     //Search functionality -
-    public IEnumerator SearchByOrderIDCoroutine ( int StationeryID, int OrderID, System.Action<bool> OnComplete )
+    public IEnumerator SearchByOrderIDCoroutine(int StationeryID, int OrderID, System.Action<bool> OnComplete)
     {
         Debug.Log("Searching Order...");
 
-        ConfirmedOrders.Orders                  = new OrderSummary[0];
-        ConfirmedPrints.Prints                  = new PrintSummary[0];
-        ConfirmedPrintSettings.PrintSettings    = new PrintSettingsSummary[0];
-        ConfirmedPrintBills.PrintBills          = new PrintBillsSummary[0];
+        ConfirmedOrders.Orders = new OrderSummary[0];
+        ConfirmedPrints.Prints = new PrintSummary[0];
+        ConfirmedPrintSettings.PrintSettings = new PrintSettingsSummary[0];
+        ConfirmedPrintBills.PrintBills = new PrintBillsSummary[0];
 
         UnityWebRequest request = UnityWebRequest.Get
         (
@@ -1477,7 +1476,7 @@ public class Scene3Backend : MonoBehaviour
 
         OnComplete(true);
     }
-    public IEnumerator SearchByUserIDCoroutine ( int StationeryID, int UserID, System.Action<bool> OnComplete )
+    public IEnumerator SearchByUserIDCoroutine(int StationeryID, int UserID, System.Action<bool> OnComplete)
     {
         Debug.Log("Searching User Orders...");
 
@@ -1579,7 +1578,7 @@ public class Scene3Backend : MonoBehaviour
 
         public int TotalOrders;
     }
-    public IEnumerator GetOrdersCount ( System.Action<bool> OnComplete )
+    public IEnumerator GetOrdersCount(System.Action<bool> OnComplete)
     {
         bool PendingSuccess = false;
 
@@ -1639,7 +1638,7 @@ public class Scene3Backend : MonoBehaviour
 
         OnComplete(true);
     }
-    public IEnumerator GetOrderCount ( string status, TMP_Text targetText, System.Action<bool> OnComplete )
+    public IEnumerator GetOrderCount(string status, TMP_Text targetText, System.Action<bool> OnComplete)
     {
         UnityWebRequest request = UnityWebRequest.Get
         (
@@ -1681,8 +1680,7 @@ public class Scene3Backend : MonoBehaviour
             yield break;
         }
 
-        targetText.text =
-            Response.TotalOrders.ToString();
+        targetText.text = Response.TotalOrders.ToString();
 
         OnComplete(true);
     }
@@ -1705,7 +1703,7 @@ public class Scene3Backend : MonoBehaviour
 
         public float Amount;
     }
-    public IEnumerator GetAllTimeStationeryEarnings (int StationeryID)
+    public IEnumerator GetAllTimeStationeryEarnings(int StationeryID)
     {
         UnityWebRequest request = UnityWebRequest.Get(
             $"http://localhost:3000/analytics/stationeryEarnings?StationeryID={StationeryID}"
@@ -1742,7 +1740,7 @@ public class Scene3Backend : MonoBehaviour
 
         //HomePageScript.StationeryEarningsText.text = "`" + response.Amount.ToString("F2");
     }
-    public IEnumerator GetTodayStationeryRevenue ( int StationeryID, System.Action<bool> OnComplete)
+    public IEnumerator GetTodayStationeryRevenue(int StationeryID, System.Action<bool> OnComplete)
     {
         UnityWebRequest request = UnityWebRequest.Get
         (
@@ -1800,6 +1798,8 @@ public class Scene3Backend : MonoBehaviour
 
         OnComplete(true);
     }
+
+
 
 
 
@@ -1894,7 +1894,7 @@ public class Scene3Backend : MonoBehaviour
 
     //Printing process -
 
-    public string ServerURL = "http://localhost:3000";
+    private const string ServerURL = "http://localhost:3000";
 
     [System.Serializable]
     public class ValidatePrintRequest
@@ -1963,6 +1963,9 @@ public class Scene3Backend : MonoBehaviour
             Debug.LogError(RequestObject.downloadHandler.text);
 
             Scene3ManagerScript.DisableInvisiblePanel();
+
+            PrintManager.Instance.EndProcessingOrder(Order.OrderID);
+
             yield break;
         }
 
@@ -1978,6 +1981,8 @@ public class Scene3Backend : MonoBehaviour
 
             Scene3ManagerScript.EnableMessagePanel();
             Scene3ManagerScript.DisableInvisiblePanel();
+
+            PrintManager.Instance.EndProcessingOrder(Order.OrderID);
 
             yield break;
         }
@@ -2001,11 +2006,13 @@ public class Scene3Backend : MonoBehaviour
                         Scene3ManagerScript.EnableMessagePanel();
                         Scene3ManagerScript.DisableInvisiblePanel();
 
+                        PrintManager.Instance.EndProcessingOrder(Order.OrderID);
+
                         return;
                     }
 
                     Debug.Log("Downloaded All PDFs.");
-                    
+
                     //At this point, all prints of an order has been validated and has been downloaded, meaning
                     // it is safe to start the printing process, whose 1st step is to Create a PrintJob.
                     PrintJob Job = PrintManager.Instance.CreatePrintJob
@@ -2021,6 +2028,8 @@ public class Scene3Backend : MonoBehaviour
                         Scene3ManagerScript.EnableMessagePanel();
                         Scene3ManagerScript.DisableInvisiblePanel();
 
+                        PrintManager.Instance.EndProcessingOrder(Order.OrderID);
+
                         return;
                     }
 
@@ -2029,7 +2038,12 @@ public class Scene3Backend : MonoBehaviour
                     Job.PrintJobDetails();
 
                     //Queing the Job.
-                    PrintManager.Instance.QueuePrintJob(Job);                    
+                    bool Queued = PrintManager.Instance.QueuePrintJob(Job);
+
+                    if (!Queued)
+                    {
+                        PrintManager.Instance.EndProcessingOrder(Order.OrderID);
+                    }
                 }
             )
         );
@@ -2115,7 +2129,7 @@ public class Scene3Backend : MonoBehaviour
     }
 
 
-    public IEnumerator CompletePrintedOrder ( int OrderID )
+    public IEnumerator CompletePrintedOrder(int OrderID)
     {
         yield return StartCoroutine
         (
@@ -2154,6 +2168,8 @@ public class Scene3Backend : MonoBehaviour
 
             Scene3ManagerScript.DisableInvisiblePanel();
 
+            PrintManager.Instance.EndProcessingOrder(OrderID);
+
             yield break;
         }
 
@@ -2168,6 +2184,8 @@ public class Scene3Backend : MonoBehaviour
             Debug.LogError(Response.Message);
 
             Scene3ManagerScript.DisableInvisiblePanel();
+
+            PrintManager.Instance.EndProcessingOrder(OrderID);
 
             yield break;
         }
@@ -2215,8 +2233,293 @@ public class Scene3Backend : MonoBehaviour
             );
         }
 
+        PrintManager.Instance.EndProcessingOrder(OrderID);
+
         Scene3ManagerScript.DisableInvisiblePanel();
     }
 
+
+
+
+
+
+
+
+    //==================================================
+    // Revenue
+    //==================================================
+
+    [System.Serializable]
+    public class RevenueDetails
+    {
+        public int RevenueID;
+
+        public int StationeryID;
+
+        public string RevenueDate;
+
+        public int TotalOrders;
+
+        public int CompletedOrders;
+
+        public float Revenue;
+
+        public int TotalPagesPrinted;
+
+        public string CreatedAt;
+    }
+
+    [System.Serializable]
+    public class GetRevenueResponse
+    {
+        public bool Success;
+
+        public RevenueDetails[] Revenue;
+    }
+
+
+    //==================================================
+    // Request
+    //==================================================
+    public void GetRevenueFromServer
+    (
+        int StationeryID,
+        System.Action<RevenueDetails[]> OnComplete
+    )
+    {
+        StartCoroutine
+        (
+            Coroutine_GetRevenueFromServer
+            (
+                StationeryID,
+                OnComplete
+            )
+        );
+    }
+    public IEnumerator Coroutine_GetRevenueFromServer
+    (
+        int StationeryID,
+        System.Action<RevenueDetails[]> OnComplete
+    )
+    {
+        UnityWebRequest Request = UnityWebRequest.Get
+        (
+            "http://localhost:3000/stationery/30Days/revenue/" +
+            StationeryID
+        );
+
+        yield return Request.SendWebRequest();
+
+        if (Request.result != UnityWebRequest.Result.Success)
+        {
+            Debug.LogError
+            (
+                "Failed to retrieve revenue: " +
+                Request.error
+            );
+
+            Scene3ManagerScript.MessageText.text = "Failed to retrieve revenue.";
+
+            OnComplete?.Invoke(null);
+
+            yield break;
+        }
+
+        Debug.Log
+        (
+            "Raw Revenue Response =\n" +
+            Request.downloadHandler.text
+        );
+
+        GetRevenueResponse Response =
+            JsonUtility.FromJson<GetRevenueResponse>
+            (
+                Request.downloadHandler.text
+            );
+
+        if (Response == null)
+        {
+            Debug.LogError("Revenue response is null.");
+
+            Scene3ManagerScript.MessageText.text = "Revenue response is null.";
+
+            OnComplete?.Invoke(null);
+
+            yield break;
+        }
+
+        if (!Response.Success)
+        {
+            Debug.LogError("Failed to retrieve revenue.");
+
+            Scene3ManagerScript.MessageText.text = "Failed to retrieve revenue.";
+
+            OnComplete?.Invoke(null);
+
+            yield break;
+        }
+
+        if (Response.Revenue == null)
+        {
+            Debug.Log("No revenue records found.");
+
+            OnComplete?.Invoke(new RevenueDetails[0]);
+
+            yield break;
+        }
+
+        Debug.Log
+        (
+            $"Retrieved {Response.Revenue.Length} revenue records."
+        );
+
+        OnComplete?.Invoke(Response.Revenue);
+    }
+
+
+
+
+
+
+
+
+
+    private Coroutine AutomaticPrintingCoroutine;
+
+    private bool IsPollingOrders = false;
+
+    public void StartAutomaticPrinting()
+    {
+        if (AutomaticPrintingCoroutine != null) return;
+
+        AutomaticPrintingCoroutine = StartCoroutine(Coroutine_AutomaticPrinting());
+    }
+
+    public void StopAutomaticPrinting()
+    {
+        if (AutomaticPrintingCoroutine == null) return;
+
+        StopCoroutine(AutomaticPrintingCoroutine);
+
+        AutomaticPrintingCoroutine = null;
+    }
+
+    IEnumerator Coroutine_AutomaticPrinting()
+    {
+        while (true)
+        {
+            // Don't start another poll while one is already running.
+            if (!IsPollingOrders)
+            {
+                yield return StartCoroutine
+                (
+                    Coroutine_CheckForNewOrders()
+                );
+            }
+
+            yield return new WaitForSeconds(5f);
+        }
+    }
+
+    IEnumerator Coroutine_CheckForNewOrders()
+    {
+        IsPollingOrders = true;
+
+        try
+        {
+            bool Success = false;
+
+            yield return StartCoroutine
+            (
+                GetPendingOrders
+                (
+                    Script1.StationeryInfoObject.StationeryID,
+                    Result => Success = Result
+                )
+            );
+
+            if (!Success)
+            {
+                HomePageScript.Disconnected.SetActive(true);
+
+                yield break;
+            }
+
+            HomePageScript.Disconnected.SetActive(false);
+
+            foreach (OrderSummary Order in ConfirmedOrders.Orders)
+            {
+                if (PrintManager.Instance.IsOrderAlreadyHandled(Order.OrderID))
+                {
+                    continue;
+                }
+
+                PrintManager.Instance.BeginProcessingOrder(Order.OrderID);
+
+                StartPrintJob(Order);
+            }
+        }
+        finally
+        {
+            IsPollingOrders = false;
+            RefreshUI();
+        }
+    }
+
+
+
+
+
+
+    public void RefreshUI()
+    {
+        StartCoroutine(Coroutine_RefreshUI());
+    }
+    public IEnumerator Coroutine_RefreshUI()
+    {
+        HomePageScript.CurrentDate.text = DateTime.Now.ToString("dd-MM-yyyy");
+
+        bool RevenueSuccess = false;
+
+        yield return StartCoroutine
+        (
+            GetTodayStationeryRevenue
+            (
+                Script1.StationeryInfoObject.StationeryID,
+                Result => RevenueSuccess = Result
+            )
+        );
+
+        if (!RevenueSuccess)
+        {
+            RefreshFailed();
+
+            yield break;
+        }
+
+        bool OrdersCountSuccess = false;
+
+        yield return StartCoroutine
+        (
+            GetOrdersCount
+            (
+                Result => OrdersCountSuccess = Result
+            )
+        );
+
+        if (!OrdersCountSuccess)
+        {
+            RefreshFailed();
+
+            yield break;
+        }
+    }
+    void RefreshFailed()
+    {
+        Scene3ManagerScript.DisableAllPanels();
+
+        Scene3ManagerScript.MessageText.text = "Something went wrong, try again later.";
+        Scene3ManagerScript.EnableMessagePanel();
+    }
 }
 

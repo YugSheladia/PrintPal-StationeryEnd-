@@ -20,6 +20,8 @@ public class StationeryInfo
     public string UPINumber;
     public string Email;
 
+    public bool AutomaticPrinting = false;
+
     public StationeryInfo() { }
 
     public void PrintStationeryDetails()
