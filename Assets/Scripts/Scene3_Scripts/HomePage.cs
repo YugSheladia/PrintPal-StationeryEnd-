@@ -3,6 +3,7 @@ using System.Collections;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using TMPro;
+using UnityEngine.UI;
 
 public class HomePage : MonoBehaviour
 {
@@ -18,7 +19,6 @@ public class HomePage : MonoBehaviour
     [SerializeField] Scene3Backend Scene3BackendScript;
 
     [SerializeField] OrderStatusManager OrderStatusManagerScript;
-
     [SerializeField] RevenuePageManager RevenuePageManagerScript;
 
     [SerializeField] TMP_Text StationeryName;
@@ -31,10 +31,6 @@ public class HomePage : MonoBehaviour
     [SerializeField] public TMP_Text TotalFinishedOrdersText;
     [SerializeField] public TMP_Text TotalCollectedOrdersText;
 
-    public string TotalPendingOrders;
-    public string TotalFinishedOrders;
-    public string TotalCollectedOrders;
-
     [SerializeField] public TMP_Text CurrentDate;
     [SerializeField] public TMP_Text RevenueToday;
 
@@ -42,15 +38,22 @@ public class HomePage : MonoBehaviour
 
     [SerializeField] public GameObject Disconnected;
 
+    [SerializeField] public GameObject LoadingIcon;
+    [SerializeField] public GameObject ExclamationButton;
+
+    private bool PauseBool = false;
+
+
+
 
 
     public void StartHomePage()
     {
-        Debug.Log("HomePage.Start()");
+        Debug.Log("HomePage.StartHomePage()");
+
         StationeryName.text = Script1.StationeryInfoObject.StationeryName;
 
-        TotalConnectedPrinters.text =
-            "Connected printers : " + Script1.SelectedPrinters.Count;
+        TotalConnectedPrinters.text = "Connected printers : " + Script1.SelectedPrinters.Count;
 
         StartCoroutine(InitializeHomePage());
     }
@@ -64,8 +67,14 @@ public class HomePage : MonoBehaviour
             ClickedRefreshButtonCoroutine()
         );
 
+        AutomaticPrinting();
+    }
+    public void AutomaticPrinting()
+    {
+        Debug.Log("AutomaticPrinting()");
+
         // Only start polling if Automatic Printing is enabled
-        if (Script1.GetAutomaticPrintingValue())
+        if (Script1.GetAutomaticPrintingValue() && !PauseBool)
         {
             Debug.Log("Automatic Printing = true.");
             Scene3BackendScript.StartAutomaticPrinting();
@@ -76,66 +85,16 @@ public class HomePage : MonoBehaviour
             Scene3BackendScript.StopAutomaticPrinting();
         }
     }
-
-
-
-
-
-    public void ClickedRefreshButton()
-    {
-        Debug.Log("ClickedRefreshButton()");
-        StartCoroutine(ClickedRefreshButtonCoroutine());
-    }
-    IEnumerator ClickedRefreshButtonCoroutine()
-    {
-        Scene3ManagerScript.EnableInvisiblePanel();
-
-        yield return StartCoroutine(Scene3BackendScript.Coroutine_RefreshUI());
-
-        Scene3ManagerScript.DisableInvisiblePanel();
-        Scene3ManagerScript.EnableHomePagePanel();
-    }
+    
    
 
 
 
+    
 
-
-    public void ClickedProfileButton()
-    {
-        SceneManager.LoadScene("Scene4_UpdateProfileInfo");
-    }
-    public void ClickedSettingsButton()
-    {
-        SceneManager.LoadScene("Scene5_Settings");
-    }
-
-
-
-
-
-    public void SwitchIDToSearchBy()
-    {
-        IDToSearchByEnum = (IDToSearchBy)IDSwitchDropdown.value;
-        Debug.Log("Switched to = " + IDToSearchByEnum.ToString());
-
-        if(IDToSearchByEnum == IDToSearchBy.SearchByOrderID)
-        {
-            SearchByText.text = "Search Order by OrderID";
-        }
-        else
-        {
-            SearchByText.text = "Search Orders By UserID";
-        }
-    }
-
-
-
-
-
-
-
-
+    //=============================================================
+    // HomePage Buttons 
+    //=============================================================
     public void ClickedPendingOrdersButton()
     {
         StartCoroutine(ClickedPendingOrdersButtonCoroutine());
@@ -280,9 +239,6 @@ public class HomePage : MonoBehaviour
     }
 
 
-
-
-
     public void ClickedRevenueButton()
     {
         Scene3ManagerScript.EnableInvisiblePanel();
@@ -292,10 +248,32 @@ public class HomePage : MonoBehaviour
     }
 
 
+    public void ClickedProfileButton()
+    {
+        SceneManager.LoadScene("Scene4_UpdateProfileInfo");
+    }
+    public void ClickedSettingsButton()
+    {
+        SceneManager.LoadScene("Scene5_Settings");
+    }
 
 
 
     //Search by OrderID / UserID functionality.
+    public void SwitchIDToSearchBy()
+    {
+        IDToSearchByEnum = (IDToSearchBy)IDSwitchDropdown.value;
+        Debug.Log("Switched to = " + IDToSearchByEnum.ToString());
+
+        if (IDToSearchByEnum == IDToSearchBy.SearchByOrderID)
+        {
+            SearchByText.text = "Search Order by OrderID";
+        }
+        else
+        {
+            SearchByText.text = "Search Orders By UserID";
+        }
+    }
     public void ClickedSearchedOrdersButton()
     {
         StartCoroutine(ClickedSearchedOrdersButtonCoroutine());
@@ -356,14 +334,41 @@ public class HomePage : MonoBehaviour
     }
 
 
-
-
-
-
-
-
-    public void ClickedGetAllPrinters()
+    public void ClickedRefreshButton()
     {
-        Debug.Log("Pressed ViewAllPrinters");
+        Debug.Log("ClickedRefreshButton()");
+        StartCoroutine(ClickedRefreshButtonCoroutine());
+    }
+    IEnumerator ClickedRefreshButtonCoroutine()
+    {
+        yield return StartCoroutine(Scene3BackendScript.Coroutine_RefreshUI());
+
+        //Scene3ManagerScript.EnableHomePagePanel();
+    }
+
+
+    public void PausePrinting()
+    {
+        PauseBool = true;
+
+        Scene3BackendScript.StopAutomaticPrinting();
+
+        LoadingIcon.SetActive(false);
+        ExclamationButton.SetActive(true);
+    }
+    public void UnpausePrinting()
+    {
+        Debug.Log("Clicked Unpause Printing Button.");
+        PauseBool = false;
+
+        ExclamationButton.SetActive(false);
+        LoadingIcon.SetActive(true);
+
+        StartHomePage();
+    }
+    public void ClickedExclamationButton()
+    {
+        Debug.Log("Clicked Exclamation Button.");
+        UnpausePrinting();
     }
 }

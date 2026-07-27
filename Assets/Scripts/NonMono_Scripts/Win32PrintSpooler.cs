@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Runtime.InteropServices;
 
 public static class Win32PrintSpooler
@@ -170,9 +171,20 @@ public static class Win32PrintSpooler
             in GetJobs(PrinterName)
         )
         {
+            if (string.IsNullOrEmpty(Job.Document))
+            {
+                continue;
+            }
+
+            // Windows/the driver sometimes registers the job's Document
+            // field as a bare filename, sometimes as the full source
+            // path (e.g. "C:\...\1.pdf") - compare on filename only so
+            // this matches either way.
+            string JobFileName = Path.GetFileName(Job.Document);
+
             if
             (
-                Job.Document.Equals
+                JobFileName.Equals
                 (
                     DocumentName,
                     StringComparison.OrdinalIgnoreCase

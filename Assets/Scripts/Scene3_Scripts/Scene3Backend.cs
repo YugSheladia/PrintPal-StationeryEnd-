@@ -1797,9 +1797,7 @@ public class Scene3Backend : MonoBehaviour
             Response.Amount.ToString("F2");
 
         OnComplete(true);
-    }
-
-
+    } /////////
 
 
 
@@ -1886,6 +1884,289 @@ public class Scene3Backend : MonoBehaviour
         // HomePageScript.TotalRevenueText.text = "`" + response.Amount.ToString("F2");
     }
 
+
+
+
+
+
+
+    //==================================================
+    // 30 days Revenue
+    //==================================================
+
+    [System.Serializable]
+    public class RevenueDetails
+    {
+        public int RevenueID;
+
+        public int StationeryID;
+
+        public string RevenueDate;
+
+        public int TotalOrders;
+
+        public int CompletedOrders;
+
+        public float Revenue;
+
+        public int TotalPagesPrinted;
+
+        public string CreatedAt;
+    }
+
+    [System.Serializable]
+    public class GetRevenueResponse
+    {
+        public bool Success;
+
+        public RevenueDetails[] Revenue;
+    }
+
+    public void GetRevenueFromServer
+    (
+        int StationeryID,
+        System.Action<RevenueDetails[]> OnComplete
+    )
+    {
+        StartCoroutine
+        (
+            Coroutine_GetRevenueFromServer
+            (
+                StationeryID,
+                OnComplete
+            )
+        );
+    }
+    public IEnumerator Coroutine_GetRevenueFromServer
+    (
+        int StationeryID,
+        System.Action<RevenueDetails[]> OnComplete
+    )
+    {
+        UnityWebRequest Request = UnityWebRequest.Get
+        (
+            "http://localhost:3000/stationery/30Days/revenue/" +
+            StationeryID
+        );
+
+        yield return Request.SendWebRequest();
+
+        if (Request.result != UnityWebRequest.Result.Success)
+        {
+            Debug.LogError
+            (
+                "Failed to retrieve revenue: " +
+                Request.error
+            );
+
+            Scene3ManagerScript.MessageText.text = "Failed to retrieve revenue.";
+
+            OnComplete?.Invoke(null);
+
+            yield break;
+        }
+
+        Debug.Log
+        (
+            "Raw Revenue Response =\n" +
+            Request.downloadHandler.text
+        );
+
+        GetRevenueResponse Response =
+            JsonUtility.FromJson<GetRevenueResponse>
+            (
+                Request.downloadHandler.text
+            );
+
+        if (Response == null)
+        {
+            Debug.LogError("Revenue response is null.");
+
+            Scene3ManagerScript.MessageText.text = "Revenue response is null.";
+
+            OnComplete?.Invoke(null);
+
+            yield break;
+        }
+
+        if (!Response.Success)
+        {
+            Debug.LogError("Failed to retrieve revenue.");
+
+            Scene3ManagerScript.MessageText.text = "Failed to retrieve revenue.";
+
+            OnComplete?.Invoke(null);
+
+            yield break;
+        }
+
+        if (Response.Revenue == null)
+        {
+            Debug.Log("No revenue records found.");
+
+            OnComplete?.Invoke(new RevenueDetails[0]);
+
+            yield break;
+        }
+
+        Debug.Log
+        (
+            $"Retrieved {Response.Revenue.Length} revenue records."
+        );
+
+        OnComplete?.Invoke(Response.Revenue);
+    }
+
+
+
+
+
+
+
+    //Automatic printing stuff
+
+    private Coroutine AutomaticPrintingCoroutine;
+
+    private bool IsPollingOrders = false;
+
+    public void StartAutomaticPrinting()
+    {
+        if (AutomaticPrintingCoroutine != null) return;
+
+        AutomaticPrintingCoroutine = StartCoroutine(Coroutine_AutomaticPrinting());
+    }
+
+    public void StopAutomaticPrinting()
+    {
+        if (AutomaticPrintingCoroutine == null) return;
+
+        StopCoroutine(AutomaticPrintingCoroutine);
+
+        AutomaticPrintingCoroutine = null;
+    }
+
+    IEnumerator Coroutine_AutomaticPrinting()
+    {
+        while (true)
+        {
+            // Don't start another poll while one is already running.
+            if (!IsPollingOrders)
+            {
+                yield return StartCoroutine
+                (
+                    Coroutine_CheckForNewOrders()
+                );
+            }
+
+            yield return new WaitForSeconds(5f);
+        }
+    }
+
+    IEnumerator Coroutine_CheckForNewOrders()
+    {
+        IsPollingOrders = true;
+
+        try
+        {
+            bool Success = false;
+
+            yield return StartCoroutine
+            (
+                GetPendingOrders
+                (
+                    Script1.StationeryInfoObject.StationeryID,
+                    Result => Success = Result
+                )
+            );
+
+            if (!Success)
+            {
+                HomePageScript.Disconnected.SetActive(true);
+
+                yield break;
+            }
+
+            HomePageScript.Disconnected.SetActive(false);
+
+            foreach (OrderSummary Order in ConfirmedOrders.Orders)
+            {
+                if (PrintManager.Instance.IsOrderAlreadyHandled(Order.OrderID))
+                {
+                    continue;
+                }
+
+                PrintManager.Instance.BeginProcessingOrder(Order.OrderID);
+
+                StartPrintJob(Order);
+            }
+        }
+        finally
+        {
+            IsPollingOrders = false;
+
+            RefreshUI();
+            Scene3ManagerScript.EnableHomePagePanel();
+        }
+    }
+
+
+
+
+
+    //Refreshing HomePage UI
+    public void RefreshUI()
+    {
+        Debug.Log("RefreshUI");
+
+        StartCoroutine(Coroutine_RefreshUI());
+    }
+    public IEnumerator Coroutine_RefreshUI()
+    {
+        Debug.Log("Coroutine_RefreshUI()");
+        HomePageScript.CurrentDate.text = DateTime.Now.ToString("dd-MM-yyyy");
+
+        bool RevenueSuccess = false;
+
+        yield return StartCoroutine
+        (
+            GetTodayStationeryRevenue
+            (
+                Script1.StationeryInfoObject.StationeryID,
+                Result => RevenueSuccess = Result
+            )
+        );
+
+        if (!RevenueSuccess)
+        {
+            RefreshFailed();
+
+            yield break;
+        }
+
+        bool OrdersCountSuccess = false;
+
+        yield return StartCoroutine
+        (
+            GetOrdersCount
+            (
+                Result => OrdersCountSuccess = Result
+            )
+        );
+
+        if (!OrdersCountSuccess)
+        {
+            RefreshFailed();
+
+            yield break;
+        }
+    }
+    void RefreshFailed()
+    {
+        Scene3ManagerScript.DisableAllPanels();
+
+        Scene3ManagerScript.MessageText.text = "Something went wrong, try again later.";
+        Scene3ManagerScript.EnableMessagePanel();
+    }
 
 
 
@@ -2042,6 +2323,7 @@ public class Scene3Backend : MonoBehaviour
 
                     if (!Queued)
                     {
+                        Debug.Log("Order is already queued.");
                         PrintManager.Instance.EndProcessingOrder(Order.OrderID);
                     }
                 }
@@ -2236,290 +2518,6 @@ public class Scene3Backend : MonoBehaviour
         PrintManager.Instance.EndProcessingOrder(OrderID);
 
         Scene3ManagerScript.DisableInvisiblePanel();
-    }
-
-
-
-
-
-
-
-
-    //==================================================
-    // Revenue
-    //==================================================
-
-    [System.Serializable]
-    public class RevenueDetails
-    {
-        public int RevenueID;
-
-        public int StationeryID;
-
-        public string RevenueDate;
-
-        public int TotalOrders;
-
-        public int CompletedOrders;
-
-        public float Revenue;
-
-        public int TotalPagesPrinted;
-
-        public string CreatedAt;
-    }
-
-    [System.Serializable]
-    public class GetRevenueResponse
-    {
-        public bool Success;
-
-        public RevenueDetails[] Revenue;
-    }
-
-
-    //==================================================
-    // Request
-    //==================================================
-    public void GetRevenueFromServer
-    (
-        int StationeryID,
-        System.Action<RevenueDetails[]> OnComplete
-    )
-    {
-        StartCoroutine
-        (
-            Coroutine_GetRevenueFromServer
-            (
-                StationeryID,
-                OnComplete
-            )
-        );
-    }
-    public IEnumerator Coroutine_GetRevenueFromServer
-    (
-        int StationeryID,
-        System.Action<RevenueDetails[]> OnComplete
-    )
-    {
-        UnityWebRequest Request = UnityWebRequest.Get
-        (
-            "http://localhost:3000/stationery/30Days/revenue/" +
-            StationeryID
-        );
-
-        yield return Request.SendWebRequest();
-
-        if (Request.result != UnityWebRequest.Result.Success)
-        {
-            Debug.LogError
-            (
-                "Failed to retrieve revenue: " +
-                Request.error
-            );
-
-            Scene3ManagerScript.MessageText.text = "Failed to retrieve revenue.";
-
-            OnComplete?.Invoke(null);
-
-            yield break;
-        }
-
-        Debug.Log
-        (
-            "Raw Revenue Response =\n" +
-            Request.downloadHandler.text
-        );
-
-        GetRevenueResponse Response =
-            JsonUtility.FromJson<GetRevenueResponse>
-            (
-                Request.downloadHandler.text
-            );
-
-        if (Response == null)
-        {
-            Debug.LogError("Revenue response is null.");
-
-            Scene3ManagerScript.MessageText.text = "Revenue response is null.";
-
-            OnComplete?.Invoke(null);
-
-            yield break;
-        }
-
-        if (!Response.Success)
-        {
-            Debug.LogError("Failed to retrieve revenue.");
-
-            Scene3ManagerScript.MessageText.text = "Failed to retrieve revenue.";
-
-            OnComplete?.Invoke(null);
-
-            yield break;
-        }
-
-        if (Response.Revenue == null)
-        {
-            Debug.Log("No revenue records found.");
-
-            OnComplete?.Invoke(new RevenueDetails[0]);
-
-            yield break;
-        }
-
-        Debug.Log
-        (
-            $"Retrieved {Response.Revenue.Length} revenue records."
-        );
-
-        OnComplete?.Invoke(Response.Revenue);
-    }
-
-
-
-
-
-
-
-
-
-    private Coroutine AutomaticPrintingCoroutine;
-
-    private bool IsPollingOrders = false;
-
-    public void StartAutomaticPrinting()
-    {
-        if (AutomaticPrintingCoroutine != null) return;
-
-        AutomaticPrintingCoroutine = StartCoroutine(Coroutine_AutomaticPrinting());
-    }
-
-    public void StopAutomaticPrinting()
-    {
-        if (AutomaticPrintingCoroutine == null) return;
-
-        StopCoroutine(AutomaticPrintingCoroutine);
-
-        AutomaticPrintingCoroutine = null;
-    }
-
-    IEnumerator Coroutine_AutomaticPrinting()
-    {
-        while (true)
-        {
-            // Don't start another poll while one is already running.
-            if (!IsPollingOrders)
-            {
-                yield return StartCoroutine
-                (
-                    Coroutine_CheckForNewOrders()
-                );
-            }
-
-            yield return new WaitForSeconds(5f);
-        }
-    }
-
-    IEnumerator Coroutine_CheckForNewOrders()
-    {
-        IsPollingOrders = true;
-
-        try
-        {
-            bool Success = false;
-
-            yield return StartCoroutine
-            (
-                GetPendingOrders
-                (
-                    Script1.StationeryInfoObject.StationeryID,
-                    Result => Success = Result
-                )
-            );
-
-            if (!Success)
-            {
-                HomePageScript.Disconnected.SetActive(true);
-
-                yield break;
-            }
-
-            HomePageScript.Disconnected.SetActive(false);
-
-            foreach (OrderSummary Order in ConfirmedOrders.Orders)
-            {
-                if (PrintManager.Instance.IsOrderAlreadyHandled(Order.OrderID))
-                {
-                    continue;
-                }
-
-                PrintManager.Instance.BeginProcessingOrder(Order.OrderID);
-
-                StartPrintJob(Order);
-            }
-        }
-        finally
-        {
-            IsPollingOrders = false;
-            RefreshUI();
-        }
-    }
-
-
-
-
-
-
-    public void RefreshUI()
-    {
-        StartCoroutine(Coroutine_RefreshUI());
-    }
-    public IEnumerator Coroutine_RefreshUI()
-    {
-        HomePageScript.CurrentDate.text = DateTime.Now.ToString("dd-MM-yyyy");
-
-        bool RevenueSuccess = false;
-
-        yield return StartCoroutine
-        (
-            GetTodayStationeryRevenue
-            (
-                Script1.StationeryInfoObject.StationeryID,
-                Result => RevenueSuccess = Result
-            )
-        );
-
-        if (!RevenueSuccess)
-        {
-            RefreshFailed();
-
-            yield break;
-        }
-
-        bool OrdersCountSuccess = false;
-
-        yield return StartCoroutine
-        (
-            GetOrdersCount
-            (
-                Result => OrdersCountSuccess = Result
-            )
-        );
-
-        if (!OrdersCountSuccess)
-        {
-            RefreshFailed();
-
-            yield break;
-        }
-    }
-    void RefreshFailed()
-    {
-        Scene3ManagerScript.DisableAllPanels();
-
-        Scene3ManagerScript.MessageText.text = "Something went wrong, try again later.";
-        Scene3ManagerScript.EnableMessagePanel();
     }
 }
 

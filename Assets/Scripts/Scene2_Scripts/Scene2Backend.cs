@@ -170,7 +170,7 @@ public class Scene2Backend : MonoBehaviour
                 ErrorMessage = "Something went wrong. Please try again.";
             }
 
-            Debug.LogError
+            Debug.Log
             (
                 "Login failed: "
                 + request.responseCode

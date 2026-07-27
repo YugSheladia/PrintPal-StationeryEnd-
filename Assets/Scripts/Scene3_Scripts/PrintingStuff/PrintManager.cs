@@ -7,6 +7,8 @@ public class PrintManager : MonoBehaviour
     [SerializeField] Scene3Manager Scene3ManagerScript;
     [SerializeField] Scene3Backend Scene3BackendScript;
 
+    [SerializeField] HomePage HomePageScript;
+
 
 
     public static PrintManager Instance;
@@ -209,6 +211,10 @@ public class PrintManager : MonoBehaviour
 
             //Check everytime if the printer is online or not, but for now, it's fine...
 
+
+
+            /////////////////////////////////////////////////////////////////////////////////////
+            /*
             if (Candidate.Printer.IsOnline)
             {
                 Debug.Log($"{Candidate.Printer.Name} is online.");
@@ -219,7 +225,13 @@ public class PrintManager : MonoBehaviour
             }
 
             Debug.LogWarning($"{Candidate.Printer.Name} isn't online, giving the order to the next printer.");
+            */
 
+            Debug.Log("Worker selected = " + Candidate);
+
+            NextWorkerIndex = (Index + 1) % Workers.Count;
+
+            return Candidate;
         }
 
         Scene3ManagerScript.MessageText.text = "No connected printer found. Make sure you have Selected the correct printers & that The printers are turned on.";
@@ -269,17 +281,21 @@ public class PrintManager : MonoBehaviour
         Job.AttemptedPrinterIDs.Add(FailedWorker.Printer.PrinterID);
         Job.RetryCount++;
 
+        //Kill the reqesut for the FailedWorker.
+
         PrinterWorker NextWorker = PickNextAvailableWorker(Job, FailedWorker);
 
         if (NextWorker == null)
         {
-            Debug.LogError
+            Debug.Log
             (
                 $"Order {Job.OrderID} failed on every available printer. Last error: {Reason}"
             );
 
             Job.Status = PrintJobStatus.Failed;
             Job.StatusMessage = $"Failed on all printers: {Reason}";
+
+            HomePageScript.PausePrinting();
 
             return;
         }

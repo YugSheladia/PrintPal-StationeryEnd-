@@ -32,7 +32,7 @@ public class Scene3Manager : MonoBehaviour
         Debug.Log("Scene3Manager.Start()");
 
         DisableAllPanels();
-        EnableHomePagePanel();
+        InitializeHomePagePanel();
     }
 
 
@@ -70,12 +70,18 @@ public class Scene3Manager : MonoBehaviour
 
 
 
+    public void InitializeHomePagePanel()
+    {
+        Debug.Log("InitializeHomePagePanel()");
+
+        HomePagePanel.SetActive(true);
+        HomePageScript.StartHomePage();
+    }
     public void EnableHomePagePanel()
     {
         Debug.Log("EnableHomePagePanel()");
 
         HomePagePanel.SetActive(true);
-        HomePageScript.StartHomePage();
     }
     public void DisableHomePagePanel()
     {

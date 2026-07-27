@@ -90,7 +90,7 @@ public class PrinterWorker
 
             if (!Success)
             {
-                Debug.LogError
+                Debug.LogWarning
                 (
                     $"Failed to print PrintID {Document.Print.PrintID} on {Printer.Name}: {FailureMessage}"
                 );
