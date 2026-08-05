@@ -5,6 +5,8 @@ public class OrderStatusManager : MonoBehaviour
     [SerializeField] Scene3Manager      Scene3ManagerScript;
     [SerializeField] Scene3Backend      Scene3BackendScript;
 
+    [SerializeField] HomePage HomePageScript;
+
 
     [Header("Order Status")]
     [SerializeField] GameObject OrderStatusPrefab;
@@ -17,6 +19,14 @@ public class OrderStatusManager : MonoBehaviour
 
     public void CreateOrderStatusPanels()
     {
+        if (Scene3BackendScript.ConfirmedOrders.Orders.Length <= 0)
+
+        {
+            //Create the "No Orders exist" wala object here.
+
+            return;
+        }
+
         foreach (OrderSummary Order in Scene3BackendScript.ConfirmedOrders.Orders)
         {
             //Debug.Log("OrderID = " + Order.OrderID);
@@ -54,6 +64,8 @@ public class OrderStatusManager : MonoBehaviour
 
         Scene3ManagerScript.DisableAllPanels();
         Scene3ManagerScript.EnableHomePagePanel();
+
+        //HomePageScript.UnpausePrinting();
     }
     private void DeleteAllOrderPanels()
     {
@@ -62,6 +74,7 @@ public class OrderStatusManager : MonoBehaviour
             Destroy(Child.gameObject);
         }
     }
+
 
 
 

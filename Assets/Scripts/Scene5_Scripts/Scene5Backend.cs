@@ -153,6 +153,17 @@ public class Scene5Backend : MonoBehaviour
             printers.Add(printer);
         }
 
+        Script1.SetPrinters(printers);
+
+        Debug.Log($"Retrieved {printers.Count} approved printers.");
+
+        Script1.PrintAllPrinterDetails();
+
+        OnComplete?.Invoke(true);
+
+
+        //Removed this part as we are no longer relying on Server to decide Printer Status.
+        /*
         //--------------------------------------------------
         // Cross-reference with live Windows printer status - the same
         // call SelectPrinters uses at setup - so IsOnline/IsBusy reflect
@@ -217,6 +228,7 @@ public class Scene5Backend : MonoBehaviour
         Script1.PrintAllPrinterDetails();
 
         OnComplete?.Invoke(true);
+        */
     }
 
 

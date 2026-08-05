@@ -258,6 +258,26 @@ public static class PrintMonitor
                         ? $"No progress for over {StuckTimeoutSeconds}s: {LastErrorMessage}"
                         : $"No print progress for over {StuckTimeoutSeconds}s and the printer never reported why (this driver may not surface status flags accurately).";
 
+                // Actively cancel the job in the Windows spooler rather
+                // than just walking away from it - otherwise it sits
+                // there untouched, and if this printer reconnects later,
+                // Windows will happily resume and print it even though
+                // we've already given up on / rerouted this order.
+                bool Cancelled = Win32PrintSpooler.CancelJob(Printer.Name, JobId);
+
+                if (Cancelled)
+                {
+                    Debug.Log($"[{Printer.Name}] Cancelled stuck JobId {JobId} in the Windows spooler.");
+                }
+                else
+                {
+                    Debug.LogWarning
+                    (
+                        $"[{Printer.Name}] Couldn't cancel stuck JobId {JobId} in the Windows spooler - " +
+                        "it may still print later if this printer reconnects. Check printer permissions."
+                    );
+                }
+
                 OnComplete(false, GiveUpMessage);
                 yield break;
             }
@@ -271,7 +291,7 @@ public static class PrintMonitor
                 Debug.Log
                 (
                     $"[{Printer.Name}] Still watching JobId {JobId} - " +
-                    $"Status: 0x{Status:X} ({(PrintJobStatus)0}unused), " +
+                    $"Status: 0x{Status:X}, " +
                     $"Pages: {LastKnownPagesPrinted}/{LastKnownTotalPages}, " +
                     $"PauseReason: {CurrentPauseReason}, " +
                     $"StuckTimer: {StuckTimer:F1}s / {StuckTimeoutSeconds}s"

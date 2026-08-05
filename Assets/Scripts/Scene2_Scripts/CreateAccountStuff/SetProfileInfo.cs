@@ -53,7 +53,7 @@ public class SetProfileInfo : MonoBehaviour
                         else
                         {
                             Scene2ManagerScript.DisableAllPanels();
-                            Scene2ManagerScript.EnableSelectPrintersPanel();
+                            Scene2ManagerScript.EnableSetProfileInfoPanel();
 
                             Scene2ManagerScript.MessageText.text = ErrorMessage;
                             Scene2ManagerScript.EnableMessagePanel();
@@ -92,7 +92,9 @@ public class SetProfileInfo : MonoBehaviour
                 {
                     Scene2ManagerScript.DisableAllPanels();
 
-                    Scene2ManagerScript.EnableSetProfileInfoPanel();
+                    Scene2ManagerScript.EnableSelectPrintersPanel();
+
+                    Scene2ManagerScript.MessageText.text = "Your account has been successfuly created!\nbut an error occured when we tried to retrieve printers connected to your device. Restart the app or try again later.";
                     Scene2ManagerScript.EnableMessagePanel();
                 }
             }
@@ -114,11 +116,17 @@ public class SetProfileInfo : MonoBehaviour
 
             return false;
         }
+        if (!CheckLocationLength())
+        {
+            Scene2ManagerScript.MessageText.text = "Location field can't be empty.";
+
+            return false;
+        }
         if (!CheckUPINumberLength())
         {
             return false;
         }
-        if (!CheckEmailLegnth())
+        if (!CheckEmailLength())
         {
             Scene2ManagerScript.MessageText.text = "Email field can't be empty.";
 
@@ -132,6 +140,17 @@ public class SetProfileInfo : MonoBehaviour
     public bool CheckNameLength()
     {
         if (StationeryNameInput.text.Length <= 0)
+        {
+            return false;
+        }
+        else
+        {
+            return true;
+        }
+    }
+    public bool CheckLocationLength()
+    {
+        if (LocationInput.text.Length <= 0)
         {
             return false;
         }
@@ -159,7 +178,7 @@ public class SetProfileInfo : MonoBehaviour
             return true;
         }
     }
-    public bool CheckEmailLegnth()
+    public bool CheckEmailLength()
     {
         if (EmailInput.text.Length <= 0)
         {

@@ -309,6 +309,37 @@ public class Scene2Backend : MonoBehaviour
             yield break;
         }
 
+        List<Printer> printers = new();
+
+        foreach (ApprovedPrinter approvedPrinter in response.Printers)
+        {
+            Printer printer = new Printer();
+
+            printer.Name = approvedPrinter.PrinterName;
+            printer.IsSelected = true;
+
+            // Placeholder until the live-status merge below fills these
+            // in - only stays like this if that merge can't find a match.
+            printer.IsOnline = true;
+
+            printer.IsBusy = false;
+
+            printers.Add(printer);
+        }
+
+        Script1.SetPrinters(printers);
+
+        PrintManager.Instance?.RefreshWorkersFromApprovedPrinters();
+
+        Debug.Log($"Retrieved {printers.Count} approved printers.");
+
+        Script1.PrintAllPrinterDetails();
+
+        OnComplete?.Invoke(true);
+
+
+        //Removed this part of code as we are no longer relying on Printer Status recieved from server.
+        /*
         // --- Replace the tail of Scene2Backend.GetApprovedPrintersFromServer with this ---
 
         List<Printer> printers = new();
@@ -399,6 +430,7 @@ public class Scene2Backend : MonoBehaviour
         //     It's structurally identical, just using Scene2Backend.PrinterInfo /
         //     Scene2Backend.ApprovedPrinter qualifiers since it reuses those nested
         //     types, and its own local GetPrinters(...) method. ---
+        */
     }
 
 
@@ -567,7 +599,7 @@ public class Scene2Backend : MonoBehaviour
 
 
 
-    //To get all the connected printers using a server request.
+    //To get all the printers connected to the device using a server request.
 
     [System.Serializable]
     public class PrinterInfo

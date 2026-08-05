@@ -36,6 +36,16 @@ public static class Win32PrintSpooler
         out uint JobsReturned
     );
 
+    [DllImport("winspool.drv", SetLastError = true)]
+    static extern bool SetJob
+    (
+        IntPtr PrinterHandle,
+        uint JobId,
+        uint Level,
+        IntPtr pJob,
+        uint Command
+    );
+
     //==================================================
     // Public API
     //==================================================
@@ -222,6 +232,56 @@ public static class Win32PrintSpooler
         return null;
     }
 
+    // Cancels a specific job in the Windows spooler. Used when we give
+    // up watching a stuck job (see PrintMonitor's StuckTimeoutSeconds
+    // timeout) so it doesn't just sit there and get printed later if the
+    // printer reconnects.
+    public static bool CancelJob
+    (
+        string PrinterName,
+        int JobID
+    )
+    {
+        Win32Structures.PRINTER_DEFAULTS Defaults =
+            new Win32Structures.PRINTER_DEFAULTS();
+
+        // Cancelling a job needs admin-level access to the printer
+        // object, not just PRINTER_ACCESS_USE (which is enough to submit
+        // jobs and enumerate the queue, but not to control them).
+        Defaults.DesiredAccess =
+            Win32Structures.PRINTER_ACCESS_ADMINISTER
+            | Win32Structures.PRINTER_ACCESS_USE;
+
+        if
+        (
+            !OpenPrinter
+            (
+                PrinterName,
+                out IntPtr PrinterHandle,
+                ref Defaults
+            )
+        )
+        {
+            return false;
+        }
+
+        try
+        {
+            return SetJob
+            (
+                PrinterHandle,
+                (uint)JobID,
+                0,
+                IntPtr.Zero,
+                (uint)Win32Structures.JOB_CONTROL_CANCEL
+            );
+        }
+        finally
+        {
+            ClosePrinter(PrinterHandle);
+        }
+    }
+
     public static bool IsPrinterResponding
     (
         string PrinterName
@@ -250,6 +310,7 @@ public static class Win32PrintSpooler
 
         return true;
     }
+
 
     public static bool IsDocumentInQueue
     (

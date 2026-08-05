@@ -1,4 +1,3 @@
-using System.Collections;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
@@ -32,9 +31,10 @@ public class OrderStatus : MonoBehaviour
     [SerializeField] Image StatusBoxColor;
     [SerializeField] TMP_Text StatusBoxText;
 
-    [SerializeField] Image ViewDetailsColor;
+    //[SerializeField] Image ViewDetailsColor;
     [SerializeField] Image StatusIndicator;
 
+    //[SerializeField] Image MidSectionOutline;
 
     GameObject OrderStatusInfoObject;
 
@@ -93,9 +93,11 @@ public class OrderStatus : MonoBehaviour
                 StatusTimeStampText.text = "Order Created at " + Order.CreatedAt;
                 StatusTimeStampText.color = new Color32(246, 59, 57, 200);
 
-                ViewDetailsColor.color = new Color32(246, 59, 57, 200);
+                //ViewDetailsColor.color = new Color32(246, 59, 57, 200);
 
                 StatusIndicator.color = new Color32(246, 59, 57, 200);
+
+                //MidSectionOutline.color = new Color32(246, 59, 57, 200); 
                 
                 break;
 
@@ -109,9 +111,11 @@ public class OrderStatus : MonoBehaviour
                 StatusTimeStampText.text = "Order Completed at " + Order.CompletedAt;
                 StatusTimeStampText.color = new Color32(245, 207, 73, 230);
 
-                ViewDetailsColor.color = new Color32(245, 207, 73, 230);
+                //ViewDetailsColor.color = new Color32(245, 207, 73, 230);
 
                 StatusIndicator.color = new Color32(245, 207, 73, 230);
+
+                //MidSectionOutline.color = new Color32(245, 207, 73, 230); 
 
                 break;
 
@@ -125,9 +129,11 @@ public class OrderStatus : MonoBehaviour
                 StatusTimeStampText.text = "Order Collected at " + Order.CollectedAt;
                 StatusTimeStampText.color = new Color32(2, 141, 26, 220);
 
-                ViewDetailsColor.color = new Color32(2, 141, 26, 220);
+                //ViewDetailsColor.color = new Color32(2, 141, 26, 220);
 
                 StatusIndicator.color = new Color32(2, 141, 26, 220);
+
+                //MidSectionOutline.color = new Color32(2, 141, 26, 220); 
 
                 break;
 
@@ -154,9 +160,11 @@ public class OrderStatus : MonoBehaviour
 
                 StatusTimeStampText.color = new Color32(36, 36, 36, 150);
 
-                ViewDetailsColor.color = new Color32(36, 36, 36, 150);
+                //ViewDetailsColor.color = new Color32(36, 36, 36, 150);
 
                 StatusIndicator.color = new Color32(36, 36, 36, 150);
+
+                //MidSectionOutline.color = new Color32(36, 36, 36, 150); 
                 break;
         }
 

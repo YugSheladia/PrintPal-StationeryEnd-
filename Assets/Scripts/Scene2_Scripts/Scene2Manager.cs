@@ -79,6 +79,8 @@ public class Scene2Manager : MonoBehaviour
         DisableSetPasswordPanel();
         DisableSetProfileInfoPanel();
         DisableSelectPrintersPanel();
+
+        DisableMessagePanel();
     }
 
 

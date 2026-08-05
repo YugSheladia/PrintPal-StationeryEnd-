@@ -317,14 +317,24 @@ public class Scene3Backend : MonoBehaviour
 
 
 
-
+    public bool IsBusy = false;
 
 
 
     //To get orders, beloing to a stationery, of a specific status.
     public IEnumerator GetPendingOrders(int StationeryID, System.Action<bool> OnComplete)
     {
-        //Debug.Log("Downloading Pending Orders...");
+        // Wait for any other order fetch already in progress (manual or the
+        // automatic-printing background poll) to finish first, rather than
+        // corrupting its in-flight shared Confirmed*/ state.
+        while (IsBusy)
+        {
+            yield return null;
+        }
+
+        Debug.Log("Downloading Pending Orders...");
+
+        IsBusy = true;
 
         ConfirmedOrders.Orders = new OrderSummary[0];
         ConfirmedPrints.Prints = new PrintSummary[0];
@@ -341,6 +351,8 @@ public class Scene3Backend : MonoBehaviour
         if (request.result != UnityWebRequest.Result.Success)
         {
             Debug.LogError("Orders Download Failed: " + request.error);
+
+            IsBusy = false;
 
             OnComplete(false);
             yield break;
@@ -359,6 +371,7 @@ public class Scene3Backend : MonoBehaviour
         if (Response == null)
         {
             Debug.LogError("Orders JSON Parsing Failed.");
+            IsBusy = false;
 
             OnComplete(false);
             yield break;
@@ -367,6 +380,7 @@ public class Scene3Backend : MonoBehaviour
         if (!Response.Success)
         {
             Debug.LogError("Server Error: " + Response.Message);
+            IsBusy = false;
 
             OnComplete(false);
             yield break;
@@ -390,16 +404,29 @@ public class Scene3Backend : MonoBehaviour
         if (!PrintsSuccess)
         {
             OnComplete(false);
+            IsBusy = false;
+
             yield break;
         }
 
         Debug.Log("Finished Downloading Pending Orders.");
+        IsBusy = false;
 
         OnComplete(true);
     }
     public IEnumerator GetCompletedOrders(int StationeryID, System.Action<bool> OnComplete)
     {
+        // Wait for any other order fetch already in progress (manual or the
+        // automatic-printing background poll) to finish first, rather than
+        // corrupting its in-flight shared Confirmed*/ state.
+        while (IsBusy)
+        {
+            yield return null;
+        }
+
         Debug.Log("Downloading Completed Orders...");
+
+        IsBusy = true;
 
         ConfirmedOrders.Orders = new OrderSummary[0];
         ConfirmedPrints.Prints = new PrintSummary[0];
@@ -421,6 +448,8 @@ public class Scene3Backend : MonoBehaviour
                 + request.error
             );
 
+            IsBusy = false;
+
             OnComplete(false);
             yield break;
         }
@@ -438,6 +467,7 @@ public class Scene3Backend : MonoBehaviour
         if (Response == null)
         {
             Debug.LogError("Orders JSON Parsing Failed.");
+            IsBusy = false;
 
             OnComplete(false);
             yield break;
@@ -450,6 +480,8 @@ public class Scene3Backend : MonoBehaviour
                 "Server Error: "
                 + Response.Message
             );
+
+            IsBusy = false;
 
             OnComplete(false);
             yield break;
@@ -473,16 +505,30 @@ public class Scene3Backend : MonoBehaviour
         if (!PrintsSuccess)
         {
             OnComplete(false);
+
+            IsBusy = false;
+
             yield break;
         }
 
         Debug.Log("Finished Downloading Completed Orders.");
+        IsBusy = false;
 
         OnComplete(true);
     }
     public IEnumerator GetCollectedOrders(int StationeryID, System.Action<bool> OnComplete)
     {
+        // Wait for any other order fetch already in progress (manual or the
+        // automatic-printing background poll) to finish first, rather than
+        // corrupting its in-flight shared Confirmed*/ state.
+        while (IsBusy)
+        {
+            yield return null;
+        }
+
         Debug.Log("Downloading Collected Orders...");
+
+        IsBusy = true;
 
         ConfirmedOrders.Orders = new OrderSummary[0];
         ConfirmedPrints.Prints = new PrintSummary[0];
@@ -504,6 +550,8 @@ public class Scene3Backend : MonoBehaviour
                 + request.error
             );
 
+            IsBusy = false;
+
             OnComplete(false);
             yield break;
         }
@@ -521,6 +569,7 @@ public class Scene3Backend : MonoBehaviour
         if (Response == null)
         {
             Debug.LogError("Orders JSON Parsing Failed.");
+            IsBusy = false;
 
             OnComplete(false);
             yield break;
@@ -533,6 +582,8 @@ public class Scene3Backend : MonoBehaviour
                 "Server Error: "
                 + Response.Message
             );
+
+            IsBusy = false;
 
             OnComplete(false);
             yield break;
@@ -556,16 +607,30 @@ public class Scene3Backend : MonoBehaviour
         if (!PrintsSuccess)
         {
             OnComplete(false);
+
+            IsBusy = false;
+
             yield break;
         }
 
         Debug.Log("Finished Downloading Collected Orders.");
+        IsBusy = false;
 
         OnComplete(true);
     }
     public IEnumerator GetArchivedOrders(int StationeryID, System.Action<bool> OnComplete)
     {
+        // Wait for any other order fetch already in progress (manual or the
+        // automatic-printing background poll) to finish first, rather than
+        // corrupting its in-flight shared Confirmed*/ state.
+        while (IsBusy)
+        {
+            yield return null;
+        }
+
         Debug.Log("Downloading Archived Orders...");
+
+        IsBusy = true;
 
         ConfirmedOrders.Orders = new OrderSummary[0];
         ConfirmedPrints.Prints = new PrintSummary[0];
@@ -587,6 +652,8 @@ public class Scene3Backend : MonoBehaviour
                 + request.error
             );
 
+            IsBusy = false;
+
             OnComplete(false);
             yield break;
         }
@@ -604,6 +671,7 @@ public class Scene3Backend : MonoBehaviour
         if (Response == null)
         {
             Debug.LogError("Orders JSON Parsing Failed.");
+            IsBusy = false;
 
             OnComplete(false);
             yield break;
@@ -616,6 +684,8 @@ public class Scene3Backend : MonoBehaviour
                 "Server Error: "
                 + Response.Message
             );
+
+            IsBusy = false;
 
             OnComplete(false);
             yield break;
@@ -639,10 +709,14 @@ public class Scene3Backend : MonoBehaviour
         if (!PrintsSuccess)
         {
             OnComplete(false);
+
+            IsBusy = false;
+
             yield break;
         }
 
         Debug.Log("Finished Downloading Archived Orders.");
+        IsBusy = false;
 
         OnComplete(true);
     }
@@ -2023,6 +2097,56 @@ public class Scene3Backend : MonoBehaviour
 
 
 
+    // Home page refreshing stuff
+
+    private Coroutine HomePageRefreshCoroutine;
+
+    private bool IsRefreshingHomePage = false;
+
+    public void StartHomePageRefreshing()
+    {
+        if (HomePageRefreshCoroutine != null) return;
+
+        HomePageRefreshCoroutine = StartCoroutine(Coroutine_HomePageRefreshing());
+    }
+
+    public void StopHomePageRefreshing()
+    {
+        if (HomePageRefreshCoroutine == null) return;
+
+        StopCoroutine(HomePageRefreshCoroutine);
+
+        HomePageRefreshCoroutine = null;
+    }
+
+    IEnumerator Coroutine_HomePageRefreshing()
+    {
+        while (true)
+        {
+            // Don't start another refresh while one is already running.
+            if (!IsRefreshingHomePage)
+            {
+                IsRefreshingHomePage = true;
+
+                RefreshUI();
+
+                // Wait until RefreshUI() finishes.
+                while (IsRefreshingHomePage)
+                {
+                    yield return null;
+                }
+            }
+
+            yield return new WaitForSeconds(5f);
+        }
+    }
+
+
+     
+
+
+
+
     //Automatic printing stuff
 
     private Coroutine AutomaticPrintingCoroutine;
@@ -2031,17 +2155,27 @@ public class Scene3Backend : MonoBehaviour
 
     public void StartAutomaticPrinting()
     {
-        if (AutomaticPrintingCoroutine != null) return;
+        if (AutomaticPrintingCoroutine != null)
+        {
+            Debug.Log("Automatic Printing Coroutine has already been started.");
+            return;
+        }
 
+        Debug.Log("Automatic Printing Coroutine has been started.");
         AutomaticPrintingCoroutine = StartCoroutine(Coroutine_AutomaticPrinting());
     }
 
     public void StopAutomaticPrinting()
     {
-        if (AutomaticPrintingCoroutine == null) return;
+        if (AutomaticPrintingCoroutine == null)
+        {
+            Debug.Log("Automatic Printing Coroutine has already been stopped.");
+            return;
+        }
+
+        Debug.Log("Automatic Printing Coroutine has been stopped.");
 
         StopCoroutine(AutomaticPrintingCoroutine);
-
         AutomaticPrintingCoroutine = null;
     }
 
@@ -2064,6 +2198,8 @@ public class Scene3Backend : MonoBehaviour
 
     IEnumerator Coroutine_CheckForNewOrders()
     {
+        Debug.Log("Inside Coroutine_CheckForNewOrders()");
+
         IsPollingOrders = true;
 
         try
@@ -2113,6 +2249,7 @@ public class Scene3Backend : MonoBehaviour
 
 
 
+
     //Refreshing HomePage UI
     public void RefreshUI()
     {
@@ -2124,6 +2261,8 @@ public class Scene3Backend : MonoBehaviour
     {
         Debug.Log("Coroutine_RefreshUI()");
         HomePageScript.CurrentDate.text = DateTime.Now.ToString("dd-MM-yyyy");
+
+        HomePageScript.UpdateNumberOfWorkingPrinters();
 
         bool RevenueSuccess = false;
 
@@ -2159,6 +2298,17 @@ public class Scene3Backend : MonoBehaviour
 
             yield break;
         }
+
+        if (Script1.SelectedPrinters.Count <= 0)
+        {
+            HomePageScript.NoPrintersConnected.SetActive(true);
+        }
+        else
+        {
+            HomePageScript.NoPrintersConnected.SetActive(false);
+        }
+
+        IsRefreshingHomePage = false;
     }
     void RefreshFailed()
     {
@@ -2210,10 +2360,14 @@ public class Scene3Backend : MonoBehaviour
 
     public void StartPrintJob(OrderSummary Order)
     {
+        Debug.Log("Inside StartPrintJob().");
+
         StartCoroutine(Coroutine_CreatePrintJob(Order));
     }
     IEnumerator Coroutine_CreatePrintJob(OrderSummary Order)
     {
+        Debug.Log("Inside Coroutine_CreatePrintJob()");
+
         //Validation is to check whether all the info relating to the order, i.e. Prints, PrintSettings, PrintBills, etc all exist.
         ValidatePrintRequest Request = new ValidatePrintRequest()
         {
@@ -2268,7 +2422,7 @@ public class Scene3Backend : MonoBehaviour
             yield break;
         }
 
-        Debug.Log("All Prints validated.");
+        Debug.Log("All Prints of OrderID = " + Order.OrderID + " has been validated.");
 
 
         //Downloading all PDFS in the app's file directory ( if they haven't been already ).
@@ -2292,7 +2446,7 @@ public class Scene3Backend : MonoBehaviour
                         return;
                     }
 
-                    Debug.Log("Downloaded All PDFs.");
+                    Debug.Log("Downloaded All PDFs of OrderID = " + Order.OrderID + " successfully.");
 
                     //At this point, all prints of an order has been validated and has been downloaded, meaning
                     // it is safe to start the printing process, whose 1st step is to Create a PrintJob.
@@ -2314,7 +2468,7 @@ public class Scene3Backend : MonoBehaviour
                         return;
                     }
 
-                    Debug.Log("Job created.");
+                    Debug.Log("Job for OrderID = " + Order.OrderID + " has been created.");
 
                     Job.PrintJobDetails();
 
@@ -2323,8 +2477,8 @@ public class Scene3Backend : MonoBehaviour
 
                     if (!Queued)
                     {
-                        Debug.Log("Order is already queued.");
-                        PrintManager.Instance.EndProcessingOrder(Order.OrderID);
+                        Debug.Log("Order is already queued / No printers available.");
+                        //PrintManager.Instance.EndProcessingOrder(Order.OrderID);
                     }
                 }
             )
@@ -2477,6 +2631,7 @@ public class Scene3Backend : MonoBehaviour
             $"Order {OrderID} marked as completed."
         );
 
+
         //--------------------------------------------------
         // Refresh Pending Orders
         //--------------------------------------------------
@@ -2492,6 +2647,11 @@ public class Scene3Backend : MonoBehaviour
             )
         );
 
+
+
+        //Refreshing Completed Orders and Pending Orders ( I believe there is no need for this to happen silently... could be wrong. 
+        //Update - was wrong lmao... do not touch this.
+        
         //--------------------------------------------------
         // Refresh Completed Orders
         //--------------------------------------------------
@@ -2514,6 +2674,7 @@ public class Scene3Backend : MonoBehaviour
                 "Failed to refresh order lists."
             );
         }
+        
 
         PrintManager.Instance.EndProcessingOrder(OrderID);
 

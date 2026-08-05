@@ -16,12 +16,23 @@ public class PrinterWorker
 
     bool IsPrinting;
 
+    bool WorkedLastTime = true;
+
+
+
+
+
+
     public PrinterWorker(PrintManager Manager, Scene3Backend Scene3BackendScript, Printer Printer)
     {
         this.Manager = Manager;
         this.Scene3BackendScript = Scene3BackendScript;
         this.Printer = Printer;
     }
+
+
+
+
 
     public void Enqueue(PrintJob Job)
     {
@@ -36,7 +47,6 @@ public class PrinterWorker
             StartNextJob();
         }
     }
-
     void StartNextJob()
     {
         if (!Queue.HasJobs())
@@ -55,7 +65,6 @@ public class PrinterWorker
 
         Manager.StartCoroutine(Coroutine_PrintJob(Job));
     }
-
     IEnumerator Coroutine_PrintJob(PrintJob Job)
     {
         Job.Status = PrintJobStatus.Printing;
@@ -74,7 +83,7 @@ public class PrinterWorker
             bool Success = false;
             string FailureMessage = "";
 
-            yield return Manager.StartCoroutine
+            yield return Manager.StartCoroutine   
             (
                 Coroutine_PrintDocument
                 (
@@ -102,10 +111,16 @@ public class PrinterWorker
 
                 // Hand off to PrintManager to try another printer, rather
                 // than failing the whole order outright.
-                Manager.RerouteFailedJob(Job, this, FailureMessage);
 
-                StartNextJob();
+                SetPrinterAsNotWorking();
+                
+                //Succesfully rerouted.
+                if(Manager.RerouteFailedJob(Job, this, FailureMessage))
+                {
+                    StartNextJob();
+                }
 
+                IsPrinting = false;
                 yield break;
             }
 
@@ -127,9 +142,9 @@ public class PrinterWorker
             Scene3BackendScript.CompletePrintedOrder(Job.OrderID)
         );
 
+        SetPrinterAsWorking();
         StartNextJob();
     }
-
     IEnumerator Coroutine_PrintDocument
     (
         PrintJob Job,
@@ -207,5 +222,20 @@ public class PrinterWorker
         );
 
         OnComplete(Success, Message);
+    }
+
+
+
+
+
+    public void SetPrinterAsWorking()
+    {
+        WorkedLastTime = true;
+        Printer.IsOnline = true;
+    }
+    public void SetPrinterAsNotWorking()
+    {
+        WorkedLastTime = false;
+        Printer.IsOnline = false;
     }
 }

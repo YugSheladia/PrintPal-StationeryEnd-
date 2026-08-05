@@ -13,6 +13,8 @@ public class PrintManager : MonoBehaviour
 
     public static PrintManager Instance;
 
+    private PrintJob LastFailedJob;
+
     // One worker per physical printer. Each worker owns its own queue and
     // runs independently, so all printers can be busy at once.
     public List<PrinterWorker> Workers = new List<PrinterWorker>();
@@ -132,6 +134,8 @@ public class PrintManager : MonoBehaviour
                     $"Print {Print.PrintID} has no downloaded PDF."
                 );
 
+                //What should happen when the path of a PDF to be printed is null?
+
                 return null;
             }
 
@@ -152,7 +156,7 @@ public class PrintManager : MonoBehaviour
             return false;
         }
 
-        PrinterWorker Worker = PickNextWorker();
+        PrinterWorker Worker = PickNextWorker(); 
 
         if (Worker == null)
         {
@@ -162,7 +166,7 @@ public class PrintManager : MonoBehaviour
             return false;
         }
 
-        Worker.Enqueue(Job);
+        Worker.Enqueue(Job); 
 
         return true;
     }
@@ -200,20 +204,22 @@ public class PrintManager : MonoBehaviour
     {
         if (Workers.Count == 0)
         {
+            Debug.LogWarning("0 printers available.");
+
+            Scene3ManagerScript.MessageText.text = "0 printers connected\nGo to settings and connect a printer to begin printing.";
+            Scene3ManagerScript.EnableMessagePanel();
+
             return null;
         }
 
-        for (int i = 0; i < Workers.Count; i++)
+        int i;
+        for (i = 0; i < Workers.Count; i++)
         {
             int Index = (NextWorkerIndex + i) % Workers.Count;
 
             PrinterWorker Candidate = Workers[Index];
 
-            //Check everytime if the printer is online or not, but for now, it's fine...
-
-
-
-            /////////////////////////////////////////////////////////////////////////////////////
+            //Check everytime if the printer is online or not, We arent doing this anymore because server doesn't return correct online statuses anymore.
             /*
             if (Candidate.Printer.IsOnline)
             {
@@ -227,7 +233,7 @@ public class PrintManager : MonoBehaviour
             Debug.LogWarning($"{Candidate.Printer.Name} isn't online, giving the order to the next printer.");
             */
 
-            Debug.Log("Worker selected = " + Candidate);
+            Debug.Log("Worker selected = " + Candidate.Printer.Name);
 
             NextWorkerIndex = (Index + 1) % Workers.Count;
 
@@ -276,12 +282,12 @@ public class PrintManager : MonoBehaviour
     // Tries to hand the job to the next available printer instead of
     // failing the order outright.
     //--------------------------------------------------
-    public void RerouteFailedJob(PrintJob Job, PrinterWorker FailedWorker, string Reason)
+    public bool RerouteFailedJob(PrintJob Job, PrinterWorker FailedWorker, string Reason)
     {
         Job.AttemptedPrinterIDs.Add(FailedWorker.Printer.PrinterID);
         Job.RetryCount++;
 
-        //Kill the reqesut for the FailedWorker.
+        //Add code here to kill the reqesut for the FailedWorker.
 
         PrinterWorker NextWorker = PickNextAvailableWorker(Job, FailedWorker);
 
@@ -297,7 +303,13 @@ public class PrintManager : MonoBehaviour
 
             HomePageScript.PausePrinting();
 
-            return;
+            //New addition.
+            //Job.AttemptedPrinterIDs.Clear();
+            LastFailedJob = Job;
+
+            EndProcessingOrder(Job.OrderID);
+
+            return false;
         }
 
         Debug.LogWarning
@@ -323,6 +335,8 @@ public class PrintManager : MonoBehaviour
         Job.StatusMessage = $"Rerouted to {NextWorker.Printer.Name}...";
 
         NextWorker.Enqueue(Job);
+
+        return true;
     }
 
     // Starts searching from the printer *after* the one that just failed
@@ -357,5 +371,15 @@ public class PrintManager : MonoBehaviour
         }
 
         return null;
+    }
+
+
+
+
+
+    public void Reset_ListOfFailedAttemptsOf_LastFailedJob()
+    {
+        Debug.Log("Reset_ListOfFailedAttemptsOf_LastFailedJob of Order " + LastFailedJob.OrderID);
+        LastFailedJob.AttemptedPrinterIDs.Clear();
     }
 }

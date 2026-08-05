@@ -7,6 +7,7 @@ public class SetPassword : MonoBehaviour
     [SerializeField] Scene2Backend Scene2BackendScript;
 
     [SerializeField] TMP_InputField PasswordInput;
+    [SerializeField] TMP_InputField Password2Input;
 
 
 
@@ -16,20 +17,20 @@ public class SetPassword : MonoBehaviour
 
     public void ClickedSubmitButton()
     {
-        if(CheckPasswordLength())
+        if(CheckPasswordLength() && CheckPasswordSameness())
         {
             Scene2BackendScript.StationeryInfoWrapperObject.StationeryInfoObject.Password = PasswordInput.text;
 
             Scene2ManagerScript.DisableAllPanels();
             Scene2ManagerScript.EnableSetProfileInfoPanel();
-        }
-        else
-        {
-            Scene2ManagerScript.EnableMessagePanel();
 
-            Scene2ManagerScript.DisableAllPanels();
-            Scene2ManagerScript.EnableSetPasswordPanel();
+            return;
         }
+
+        Scene2ManagerScript.DisableAllPanels();
+
+        Scene2ManagerScript.EnableMessagePanel();
+        Scene2ManagerScript.EnableSetPasswordPanel();
     }
 
 
@@ -52,6 +53,18 @@ public class SetPassword : MonoBehaviour
         if(PasswordInput.text.Length < 9)
         {
             Scene2ManagerScript.MessageText.text = "Password has to be of atleast 9 characters.";
+            return false;
+        }
+        else
+        {
+            return true;
+        }
+    }
+    public bool CheckPasswordSameness()
+    {
+        if (Password2Input.text != PasswordInput.text)
+        {
+            Scene2ManagerScript.MessageText.text = "Passwords don't match.";
 
             return false;
         }

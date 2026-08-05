@@ -21,6 +21,10 @@ public class HomePage : MonoBehaviour
     [SerializeField] OrderStatusManager OrderStatusManagerScript;
     [SerializeField] RevenuePageManager RevenuePageManagerScript;
 
+    [SerializeField] PrintManager PrintManagerScript;
+
+    [SerializeField] PrinterStatusManager PrinterStatusManagerScript;
+
     [SerializeField] TMP_Text StationeryName;
 
     [SerializeField] TMP_Dropdown IDSwitchDropdown;
@@ -35,13 +39,20 @@ public class HomePage : MonoBehaviour
     [SerializeField] public TMP_Text RevenueToday;
 
     [SerializeField] public TMP_Text TotalConnectedPrinters;
+    [SerializeField] public TMP_Text TotalWorkingPrinters;
 
     [SerializeField] public GameObject Disconnected;
 
     [SerializeField] public GameObject LoadingIcon;
     [SerializeField] public GameObject ExclamationButton;
 
-    private bool PauseBool = false;
+    private bool PausePrintingBool = false;
+    //private bool PauseRefreshingBool = false;
+
+    private bool PrinterStatusPanelActive = false;
+    [SerializeField] private GameObject PrinterStatusPanelScroll;
+
+    [SerializeField] public GameObject NoPrintersConnected;
 
 
 
@@ -64,7 +75,7 @@ public class HomePage : MonoBehaviour
         // Initial refresh
         yield return StartCoroutine
         (
-            ClickedRefreshButtonCoroutine()
+            Scene3BackendScript.Coroutine_RefreshUI()
         );
 
         AutomaticPrinting();
@@ -74,17 +85,24 @@ public class HomePage : MonoBehaviour
         Debug.Log("AutomaticPrinting()");
 
         // Only start polling if Automatic Printing is enabled
-        if (Script1.GetAutomaticPrintingValue() && !PauseBool)
+        if (Script1.GetAutomaticPrintingValue() && !PausePrintingBool)
         {
             Debug.Log("Automatic Printing = true.");
+
+            Scene3BackendScript.StopHomePageRefreshing();
+
             Scene3BackendScript.StartAutomaticPrinting();
         }
         else
         {
             Debug.Log("Automatic Printing = false.");
+
             Scene3BackendScript.StopAutomaticPrinting();
+
+            Scene3BackendScript.StartHomePageRefreshing();
         }
     }
+    
     
    
 
@@ -131,6 +149,10 @@ public class HomePage : MonoBehaviour
     }
     public void ClickedCompletedOrdersButton()
     {
+        //PausePrinting();
+
+        Debug.Log("Clicked Completed Orders button.");
+
         StartCoroutine(ClickedCompletedOrdersButtonCoroutine());
     }
     IEnumerator ClickedCompletedOrdersButtonCoroutine()
@@ -167,6 +189,7 @@ public class HomePage : MonoBehaviour
     }
     public void ClickedCollectedOrdersButton()
     {
+        //PausePrinting();
         StartCoroutine(ClickedCollectedOrdersButtonCoroutine());
     }
     IEnumerator ClickedCollectedOrdersButtonCoroutine()
@@ -203,6 +226,7 @@ public class HomePage : MonoBehaviour
     }
     public void ClickedArchivedOrdersButton()
     {
+        //PausePrinting();
         StartCoroutine(ClickedArchivedOrdersButtonCoroutine());
     }
     IEnumerator ClickedArchivedOrdersButtonCoroutine()
@@ -239,6 +263,7 @@ public class HomePage : MonoBehaviour
     }
 
 
+
     public void ClickedRevenueButton()
     {
         Scene3ManagerScript.EnableInvisiblePanel();
@@ -246,6 +271,7 @@ public class HomePage : MonoBehaviour
         Scene3ManagerScript.EnableRevenuePage();
         RevenuePageManagerScript.LoadRevenue(Script1.StationeryInfoObject.StationeryID);
     }
+
 
 
     public void ClickedProfileButton()
@@ -256,6 +282,7 @@ public class HomePage : MonoBehaviour
     {
         SceneManager.LoadScene("Scene5_Settings");
     }
+
 
 
 
@@ -334,24 +361,57 @@ public class HomePage : MonoBehaviour
     }
 
 
+
     public void ClickedRefreshButton()
     {
         Debug.Log("ClickedRefreshButton()");
-        StartCoroutine(ClickedRefreshButtonCoroutine());
+        StartCoroutine(Scene3BackendScript.Coroutine_RefreshUI());
     }
-    IEnumerator ClickedRefreshButtonCoroutine()
+    public void UpdateNumberOfWorkingPrinters()
     {
-        yield return StartCoroutine(Scene3BackendScript.Coroutine_RefreshUI());
+        int WorkingPrinters = 0;
+        foreach (Printer printer in Script1.SelectedPrinters)
+        {
+            if (printer.IsOnline)
+            {
+                WorkingPrinters++;
+            }
+        }
 
-        //Scene3ManagerScript.EnableHomePagePanel();
+        TotalWorkingPrinters.text = "Working printers : " + WorkingPrinters;
     }
+
+
+
+    public void ClickedPrintersStatusDropdown()
+    {
+        Debug.Log("Clicked Printers Status Dropdown Button");
+        if(PrinterStatusPanelActive)
+        {
+            PrinterStatusPanelActive = false;
+
+            PrinterStatusPanelScroll.SetActive(false);
+
+            PrinterStatusManagerScript.DestroyAllPrinterStatusPanels();
+        }
+        else
+        {
+            PrinterStatusPanelActive = true;
+
+            PrinterStatusPanelScroll.SetActive(true);
+
+            PrinterStatusManagerScript.CreatePrinterStatusPanels();
+        }
+    }
+
 
 
     public void PausePrinting()
     {
-        PauseBool = true;
+        Debug.Log("Printing Paused.");
+        PausePrintingBool = true;
 
-        Scene3BackendScript.StopAutomaticPrinting();
+        StartHomePage();
 
         LoadingIcon.SetActive(false);
         ExclamationButton.SetActive(true);
@@ -359,16 +419,20 @@ public class HomePage : MonoBehaviour
     public void UnpausePrinting()
     {
         Debug.Log("Clicked Unpause Printing Button.");
-        PauseBool = false;
+        PausePrintingBool = false;
+
+        StartHomePage();
 
         ExclamationButton.SetActive(false);
         LoadingIcon.SetActive(true);
-
-        StartHomePage();
     }
     public void ClickedExclamationButton()
     {
         Debug.Log("Clicked Exclamation Button.");
+
+        PrintManagerScript.Reset_ListOfFailedAttemptsOf_LastFailedJob();
+
+        //Unpause the printing process, and kickstart it using AutomaticPrinting().
         UnpausePrinting();
     }
 }

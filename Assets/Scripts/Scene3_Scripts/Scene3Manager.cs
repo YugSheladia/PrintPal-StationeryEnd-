@@ -13,6 +13,7 @@ public class Scene3Manager : MonoBehaviour
 
     [SerializeField] HomePage HomePageScript;
 
+
     [SerializeField] GameObject BlankPanel;
     [SerializeField] GameObject HomePagePanel;
     [SerializeField] GameObject OrdersPage;
@@ -39,6 +40,8 @@ public class Scene3Manager : MonoBehaviour
 
     public void DisableAllPanels()
     {
+        Debug.Log("Scene3Manager.DisabledAllPanels()");
+
         DisableInvisiblePanel();
 
         DisableHomePagePanel();
@@ -85,6 +88,7 @@ public class Scene3Manager : MonoBehaviour
     }
     public void DisableHomePagePanel()
     {
+        Debug.Log("Scene3Manager.DisabledHomePagePanel()");
         HomePagePanel.SetActive(false);
     }
 

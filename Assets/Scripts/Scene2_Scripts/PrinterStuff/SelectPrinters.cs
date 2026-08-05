@@ -115,7 +115,7 @@ public class SelectPrinters : MonoBehaviour
 
                 if (!Success)
                 {
-                    Scene2ManagerScript.MessageText.text = "Failed to save approved printers.";
+                    Scene2ManagerScript.MessageText.text = "Failed to save approved printers\nRestart the app and try again later.";
 
                     Scene2ManagerScript.EnableMessagePanel();
 
