@@ -9,6 +9,7 @@ using System.Collections;
 
 public class Scene3Manager : MonoBehaviour
 {
+    
     [SerializeField] Scene3Backend Scene3BackendScript;
 
     [SerializeField] HomePage HomePageScript;
@@ -18,6 +19,7 @@ public class Scene3Manager : MonoBehaviour
     [SerializeField] GameObject HomePagePanel;
     [SerializeField] GameObject OrdersPage;
     [SerializeField] GameObject RevenuePage;
+    [SerializeField] GameObject QueuePage;
 
 
     [SerializeField] GameObject InvisiblePanel;
@@ -47,6 +49,7 @@ public class Scene3Manager : MonoBehaviour
         DisableHomePagePanel();
         DisableOrdersPage();
         DisableRevenuePage();
+        DisableQueuePage();
 
         DisableMessagePanel();
     }
@@ -57,7 +60,7 @@ public class Scene3Manager : MonoBehaviour
     {
         BlankPanel.SetActive(true);
     }
-    public void DisableBlankPanel ()
+    public void DisableBlankPanel()
     {
         BlankPanel.SetActive(false);
     }
@@ -117,6 +120,21 @@ public class Scene3Manager : MonoBehaviour
 
 
 
+    public void EnableQueuePage()
+    {
+        QueuePage.SetActive(true);
+    }
+    public void DisableQueuePage()
+    {
+        QueuePage.SetActive(false);
+    }
+    public bool CheckQueuePage_ActiveStatus()
+    {
+        return QueuePage.activeSelf;
+    }
+
+
+
 
     private Coroutine MessagePanelCoroutine;
     public void EnableMessagePanel()
@@ -152,6 +170,8 @@ public class Scene3Manager : MonoBehaviour
 
     public void ClickedBlankPageRefreshButton()
     {
-        EnableHomePagePanel();
+        //EnableHomePagePanel();
+
+        InitializeHomePagePanel();
     }
 }

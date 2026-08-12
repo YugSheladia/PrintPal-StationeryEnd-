@@ -5,13 +5,6 @@ using UnityEngine;
 
 
 
-
-
-
-
-
-
-
 public static class WindowsPrinter
 {
 
@@ -25,8 +18,6 @@ public static class WindowsPrinter
 
 
 
-
-
     public static PrintResult Print
     (
         PrintDocument Document,
@@ -37,89 +28,194 @@ public static class WindowsPrinter
 
         try
         {
-        #if UNITY_EDITOR
-            UnityEngine.Debug.Log("Sumatra Path : " + SumatraPath);
-            UnityEngine.Debug.Log("Exists       : " + File.Exists(SumatraPath));
-            UnityEngine.Debug.Log("PDF Path     : " + Document.Print.LocalPDFPath);
-            UnityEngine.Debug.Log("PDF Exists   : " + File.Exists(Document.Print.LocalPDFPath));
+#if UNITY_EDITOR
+            UnityEngine.Debug.Log
+            (
+                "Sumatra Path : " + SumatraPath
+            );
 
-        #endif
+            UnityEngine.Debug.Log
+            (
+                "Exists       : " + File.Exists(SumatraPath)
+            );
+
+            UnityEngine.Debug.Log
+            (
+                "PDF Path     : " + Document.Print.LocalPDFPath
+            );
+
+            UnityEngine.Debug.Log
+            (
+                "PDF Exists   : " +
+                File.Exists(Document.Print.LocalPDFPath)
+            );
+#endif
+
             if (!File.Exists(SumatraPath))
             {
                 Result.Success = false;
-                Result.Message = "SumatraPDF.exe not found.";
+                Result.Message =
+                    "SumatraPDF.exe not found.";
 
                 return Result;
             }
 
-            if (!File.Exists(Document.Print.LocalPDFPath))
+            if
+            (
+                !File.Exists
+                (
+                    Document.Print.LocalPDFPath
+                )
+            )
             {
                 Result.Success = false;
-                Result.Message = "PDF file not found.";
+                Result.Message =
+                    "PDF file not found.";
 
                 return Result;
             }
+
+
+            string Arguments =
+                SumatraArguments.Build
+                (
+                    Document,
+                    Printer
+                );
+
+
+#if UNITY_EDITOR
+            UnityEngine.Debug.Log
+            (
+                "Arguments:"
+            );
+
+            UnityEngine.Debug.Log
+            (
+                Arguments
+            );
+#endif
+
 
             using (Process Process = new Process())
             {
-                Process.StartInfo.FileName = SumatraPath;
+                Process.StartInfo.FileName =
+                    SumatraPath;
 
                 Process.StartInfo.Arguments =
-                    SumatraArguments.Build
-                    (
-                        Document,
-                        Printer
-                    );
+                    Arguments;
 
-                #if UNITY_EDITOR
-                UnityEngine.Debug.Log("Arguments:");
-                UnityEngine.Debug.Log(Process.StartInfo.Arguments);
+                Process.StartInfo.UseShellExecute =
+                    false;
 
-                #endif
-                Process.StartInfo.UseShellExecute = false;
-                Process.StartInfo.CreateNoWindow = true;
-                Process.StartInfo.WindowStyle = ProcessWindowStyle.Hidden;
+                Process.StartInfo.CreateNoWindow =
+                    true;
+
+                Process.StartInfo.WindowStyle =
+                    ProcessWindowStyle.Hidden;
+
 
                 Process.Start();
 
+
+                //--------------------------------------------------
+                // Wait for Sumatra to finish handing the document
+                // to Windows.
+                //--------------------------------------------------
+
                 Process.WaitForExit();
 
-                #if UNITY_EDITOR
+
+                int ExitCode =
+                    Process.ExitCode;
+
+
+#if UNITY_EDITOR
                 UnityEngine.Debug.Log
                 (
                     "Sumatra Exit Code: "
-                    + Process.ExitCode
+                    + ExitCode
                 );
+#endif
 
-                #endif
-                // The document has already been handed off to the Windows
-                // print spooler if no exception was thrown. Some printer
-                // drivers still cause Sumatra to return a non-zero exit code.
 
-                Result.Success = true;
+                //--------------------------------------------------
+                // A zero exit code is a clean submission.
+                //--------------------------------------------------
 
-                if (Process.ExitCode == 0)
+                if (ExitCode == 0)
                 {
-                    Result.Message = "Printed successfully.";
-                }
-                else
-                {
+                    Result.Success = true;
                     Result.Message =
-                        $"Printed (Sumatra exited with code {Process.ExitCode}).";
+                        "Submitted successfully.";
 
-                    #if UNITY_EDITOR
-                    UnityEngine.Debug.LogWarning(Result.Message);
-                    #endif
+                    return Result;
                 }
+
+
+                //--------------------------------------------------
+                // Some printer drivers cause Sumatra to return
+                // non-zero even though Windows accepted the job.
+                //
+                // Therefore check the Windows spooler before
+                // declaring failure.
+                //--------------------------------------------------
+
+                string DocumentName =
+                    Path.GetFileName
+                    (
+                        Document.Print.LocalPDFPath
+                    );
+
+                Win32Structures.JOB_INFO_1? Job =
+                    Win32PrintSpooler.FindJob
+                    (
+                        Printer.Name,
+                        DocumentName
+                    );
+
+
+                if (Job.HasValue)
+                {
+                    UnityEngine.Debug.LogWarning
+                    (
+                        $"Sumatra exited with code {ExitCode}, " +
+                        $"but Windows accepted the job as JobId " +
+                        $"{Job.Value.JobId}."
+                    );
+
+                    Result.Success = true;
+
+                    Result.Message =
+                        $"Submitted to Windows spooler " +
+                        $"(Sumatra exit code {ExitCode}).";
+
+                    return Result;
+                }
+
+
+                //--------------------------------------------------
+                // Neither Sumatra nor Windows gave us evidence
+                // that the job was accepted.
+                //--------------------------------------------------
+
+                Result.Success = false;
+
+                Result.Message =
+                    $"Sumatra failed with exit code {ExitCode} " +
+                    "and the print job was not found in the Windows spooler.";
+
+                return Result;
             }
         }
         catch (Exception Exception)
         {
             Result.Success = false;
             Result.Message = Exception.Message;
-            Result.Exception = Exception;
-        }
 
-        return Result;
+            Result.Exception = Exception;
+
+            return Result;
+        }
     }
 }

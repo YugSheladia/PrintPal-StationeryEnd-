@@ -25,29 +25,38 @@ public class HomePage : MonoBehaviour
 
     [SerializeField] PrinterStatusManager PrinterStatusManagerScript;
 
+    [SerializeField] QueueManager QueueManagerScript;
+
+
+    //UI Elements -
     [SerializeField] TMP_Text StationeryName;
 
-    [SerializeField] TMP_Dropdown IDSwitchDropdown;
-    [SerializeField] TMP_Text SearchByText;
+    [SerializeField] public GameObject Disconnected;
+
+
+    [SerializeField] TMP_Dropdown   IDSwitchDropdown;
+    [SerializeField] TMP_Text       SearchByText;
     [SerializeField] TMP_InputField SearchInputfield;
+
 
     [SerializeField] public TMP_Text TotalPendingOrdersText;
     [SerializeField] public TMP_Text TotalFinishedOrdersText;
     [SerializeField] public TMP_Text TotalCollectedOrdersText;
 
+
     [SerializeField] public TMP_Text CurrentDate;
     [SerializeField] public TMP_Text RevenueToday;
+
 
     [SerializeField] public TMP_Text TotalConnectedPrinters;
     [SerializeField] public TMP_Text TotalWorkingPrinters;
 
-    [SerializeField] public GameObject Disconnected;
-
+   
     [SerializeField] public GameObject LoadingIcon;
     [SerializeField] public GameObject ExclamationButton;
 
     private bool PausePrintingBool = false;
-    //private bool PauseRefreshingBool = false;
+
 
     private bool PrinterStatusPanelActive = false;
     [SerializeField] private GameObject PrinterStatusPanelScroll;
@@ -60,6 +69,9 @@ public class HomePage : MonoBehaviour
 
     public void StartHomePage()
     {
+        //Make sure that HomePAgePanel is active -
+        Scene3ManagerScript.EnableHomePagePanel();
+
         Debug.Log("HomePage.StartHomePage()");
 
         StationeryName.text = Script1.StationeryInfoObject.StationeryName;
@@ -303,6 +315,14 @@ public class HomePage : MonoBehaviour
     }
     public void ClickedSearchedOrdersButton()
     {
+        if (SearchInputfield.text.Length <= 0)
+        {
+            Scene3ManagerScript.MessageText.text = "Search field cannot be empty.";
+            Scene3ManagerScript.EnableMessagePanel();
+
+            return;
+        }
+
         StartCoroutine(ClickedSearchedOrdersButtonCoroutine());
     }
     IEnumerator ClickedSearchedOrdersButtonCoroutine()
@@ -370,15 +390,24 @@ public class HomePage : MonoBehaviour
     public void UpdateNumberOfWorkingPrinters()
     {
         int WorkingPrinters = 0;
-        foreach (Printer printer in Script1.SelectedPrinters)
+
+
+        foreach (PrinterWorker Worker in PrintManagerScript.Workers)
         {
-            if (printer.IsOnline)
+            if
+            (
+                Worker != null &&
+                Worker.WorkedLastTime
+            )
             {
                 WorkingPrinters++;
             }
         }
 
-        TotalWorkingPrinters.text = "Working printers : " + WorkingPrinters;
+
+        TotalWorkingPrinters.text =
+            "Working printers : " +
+            WorkingPrinters;
     }
 
 
@@ -430,9 +459,25 @@ public class HomePage : MonoBehaviour
     {
         Debug.Log("Clicked Exclamation Button.");
 
-        PrintManagerScript.Reset_ListOfFailedAttemptsOf_LastFailedJob();
+        //The line below has been commented out because it only resets the list of failed attempts of one job, not all... exclamation mark is for resetting the same for all jobs.
+        //PrintManagerScript.Reset_ListOfFailedAttemptsOf_LastFailedJob();
+
+
+        PrintManagerScript.EmptyProcessingOrdersHashSet();
+
 
         //Unpause the printing process, and kickstart it using AutomaticPrinting().
         UnpausePrinting();
+    }
+
+
+
+
+    public void ClickedQueueButton()
+    {
+        QueueManagerScript.RefreshQueuedOrders();
+
+        Scene3ManagerScript.DisableAllPanels();
+        Scene3ManagerScript.EnableQueuePage();
     }
 }

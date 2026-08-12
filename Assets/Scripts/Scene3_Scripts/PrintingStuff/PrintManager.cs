@@ -9,6 +9,8 @@ public class PrintManager : MonoBehaviour
 
     [SerializeField] HomePage HomePageScript;
 
+    [SerializeField] QueueManager QueueManagerScript;
+
 
 
     public static PrintManager Instance;
@@ -23,7 +25,7 @@ public class PrintManager : MonoBehaviour
 
 
 
-
+    //Resume revising the architecture from here.
     private readonly HashSet<int> ProcessingOrders = new();
     public bool IsOrderBeingProcessed(int OrderID)
     {
@@ -44,10 +46,27 @@ public class PrintManager : MonoBehaviour
     {
         return
                 ProcessingOrders.Contains(OrderID)
-                || 
+                ||
                 AnyWorkerHasOrder(OrderID);
     }
 
+    public bool AnyWorkerHasOrder(int OrderID)
+    {
+        foreach (PrinterWorker Worker in Workers)
+        {
+            if (Worker.Queue.ContainsOrder(OrderID))
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    public void EmptyProcessingOrdersHashSet()
+    {
+        ProcessingOrders.Clear();
+    }
 
 
 
@@ -74,8 +93,47 @@ public class PrintManager : MonoBehaviour
     // stationery's approved-printer list changes mid-session.
     public void RefreshWorkersFromApprovedPrinters()
     {
+        //--------------------------------------------------
+        // Preserve the current working/non-working state.
+        //
+        // This is important because RefreshWorkersFromApprovedPrinters()
+        // should NOT automatically JumpStart a printer that the operator
+        // intentionally disabled.
+        //--------------------------------------------------
+
+        Dictionary<string, bool> PreviousWorkingStates =
+            new Dictionary<string, bool>();
+
+        foreach (PrinterWorker ExistingWorker in Workers)
+        {
+            if (ExistingWorker == null || ExistingWorker.Printer == null)
+            {
+                continue;
+            }
+
+            string Key = ExistingWorker.Printer.PrinterID;
+
+            if (string.IsNullOrEmpty(Key))
+            {
+                Key = ExistingWorker.Printer.Name;
+            }
+
+            if (!string.IsNullOrEmpty(Key))
+            {
+                PreviousWorkingStates[Key] =
+                    ExistingWorker.WorkedLastTime;
+            }
+        }
+
+
+        //--------------------------------------------------
+        // Rebuild workers.
+        //--------------------------------------------------
+
         Workers.Clear();
+
         NextWorkerIndex = 0;
+
 
         foreach (Printer P in Script1.SelectedPrinters)
         {
@@ -84,27 +142,84 @@ public class PrintManager : MonoBehaviour
                 continue;
             }
 
-            // The server only ever sends back a Name (see
-            // GetApprovedPrintersFromServer) - PrinterID is left blank.
-            // Fall back to Name as the unique key: Windows already
-            // requires printer names to be unique on a system, and it's
-            // what WindowsPrinter/SumatraArguments target anyway.
+
+            //--------------------------------------------------
+            // The server may only provide Name.
+            //--------------------------------------------------
+
             if (string.IsNullOrEmpty(P.PrinterID))
             {
                 P.PrinterID = P.Name;
             }
 
-            // IsOnline now comes from the real Windows status merged in
-            // during GetApprovedPrintersFromServer (see SelectPrinters /
-            // Scene2Backend.GetPrinters) - no need to override it here
-            // anymore.
 
-            Workers.Add(new PrinterWorker(this, Scene3BackendScript, P));
+            //--------------------------------------------------
+            // Create worker.
+            //--------------------------------------------------
+
+            PrinterWorker Worker =
+                new PrinterWorker
+                (
+                    this,
+                    Scene3BackendScript,
+                    P
+                );
+
+
+            //--------------------------------------------------
+            // Restore previous manual/failure state.
+            //
+            // New printers default to working.
+            //--------------------------------------------------
+
+            string Key = P.PrinterID;
+
+            if (string.IsNullOrEmpty(Key))
+            {
+                Key = P.Name;
+            }
+
+
+            if
+            (
+                !string.IsNullOrEmpty(Key) &&
+                PreviousWorkingStates.TryGetValue
+                (
+                    Key,
+                    out bool PreviousState
+                )
+            )
+            {
+                Worker.WorkedLastTime =
+                    PreviousState;
+
+                Worker.Printer.IsOnline =
+                    PreviousState;
+            }
+            else
+            {
+                Worker.WorkedLastTime =
+                    true;
+            }
+
+
+            Workers.Add(Worker);
         }
+
+
+        //--------------------------------------------------
+        // Reset round-robin position.
+        //--------------------------------------------------
+
+        NextWorkerIndex = 0;
+
 
         if (Workers.Count == 0)
         {
-            Debug.LogWarning("No approved/selected printers found for this stationery.");
+            Debug.LogWarning
+            (
+                "No approved/selected printers found for this stationery."
+            );
         }
     }
 
@@ -149,6 +264,9 @@ public class PrintManager : MonoBehaviour
 
         return Job;
     }
+
+    //Old QueuePrintJob()
+    /*
     public bool QueuePrintJob(PrintJob Job)
     {
         if (AnyWorkerHasOrder(Job.OrderID))
@@ -156,7 +274,7 @@ public class PrintManager : MonoBehaviour
             return false;
         }
 
-        PrinterWorker Worker = PickNextWorker(); 
+        PrinterWorker Worker = PickNextWorker();
 
         if (Worker == null)
         {
@@ -166,22 +284,64 @@ public class PrintManager : MonoBehaviour
             return false;
         }
 
-        Worker.Enqueue(Job); 
+        Worker.Enqueue(Job);
+
+        QueueManagerScript.RefreshQueuedOrders();
 
         return true;
     }
-    public bool AnyWorkerHasOrder(int OrderID)
+    */
+
+    //New QueuePrintJob()
+    public bool QueuePrintJob(PrintJob Job)
     {
-        foreach (PrinterWorker Worker in Workers)
+        if (Job == null)
         {
-            if (Worker.Queue.ContainsOrder(OrderID))
-            {
-                return true;
-            }
+            Debug.LogError
+            (
+                "Cannot queue a null PrintJob."
+            );
+
+            return false;
         }
 
-        return false;
+
+        //--------------------------------------------------
+        // Select a working printer.
+        //--------------------------------------------------
+
+        PrinterWorker Worker =
+            PickNextWorker();
+
+
+        if (Worker == null)
+        {
+            Job.Status =
+                PrintJobStatus.Failed;
+
+            Job.StatusMessage =
+                "No working printers available.";
+
+            return false;
+        }
+
+
+        //--------------------------------------------------
+        // Give the complete ORDER to the selected printer.
+        //
+        // PrinterWorker will process all PrintDocuments inside
+        // this PrintJob sequentially.
+        //--------------------------------------------------
+
+        Worker.Enqueue(Job);
+
+
+        QueueManagerScript.RefreshQueuedOrders();
+
+
+        return true;
     }
+
 
 
 
@@ -200,6 +360,11 @@ public class PrintManager : MonoBehaviour
     // via a live OpenPrinter call before being handed a job - if it
     // doesn't respond, move on to the next one.
     //--------------------------------------------------
+
+
+
+    //Old PickNextWorker()
+    /*
     PrinterWorker PickNextWorker()
     {
         if (Workers.Count == 0)
@@ -207,48 +372,273 @@ public class PrintManager : MonoBehaviour
             Debug.LogWarning("0 printers available.");
 
             Scene3ManagerScript.MessageText.text = "0 printers connected\nGo to settings and connect a printer to begin printing.";
+
             Scene3ManagerScript.EnableMessagePanel();
 
             return null;
         }
 
-        int i;
-        for (i = 0; i < Workers.Count; i++)
+        int Index = NextWorkerIndex % Workers.Count;
+
+        PrinterWorker Candidate = Workers[Index];
+
+        Debug.Log("Worker selected = " + Candidate.Printer.Name);
+
+        NextWorkerIndex = (Index + 1) % Workers.Count;
+
+        return Candidate;
+    }
+    */
+
+    //New PickNextWorker()
+    PrinterWorker PickNextWorker()
+    {
+        if (Workers.Count == 0)
         {
-            int Index = (NextWorkerIndex + i) % Workers.Count;
+            Debug.LogWarning("0 printers available.");
 
-            PrinterWorker Candidate = Workers[Index];
+            Scene3ManagerScript.MessageText.text =
+                "0 printers connected\n" +
+                "Go to settings and connect a printer to begin printing.";
 
-            //Check everytime if the printer is online or not, We arent doing this anymore because server doesn't return correct online statuses anymore.
-            /*
-            if (Candidate.Printer.IsOnline)
+            Scene3ManagerScript.EnableMessagePanel();
+
+            return null;
+        }
+
+
+        //--------------------------------------------------
+        // Search all workers starting from the current
+        // round-robin position.
+        //
+        // Only printers marked as working are eligible.
+        //--------------------------------------------------
+
+        for (int i = 0; i < Workers.Count; i++)
+        {
+            int Index =
+                (NextWorkerIndex + i) % Workers.Count;
+
+            PrinterWorker Candidate =
+                Workers[Index];
+
+
+            if (Candidate == null)
             {
-                Debug.Log($"{Candidate.Printer.Name} is online.");
-
-                NextWorkerIndex = (Index + 1) % Workers.Count;
-
-                return Candidate;
+                continue;
             }
 
-            Debug.LogWarning($"{Candidate.Printer.Name} isn't online, giving the order to the next printer.");
-            */
 
-            Debug.Log("Worker selected = " + Candidate.Printer.Name);
+            //--------------------------------------------------
+            // Printer has failed or has been manually disabled.
+            //--------------------------------------------------
 
-            NextWorkerIndex = (Index + 1) % Workers.Count;
+            if (!Candidate.WorkedLastTime)
+            {
+                Debug.Log
+                (
+                    $"Skipping {Candidate.Printer.Name} " +
+                    $"because WorkedLastTime = false."
+                );
+
+                continue;
+            }
+
+
+            //--------------------------------------------------
+            // Found an eligible printer.
+            //--------------------------------------------------
+
+            Debug.Log
+            (
+                $"Worker selected = " +
+                $"{Candidate.Printer.Name}"
+            );
+
+
+            //--------------------------------------------------
+            // Move round-robin pointer forward.
+            //--------------------------------------------------
+
+            NextWorkerIndex =
+                (Index + 1) % Workers.Count;
+
 
             return Candidate;
         }
 
-        Scene3ManagerScript.MessageText.text = "No connected printer found. Make sure you have Selected the correct printers & that The printers are turned on.";
+
+        //--------------------------------------------------
+        // Every printer is currently unavailable.
+        //--------------------------------------------------
+
+        Debug.LogWarning
+        (
+            "No workers with WorkedLastTime = true are available."
+        );
+
+        //Just to make sure that when the PrintingProcess is paused, all queues are empty.
+        ClearAllPrinterQueues();
+
+        Scene3ManagerScript.MessageText.text =
+            "No working printers available.\n" +
+            "JumpStart a printer to continue printing.";
+
+        //No Printer Available, so we are hitting pause on Automatic Printing.
+        HomePageScript.PausePrinting();
+
         Scene3ManagerScript.EnableMessagePanel();
 
         return null;
     }
 
+    public void RedistributeJobsFromWorker
+    (
+        PrinterWorker FailedWorker
+    )
+    {
+        if (FailedWorker == null)
+        {
+            return;
+        }
 
 
+        Debug.LogWarning
+        (
+            $"Redistributing waiting jobs from " +
+            $"{FailedWorker.Printer.Name}."
+        );
 
+
+        //--------------------------------------------------
+        // The CURRENT failed job has already been removed
+        // from FailedWorker.Queue by PrinterWorker.
+        //
+        // Therefore everything currently in this queue is
+        // a WAITING order.
+        //--------------------------------------------------
+
+        List<PrintJob> JobsToRedistribute =
+            FailedWorker.Queue.RemoveAllJobs();
+
+
+        if (JobsToRedistribute.Count == 0)
+        {
+            Debug.Log
+            (
+                $"No waiting jobs to redistribute from " +
+                $"{FailedWorker.Printer.Name}."
+            );
+
+            return;
+        }
+
+
+        //--------------------------------------------------
+        // Redistribute using round-robin.
+        //
+        // Example:
+        //
+        // P1
+        // P2 FAILED -> Order 5, Order 8
+        // P3
+        //
+        // Order 5 -> P3
+        // Order 8 -> P1
+        //
+        // This keeps redistribution even.
+        //--------------------------------------------------
+
+        foreach (PrintJob Job in JobsToRedistribute)
+        {
+            PrinterWorker Worker =
+                PickNextWorker();
+
+
+            //--------------------------------------------------
+            // No working printer exists.
+            //--------------------------------------------------
+
+            if (Worker == null)
+            {
+                Debug.LogWarning
+                (
+                    $"Could not redistribute Order " +
+                    $"{Job.OrderID}. " +
+                    "No working printers are available."
+                );
+
+
+                //--------------------------------------------------
+                // Keep the order on the failed worker.
+                //
+                // StartNextJob() will NOT process it because
+                // WorkedLastTime == false.
+                //--------------------------------------------------
+
+                //Removing this line of code for now.
+                //FailedWorker.Queue.Enqueue(Job);
+
+                continue;
+            }
+
+
+            //--------------------------------------------------
+            // Reset the PrintJob itself.
+            //--------------------------------------------------
+
+            Job.Status =
+                PrintJobStatus.Waiting;
+
+            Job.StatusMessage =
+                $"Redistributed to {Worker.Printer.Name}...";
+
+
+            //--------------------------------------------------
+            // Reset unfinished documents.
+            //
+            // Documents already physically completed remain
+            // completed and will not be printed again.
+            //--------------------------------------------------
+
+            foreach (PrintDocument Document in Job.Documents)
+            {
+                if
+                (
+                    Document.Status !=
+                    PrintDocumentStatus.Completed
+                )
+                {
+                    Document.Status =
+                        PrintDocumentStatus.Waiting;
+
+                    Document.PagesPrinted =
+                        0;
+
+                    Document.StatusMessage =
+                        "Waiting to print...";
+                }
+            }
+
+
+            //--------------------------------------------------
+            // Give the order to the new printer.
+            //--------------------------------------------------
+
+            Worker.Enqueue(Job);
+
+
+            Debug.Log
+            (
+                $"Redistributed Order {Job.OrderID} " +
+                $"from {FailedWorker.Printer.Name} " +
+                $"to {Worker.Printer.Name}."
+            );
+        }
+
+
+        QueueManagerScript.RefreshQueuedOrders();
+    }
 
 
 
@@ -282,59 +672,159 @@ public class PrintManager : MonoBehaviour
     // Tries to hand the job to the next available printer instead of
     // failing the order outright.
     //--------------------------------------------------
-    public bool RerouteFailedJob(PrintJob Job, PrinterWorker FailedWorker, string Reason)
+    public bool RerouteFailedJob
+    (
+        PrintJob Job,
+        PrinterWorker FailedWorker,
+        string Reason
+    )
     {
-        Job.AttemptedPrinterIDs.Add(FailedWorker.Printer.PrinterID);
-        Job.RetryCount++;
+        Debug.Log
+        (
+            "Inside RerouteFailedJob()"
+        );
 
-        //Add code here to kill the reqesut for the FailedWorker.
 
-        PrinterWorker NextWorker = PickNextAvailableWorker(Job, FailedWorker);
-
-        if (NextWorker == null)
+        if (Job == null)
         {
-            Debug.Log
+            Debug.LogError
             (
-                $"Order {Job.OrderID} failed on every available printer. Last error: {Reason}"
+                "RerouteFailedJob() received a null Job."
             );
-
-            Job.Status = PrintJobStatus.Failed;
-            Job.StatusMessage = $"Failed on all printers: {Reason}";
-
-            HomePageScript.PausePrinting();
-
-            //New addition.
-            //Job.AttemptedPrinterIDs.Clear();
-            LastFailedJob = Job;
-
-            EndProcessingOrder(Job.OrderID);
 
             return false;
         }
 
-        Debug.LogWarning
+
+        if (FailedWorker == null)
+        {
+            Debug.LogError
+            (
+                $"Cannot reroute Order {Job.OrderID}: " +
+                "FailedWorker is null."
+            );
+
+            return false;
+        }
+
+
+        //--------------------------------------------------
+        // Remember that this printer has already been
+        // attempted for this order.
+        //--------------------------------------------------
+
+        Job.AttemptedPrinterIDs.Add
         (
-            $"Order {Job.OrderID} failed on {FailedWorker.Printer.Name}, rerouting to {NextWorker.Printer.Name}."
+            FailedWorker.Printer.PrinterID
         );
 
-        // Reset anything that wasn't already completed so it gets retried
-        // cleanly on the new printer - documents that already finished on
-        // the failed printer stay marked Completed and won't be reprinted
-        // (see PrinterWorker.Coroutine_PrintJob).
+        Job.RetryCount++;
+
+
+        //--------------------------------------------------
+        // Find another working printer.
+        //--------------------------------------------------
+
+        PrinterWorker NextWorker =
+            PickNextAvailableWorker
+            (
+                Job,
+                FailedWorker
+            );
+
+
+        //--------------------------------------------------
+        // No other printer can handle this order.
+        //--------------------------------------------------
+
+        if (NextWorker == null)
+        {
+            Debug.LogWarning
+            (
+                $"Order {Job.OrderID} failed on every " +
+                $"available printer. Last error: {Reason}"
+            );
+
+
+            Job.Status =
+                PrintJobStatus.Failed;
+
+            Job.StatusMessage =
+                $"Failed on all printers: {Reason}";
+
+
+            LastFailedJob =
+                Job;
+
+
+            EndProcessingOrder
+            (
+                Job.OrderID
+            );
+
+
+            HomePageScript.PausePrinting();
+
+
+            QueueManagerScript.RefreshQueuedOrders();
+
+
+            return false;
+        }
+
+
+        Debug.LogWarning
+        (
+            $"Order {Job.OrderID} failed on " +
+            $"{FailedWorker.Printer.Name}. " +
+            $"Rerouting to {NextWorker.Printer.Name}."
+        );
+
+
+        //--------------------------------------------------
+        // Reset unfinished documents.
+        //--------------------------------------------------
+
         foreach (PrintDocument Document in Job.Documents)
         {
-            if (Document.Status != PrintDocumentStatus.Completed)
+            if
+            (
+                Document.Status !=
+                PrintDocumentStatus.Completed
+            )
             {
-                Document.Status = PrintDocumentStatus.Waiting;
-                Document.PagesPrinted = 0;
-                Document.StatusMessage = "Waiting to retry on another printer...";
+                Document.Status =
+                    PrintDocumentStatus.Waiting;
+
+                Document.PagesPrinted =
+                    0;
+
+                Document.StatusMessage =
+                    "Waiting to retry on another printer...";
             }
         }
 
-        Job.Status = PrintJobStatus.Waiting;
-        Job.StatusMessage = $"Rerouted to {NextWorker.Printer.Name}...";
+
+        //--------------------------------------------------
+        // Reset job state.
+        //--------------------------------------------------
+
+        Job.Status =
+            PrintJobStatus.Waiting;
+
+        Job.StatusMessage =
+            $"Rerouted to {NextWorker.Printer.Name}...";
+
+
+        //--------------------------------------------------
+        // Queue on new printer.
+        //--------------------------------------------------
 
         NextWorker.Enqueue(Job);
+
+
+        QueueManagerScript.RefreshQueuedOrders();
+
 
         return true;
     }
@@ -343,32 +833,93 @@ public class PrintManager : MonoBehaviour
     // (e.g. Printer#2 fails -> try Printer#3 next), skipping any printer
     // already attempted for this specific job, and wrapping around.
     // Same live-check approach as PickNextWorker - see comment there.
-    PrinterWorker PickNextAvailableWorker(PrintJob Job, PrinterWorker FailedWorker)
+    PrinterWorker PickNextAvailableWorker
+    (
+        PrintJob Job,
+        PrinterWorker FailedWorker
+    )
     {
-        int FailedIndex = Workers.IndexOf(FailedWorker);
+        if (Workers.Count == 0)
+        {
+            return null;
+        }
+
+
+        int FailedIndex =
+            Workers.IndexOf(FailedWorker);
+
+
+        //--------------------------------------------------
+        // Search every printer after the failed printer,
+        // wrapping around.
+        //--------------------------------------------------
 
         for (int i = 1; i <= Workers.Count; i++)
         {
-            int Index = (FailedIndex + i) % Workers.Count;
+            int Index =
+                (FailedIndex + i) % Workers.Count;
 
-            PrinterWorker Candidate = Workers[Index];
 
-            if (Job.AttemptedPrinterIDs.Contains(Candidate.Printer.PrinterID))
+            PrinterWorker Candidate =
+                Workers[Index];
+
+
+            if (Candidate == null)
             {
                 continue;
             }
 
-            bool Responding = Win32PrintSpooler.IsPrinterResponding(Candidate.Printer.Name);
 
-            Candidate.Printer.IsOnline = Responding;
+            //--------------------------------------------------
+            // Never retry the failed printer.
+            //--------------------------------------------------
 
-            if (!Responding)
+            if (Candidate == FailedWorker)
             {
                 continue;
             }
+
+
+            //--------------------------------------------------
+            // Never retry a printer that already attempted
+            // this particular order.
+            //--------------------------------------------------
+
+            if
+            (
+                Job.AttemptedPrinterIDs.Contains
+                (
+                    Candidate.Printer.PrinterID
+                )
+            )
+            {
+                continue;
+            }
+
+
+            //--------------------------------------------------
+            // Printer must currently be considered working.
+            //--------------------------------------------------
+
+            if (!Candidate.WorkedLastTime)
+            {
+                Debug.Log
+                (
+                    $"Skipping {Candidate.Printer.Name} " +
+                    $"because WorkedLastTime = false."
+                );
+
+                continue;
+            }
+
+
+            //--------------------------------------------------
+            // Found a valid printer.
+            //--------------------------------------------------
 
             return Candidate;
         }
+
 
         return null;
     }
@@ -379,7 +930,126 @@ public class PrintManager : MonoBehaviour
 
     public void Reset_ListOfFailedAttemptsOf_LastFailedJob()
     {
-        Debug.Log("Reset_ListOfFailedAttemptsOf_LastFailedJob of Order " + LastFailedJob.OrderID);
+        if (LastFailedJob == null)
+        {
+            Debug.LogWarning
+            (
+                "There is no last failed job to reset."
+            );
+
+            return;
+        }
+
+
+        Debug.Log
+        (
+            "Resetting failed-printer attempts of Order " +
+            LastFailedJob.OrderID
+        );
+
+
         LastFailedJob.AttemptedPrinterIDs.Clear();
     }
+
+
+
+
+
+
+    public bool JumpStartPrinter(string PrinterName)
+    {
+        PrinterWorker Worker =
+            Workers.Find
+            (
+                W =>
+                    W != null &&
+                    W.Printer != null &&
+                    W.Printer.Name == PrinterName
+            );
+
+
+        if (Worker == null)
+        {
+            Debug.LogWarning
+            (
+                $"Could not find printer '{PrinterName}'."
+            );
+
+            return false;
+        }
+
+
+        Debug.Log
+        (
+            $"JumpStarting printer: {PrinterName}"
+        );
+
+
+        Worker.SetPrinterAsWorking();
+
+
+        QueueManagerScript.RefreshQueuedOrders();
+
+
+        //--------------------------------------------------
+        // If this printer has waiting orders that were kept
+        // here because there were no working printers,
+        // allow it to start processing them now.
+        //--------------------------------------------------
+
+        Worker.TryStartNextJob();
+
+
+        return true;
+    }
+
+    public bool DisablePrinter(string PrinterName)
+    {
+        PrinterWorker Worker =
+            Workers.Find
+            (
+                W =>
+                    W != null &&
+                    W.Printer != null &&
+                    W.Printer.Name == PrinterName
+            );
+
+
+        if (Worker == null)
+        {
+            Debug.LogWarning
+            (
+                $"Could not find printer '{PrinterName}'."
+            );
+
+            return false;
+        }
+
+
+        Debug.LogWarning
+        (
+            $"Manually disabling printer: {PrinterName}"
+        );
+
+
+        Worker.SetPrinterAsNotWorking();
+
+
+        QueueManagerScript.RefreshQueuedOrders();
+
+
+        return true;
+    }
+
+
+
+
+    public void ClearAllPrinterQueues()
+    {
+        foreach (PrinterWorker Worker in Workers)
+        {
+            Worker.Queue.RemoveAllJobs();
+        }
+    }
+
 }

@@ -91,7 +91,7 @@ public class OrderStatus : MonoBehaviour
                 StatusBoxColor.color = new Color32(246, 59, 57, 200);
                 
                 StatusTimeStampText.text = "Order Created at " + Order.CreatedAt;
-                StatusTimeStampText.color = new Color32(246, 59, 57, 200);
+                //StatusTimeStampText.color = new Color32(246, 59, 57, 200);
 
                 //ViewDetailsColor.color = new Color32(246, 59, 57, 200);
 
@@ -105,11 +105,11 @@ public class OrderStatus : MonoBehaviour
                 DisableAllPanels();
                 EnableCompletedPanel();
 
-                StatusBoxText.text = "Completed";
+                StatusBoxText.text = "Printed";
                 StatusBoxColor.color = new Color32(245, 207, 73, 230);
 
                 StatusTimeStampText.text = "Order Completed at " + Order.CompletedAt;
-                StatusTimeStampText.color = new Color32(245, 207, 73, 230);
+                //StatusTimeStampText.color = new Color32(245, 207, 73, 230);
 
                 //ViewDetailsColor.color = new Color32(245, 207, 73, 230);
 
@@ -127,7 +127,7 @@ public class OrderStatus : MonoBehaviour
                 StatusBoxColor.color = new Color32(2, 141, 26, 220);
 
                 StatusTimeStampText.text = "Order Collected at " + Order.CollectedAt;
-                StatusTimeStampText.color = new Color32(2, 141, 26, 220);
+                //StatusTimeStampText.color = new Color32(2, 141, 26, 220);
 
                 //ViewDetailsColor.color = new Color32(2, 141, 26, 220);
 
@@ -158,7 +158,7 @@ public class OrderStatus : MonoBehaviour
                 StatusBoxText.text = "Archived";
                 StatusBoxColor.color = new Color32(36, 36, 36, 150);
 
-                StatusTimeStampText.color = new Color32(36, 36, 36, 150);
+                //StatusTimeStampText.color = new Color32(36, 36, 36, 150);
 
                 //ViewDetailsColor.color = new Color32(36, 36, 36, 150);
 

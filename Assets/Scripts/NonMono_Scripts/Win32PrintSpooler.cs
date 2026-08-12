@@ -325,4 +325,304 @@ public static class Win32PrintSpooler
                 DocumentName
             ).HasValue;
     }
+
+
+    [DllImport
+    (
+        "winspool.drv",
+        SetLastError = true,
+        CharSet = CharSet.Auto
+    )]
+
+
+    static extern bool GetPrinter
+    (
+        IntPtr hPrinter,
+        uint Level,
+        IntPtr pPrinter,
+        uint cbBuf,
+        out uint pcbNeeded
+    );
+
+    public struct PrinterStatusInfo
+    {
+        public bool Success;
+        public int Status;
+        public string Message;
+    }
+
+
+    public static PrinterStatusInfo GetPrinterStatus
+    (
+        string PrinterName
+    )
+    {
+        PrinterStatusInfo Result =
+            new PrinterStatusInfo();
+
+        Win32Structures.PRINTER_DEFAULTS Defaults =
+            new Win32Structures.PRINTER_DEFAULTS();
+
+        Defaults.DesiredAccess =
+            Win32Structures.PRINTER_ACCESS_USE;
+
+        if
+        (
+            !OpenPrinter
+            (
+                PrinterName,
+                out IntPtr PrinterHandle,
+                ref Defaults
+            )
+        )
+        {
+            Result.Success = false;
+            Result.Status = 0;
+
+            Result.Message =
+                "OpenPrinter failed. Error = "
+                + Marshal.GetLastWin32Error();
+
+            return Result;
+        }
+
+        try
+        {
+            uint BytesNeeded = 0;
+
+            GetPrinter
+            (
+                PrinterHandle,
+                2,
+                IntPtr.Zero,
+                0,
+                out BytesNeeded
+            );
+
+            if (BytesNeeded == 0)
+            {
+                Result.Success = false;
+                Result.Status = 0;
+
+                Result.Message =
+                    "GetPrinter returned no data. Error = "
+                    + Marshal.GetLastWin32Error();
+
+                return Result;
+            }
+
+            IntPtr Buffer =
+                Marshal.AllocHGlobal((int)BytesNeeded);
+
+            try
+            {
+                bool Success =
+                    GetPrinter
+                    (
+                        PrinterHandle,
+                        2,
+                        Buffer,
+                        BytesNeeded,
+                        out BytesNeeded
+                    );
+
+                if (!Success)
+                {
+                    Result.Success = false;
+                    Result.Status = 0;
+
+                    Result.Message =
+                        "GetPrinter failed. Error = "
+                        + Marshal.GetLastWin32Error();
+
+                    return Result;
+                }
+
+                Win32Structures.PRINTER_INFO_2 PrinterInfo =
+                    Marshal.PtrToStructure
+                    <
+                        Win32Structures.PRINTER_INFO_2
+                    >
+                    (
+                        Buffer
+                    );
+
+                Result.Success = true;
+                Result.Status = PrinterInfo.Status;
+
+                Result.Message =
+                    GetPrinterStatusMessage
+                    (
+                        PrinterInfo.Status
+                    );
+
+                return Result;
+            }
+            finally
+            {
+                Marshal.FreeHGlobal(Buffer);
+            }
+        }
+        finally
+        {
+            ClosePrinter(PrinterHandle);
+        }
+    }
+
+
+    static string GetPrinterStatusMessage
+    (
+        int Status
+    )
+    {
+        if (Status == 0)
+        {
+            return "No printer status flags reported.";
+        }
+
+        List<string> Messages =
+            new List<string>();
+
+        if
+        (
+            (Status &
+            Win32Structures.PRINTER_STATUS_PAUSED) != 0
+        )
+        {
+            Messages.Add("Paused");
+        }
+
+        if
+        (
+            (Status &
+            Win32Structures.PRINTER_STATUS_ERROR) != 0
+        )
+        {
+            Messages.Add("Error");
+        }
+
+        if
+        (
+            (Status &
+            Win32Structures.PRINTER_STATUS_PAPER_JAM) != 0
+        )
+        {
+            Messages.Add("Paper jam");
+        }
+
+        if
+        (
+            (Status &
+            Win32Structures.PRINTER_STATUS_PAPER_OUT) != 0
+        )
+        {
+            Messages.Add("Out of paper");
+        }
+
+        if
+        (
+            (Status &
+            Win32Structures.PRINTER_STATUS_OFFLINE) != 0
+        )
+        {
+            Messages.Add("Offline");
+        }
+
+        if
+        (
+            (Status &
+            Win32Structures.PRINTER_STATUS_BUSY) != 0
+        )
+        {
+            Messages.Add("Busy");
+        }
+
+        if
+        (
+            (Status &
+            Win32Structures.PRINTER_STATUS_PRINTING) != 0
+        )
+        {
+            Messages.Add("Printing");
+        }
+
+        if
+        (
+            (Status &
+            Win32Structures.PRINTER_STATUS_PROCESSING) != 0
+        )
+        {
+            Messages.Add("Processing");
+        }
+
+        if
+        (
+            (Status &
+            Win32Structures.PRINTER_STATUS_INITIALIZING) != 0
+        )
+        {
+            Messages.Add("Initializing");
+        }
+
+        if
+        (
+            (Status &
+            Win32Structures.PRINTER_STATUS_WARMING_UP) != 0
+        )
+        {
+            Messages.Add("Warming up");
+        }
+
+        if
+        (
+            (Status &
+            Win32Structures.PRINTER_STATUS_TONER_LOW) != 0
+        )
+        {
+            Messages.Add("Toner low");
+        }
+
+        if
+        (
+            (Status &
+            Win32Structures.PRINTER_STATUS_NO_TONER) != 0
+        )
+        {
+            Messages.Add("No toner");
+        }
+
+        if
+        (
+            (Status &
+            Win32Structures.PRINTER_STATUS_USER_INTERVENTION) != 0
+        )
+        {
+            Messages.Add("User intervention required");
+        }
+
+        if
+        (
+            (Status &
+            Win32Structures.PRINTER_STATUS_DOOR_OPEN) != 0
+        )
+        {
+            Messages.Add("Door open");
+        }
+
+        if
+        (
+            (Status &
+            Win32Structures.PRINTER_STATUS_POWER_SAVE) != 0
+        )
+        {
+            Messages.Add("Power save");
+        }
+
+        if (Messages.Count == 0)
+        {
+            return $"Unknown status flags: 0x{Status:X}";
+        }
+
+        return string.Join(", ", Messages);
+    }
 }

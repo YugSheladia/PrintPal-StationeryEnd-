@@ -304,6 +304,8 @@ public class Scene3Backend : MonoBehaviour
     [SerializeField] HomePage HomePageScript;
     [SerializeField] Scene3Manager Scene3ManagerScript;
 
+    [SerializeField] PrintManager PrintManagerScript;
+
 
 
     //Wrapper objects creation.
@@ -1469,7 +1471,17 @@ public class Scene3Backend : MonoBehaviour
     //Search functionality -
     public IEnumerator SearchByOrderIDCoroutine(int StationeryID, int OrderID, System.Action<bool> OnComplete)
     {
+        // Wait for any other order fetch already in progress (manual or the
+        // automatic-printing background poll) to finish first, rather than
+        // corrupting its in-flight shared Confirmed*/ state.
+        while (IsBusy)
+        {
+            yield return null;
+        }
+
         Debug.Log("Searching Order...");
+
+        IsBusy = true;
 
         ConfirmedOrders.Orders = new OrderSummary[0];
         ConfirmedPrints.Prints = new PrintSummary[0];
@@ -1491,6 +1503,8 @@ public class Scene3Backend : MonoBehaviour
                 + request.error
             );
 
+            IsBusy = false;
+
             OnComplete(false);
             yield break;
         }
@@ -1509,6 +1523,8 @@ public class Scene3Backend : MonoBehaviour
         {
             Debug.LogError("Order JSON Parsing Failed.");
 
+            IsBusy = false;
+
             OnComplete(false);
             yield break;
         }
@@ -1520,6 +1536,8 @@ public class Scene3Backend : MonoBehaviour
                 "Server Error: "
                 + Response.Message
             );
+
+            IsBusy = false;
 
             OnComplete(false);
             yield break;
@@ -1542,17 +1560,32 @@ public class Scene3Backend : MonoBehaviour
 
         if (!PrintsSuccess)
         {
+            IsBusy = false;
+
             OnComplete(false);
             yield break;
         }
 
         Debug.Log("Finished Searching Order.");
 
+        IsBusy = false;
+
         OnComplete(true);
     }
+
     public IEnumerator SearchByUserIDCoroutine(int StationeryID, int UserID, System.Action<bool> OnComplete)
     {
+        // Wait for any other order fetch already in progress (manual or the
+        // automatic-printing background poll) to finish first, rather than
+        // corrupting its in-flight shared Confirmed*/ state.
+        while (IsBusy)
+        {
+            yield return null;
+        }
+
         Debug.Log("Searching User Orders...");
+
+        IsBusy = true;
 
         ConfirmedOrders.Orders = new OrderSummary[0];
         ConfirmedPrints.Prints = new PrintSummary[0];
@@ -1574,6 +1607,8 @@ public class Scene3Backend : MonoBehaviour
                 + request.error
             );
 
+            IsBusy = false;
+
             OnComplete(false);
             yield break;
         }
@@ -1592,6 +1627,8 @@ public class Scene3Backend : MonoBehaviour
         {
             Debug.LogError("Orders JSON Parsing Failed.");
 
+            IsBusy = false;
+
             OnComplete(false);
             yield break;
         }
@@ -1603,6 +1640,8 @@ public class Scene3Backend : MonoBehaviour
                 "Server Error: "
                 + Response.Message
             );
+
+            IsBusy = false;
 
             OnComplete(false);
             yield break;
@@ -1625,11 +1664,15 @@ public class Scene3Backend : MonoBehaviour
 
         if (!PrintsSuccess)
         {
+            IsBusy = false;
+
             OnComplete(false);
             yield break;
         }
 
         Debug.Log("Finished Searching User Orders.");
+
+        IsBusy = false;
 
         OnComplete(true);
     }
@@ -2224,6 +2267,7 @@ public class Scene3Backend : MonoBehaviour
 
             HomePageScript.Disconnected.SetActive(false);
 
+            //Important !!!
             foreach (OrderSummary Order in ConfirmedOrders.Orders)
             {
                 if (PrintManager.Instance.IsOrderAlreadyHandled(Order.OrderID))
@@ -2279,6 +2323,8 @@ public class Scene3Backend : MonoBehaviour
         {
             RefreshFailed();
 
+            IsRefreshingHomePage = false;
+
             yield break;
         }
 
@@ -2295,6 +2341,8 @@ public class Scene3Backend : MonoBehaviour
         if (!OrdersCountSuccess)
         {
             RefreshFailed();
+
+            IsRefreshingHomePage = false;
 
             yield break;
         }
@@ -2478,7 +2526,22 @@ public class Scene3Backend : MonoBehaviour
                     if (!Queued)
                     {
                         Debug.Log("Order is already queued / No printers available.");
-                        //PrintManager.Instance.EndProcessingOrder(Order.OrderID);
+
+                        // Only release tracking if this job never made it into a
+                        // worker's queue at all (no printers available). If it's
+                        // already queued elsewhere, that existing job owns
+                        // EndProcessingOrder - releasing it here too would let
+                        // the next automatic-printing poll duplicate this order
+                        // while it's still actively printing.
+                        if (!PrintManager.Instance.AnyWorkerHasOrder(Order.OrderID))
+                        {
+                            PrintManager.Instance.EndProcessingOrder(Order.OrderID);
+
+                            Scene3ManagerScript.MessageText.text = "No Printers Available!";
+                            Scene3ManagerScript.EnableMessagePanel();
+
+                            HomePageScript.PausePrinting();
+                        }
                     }
                 }
             )

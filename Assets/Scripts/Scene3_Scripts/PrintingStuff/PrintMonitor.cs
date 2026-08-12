@@ -19,27 +19,73 @@ public static class PrintMonitor
     // live progress and recoverable "stuck" states along
     // the way instead of just success/fail.
     //--------------------------------------------------
+
     public static IEnumerator MonitorPrintJob
     (
         Printer Printer,
         PrintDocument Document,
-        Action<int, int> OnProgress,               // pagesPrinted, totalPages
+        Action<int, int> OnProgress,
         Action<PrintJobPauseReason, string> OnPaused,
         Action OnResumed,
         Action<bool, string> OnComplete,
         float StuckTimeoutSeconds = 15f
     )
     {
-        string DocumentName =
-            Path.GetFileName(Document.Print.LocalPDFPath);
+        //--------------------------------------------------
+        // Completion guard.
+        //
+        // OnComplete can only be called ONCE.
+        //--------------------------------------------------
 
-        Debug.Log($"Monitoring print job: {DocumentName}");
+        bool CompletionReported = false;
+
+        void CompleteOnce
+        (
+            bool Success,
+            string Message
+        )
+        {
+            if (CompletionReported)
+            {
+                Debug.LogWarning
+                (
+                    $"[{Printer.Name}] PrintMonitor attempted " +
+                    "to report completion more than once. Ignoring."
+                );
+
+                return;
+            }
+
+            CompletionReported = true;
+
+            OnComplete
+            (
+                Success,
+                Message
+            );
+        }
+
 
         //--------------------------------------------------
-        // Step 1: wait for the job to appear in the Windows
-        // queue, then pin it by its unique JobId. Matching by
-        // filename alone would be ambiguous if two jobs share
-        // a name.
+        // Document name.
+        //--------------------------------------------------
+
+        string DocumentName =
+            Path.GetFileName
+            (
+                Document.Print.LocalPDFPath
+            );
+
+
+        Debug.Log
+        (
+            $"[{Printer.Name}] Monitoring print job: {DocumentName}"
+        );
+
+
+        //--------------------------------------------------
+        // STEP 1:
+        // Find the job in the Windows spooler.
         //--------------------------------------------------
 
         float FindTimeout = 10f;
@@ -48,257 +94,771 @@ public static class PrintMonitor
 
         Win32Structures.JOB_INFO_1? FoundJob = null;
 
+
         while (FoundJob == null)
         {
-            FoundJob = Win32PrintSpooler.FindJob(Printer.Name, DocumentName);
+            FoundJob =
+                Win32PrintSpooler.FindJob
+                (
+                    Printer.Name,
+                    DocumentName
+                );
+
 
             if (FoundJob == null)
             {
-                FindTimer += FindPollInterval;
+                FindTimer +=
+                    FindPollInterval;
 
-                if (FindTimer >= FindTimeout)
+
+                if
+                (
+                    FindTimer >=
+                    FindTimeout
+                )
                 {
-                    // We never spotted it in the spooler queue. Since
-                    // Sumatra already reported a clean handoff to get us
-                    // here, the far more likely explanation is that a
-                    // small/fast job was spooled and cleared between our
-                    // polls (some drivers barely keep jobs enumerable),
-                    // not that printing actually failed - a genuinely
-                    // offline/broken printer normally leaves the job
-                    // sitting in the queue with an error/offline flag
-                    // instead of making it disappear instantly.
                     Debug.LogWarning
                     (
-                        $"Never saw '{DocumentName}' in the spooler queue " +
-                        "after submission - assuming it printed and cleared " +
-                        "too fast to catch, since Sumatra reported success."
+                        $"[{Printer.Name}] Print job " +
+                        $"'{DocumentName}' never appeared " +
+                        "in the Windows spooler."
                     );
 
-                    OnComplete(true, "Assumed success (job cleared the queue before it could be tracked).");
+
+                    CompleteOnce
+                    (
+                        false,
+                        "Print job never appeared in the Windows spooler."
+                    );
+
+
                     yield break;
                 }
 
-                yield return new WaitForSeconds(FindPollInterval);
+
+                yield return
+                    new WaitForSeconds
+                    (
+                        FindPollInterval
+                    );
             }
         }
 
-        int JobId = FoundJob.Value.JobId;
-
-        Debug.Log($"Job entered queue with JobId {JobId}.");
 
         //--------------------------------------------------
-        // Step 2: poll that specific JobId until it's gone.
+        // IMPORTANT:
+        //
+        // From this point onward, use JobId.
+        // Do NOT search by filename again.
         //--------------------------------------------------
 
-        PrintJobPauseReason CurrentPauseReason = PrintJobPauseReason.None;
+        int JobId =
+            FoundJob.Value.JobId;
 
-        int LastKnownPagesPrinted = 0;
-        int LastKnownTotalPages = 0;
+
+        Debug.Log
+        (
+            $"[{Printer.Name}] Job entered queue " +
+            $"with JobId {JobId}."
+        );
+
+
+        //--------------------------------------------------
+        // STEP 2:
+        // Initial state.
+        //--------------------------------------------------
+
+        PrintJobPauseReason CurrentPauseReason =
+            PrintJobPauseReason.None;
+
+
+        int LastKnownPagesPrinted =
+            FoundJob.Value.PagesPrinted;
+
+
+        int LastKnownTotalPages =
+            FoundJob.Value.TotalPages;
+
+
+        int LastObservedPagesPrinted =
+            LastKnownPagesPrinted;
+
+
         bool SawPrintedFlag = false;
+        bool SawPrinterActivity = false;
         bool SawErrorFlag = false;
+
+
         string LastErrorMessage = "";
 
-        // Tracks how long it's been since the job last made real progress
-        // (pages printed actually increasing). This - not the status
-        // flags below - is what decides the timeout. Some drivers (this
-        // Canon one included) never set JOB_STATUS_OFFLINE/ERROR/etc on
-        // the job itself even while genuinely stuck, which meant relying
-        // purely on those flags could loop here silently forever with no
-        // way out. Every driver has to report page progress honestly for
-        // printing to work at all, so it's a far more reliable signal.
-        float StuckTimer = 0f;
-        int LastObservedPagesPrintedForStuckCheck = -1;
 
-        // Purely for visibility while debugging - logs what we're
-        // actually seeing every couple seconds instead of polling in
-        // total silence until something changes.
+        //--------------------------------------------------
+        // Actual 15-second safety timer.
+        //
+        // Reset when:
+        //
+        // 1. Pages actually increase.
+        // 2. Printer reports active processing.
+        //
+        // Merely being online does NOT reset it.
+        //--------------------------------------------------
+
+        float StuckTimer = 0f;
+
+
+        //--------------------------------------------------
+        // Heartbeat.
+        //--------------------------------------------------
+
         float HeartbeatTimer = 0f;
+
+
+        const float PollInterval = 0.5f;
         const float HeartbeatInterval = 2f;
+
+
+        //--------------------------------------------------
+        // STEP 3:
+        // Monitor.
+        //--------------------------------------------------
 
         while (true)
         {
+            //--------------------------------------------------
+            // Get the specific spooler job.
+            //--------------------------------------------------
+
             Win32Structures.JOB_INFO_1? Job =
-                Win32PrintSpooler.GetJob(Printer.Name, JobId);
+                Win32PrintSpooler.GetJob
+                (
+                    Printer.Name,
+                    JobId
+                );
+
+
+            //--------------------------------------------------
+            // Get actual printer-level status.
+            //--------------------------------------------------
+
+            Win32PrintSpooler.PrinterStatusInfo PrinterStatus =
+                Win32PrintSpooler.GetPrinterStatus
+                (
+                    Printer.Name
+                );
+
+
+            //--------------------------------------------------
+            // JOB DISAPPEARED
+            //--------------------------------------------------
 
             if (Job == null)
             {
-                // The spooler dropped the job. This normally means it
-                // finished, but drivers vary in how cleanly they report
-                // that, so fall back on whatever we last observed rather
-                // than trusting a single status flag.
-                bool LooksComplete =
-                    SawPrintedFlag
-                    || LastKnownTotalPages == 0
-                    || LastKnownPagesPrinted >= LastKnownTotalPages;
+                //--------------------------------------------------
+                // Confirmed printed.
+                //--------------------------------------------------
 
-                if (SawErrorFlag && !LooksComplete)
+                if (SawPrintedFlag)
                 {
-                    OnComplete(false, LastErrorMessage);
+                    Debug.Log
+                    (
+                        $"[{Printer.Name}] JobId {JobId} " +
+                        "reported PRINTED."
+                    );
+
+
+                    CompleteOnce
+                    (
+                        true,
+                        "Finished"
+                    );
+
+
+                    yield break;
+                }
+
+
+                //--------------------------------------------------
+                // All pages printed.
+                //--------------------------------------------------
+
+                if
+                (
+                    LastKnownTotalPages > 0 &&
+                    LastKnownPagesPrinted >=
+                    LastKnownTotalPages
+                )
+                {
+                    Debug.Log
+                    (
+                        $"[{Printer.Name}] JobId {JobId} " +
+                        $"completed {LastKnownPagesPrinted}/" +
+                        $"{LastKnownTotalPages} pages."
+                    );
+
+
+                    CompleteOnce
+                    (
+                        true,
+                        "Finished"
+                    );
+
+
+                    yield break;
+                }
+
+
+                //--------------------------------------------------
+                // Job disappeared without completion evidence.
+                //--------------------------------------------------
+
+                if (SawErrorFlag)
+                {
+                    CompleteOnce
+                    (
+                        false,
+                        string.IsNullOrEmpty
+                        (
+                            LastErrorMessage
+                        )
+                            ?
+                            "Print job disappeared before completion."
+                            :
+                            LastErrorMessage
+                    );
                 }
                 else
                 {
-                    OnComplete(true, "Finished");
+                    CompleteOnce
+                    (
+                        false,
+                        "Print job disappeared from the Windows spooler before completion."
+                    );
                 }
+
 
                 yield break;
             }
 
-            LastKnownPagesPrinted = Job.Value.PagesPrinted;
-            LastKnownTotalPages = Job.Value.TotalPages;
 
-            OnProgress(LastKnownPagesPrinted, LastKnownTotalPages);
+            //--------------------------------------------------
+            // Read job values.
+            //--------------------------------------------------
 
-            //----------------------------------------
-            // Progress-based stuck detection - resets the timer whenever
-            // the page count actually moves, regardless of what (if
-            // anything) the status flags below say.
-            //----------------------------------------
+            LastKnownPagesPrinted =
+                Job.Value.PagesPrinted;
 
-            if (LastKnownPagesPrinted != LastObservedPagesPrintedForStuckCheck)
-            {
-                LastObservedPagesPrintedForStuckCheck = LastKnownPagesPrinted;
-                StuckTimer = 0f;
-            }
-            else
-            {
-                StuckTimer += 0.5f;
-            }
 
-            int Status = Job.Value.Status;
+            LastKnownTotalPages =
+                Job.Value.TotalPages;
 
-            if ((Status & Win32Structures.JOB_STATUS_PRINTED) != 0)
-            {
-                SawPrintedFlag = true;
-            }
 
-            //----------------------------------------
-            // Hard failure: the job was explicitly removed by
-            // someone (cancelled from the printer / spooler UI)
-            // before it finished. We only trust this if we never
-            // saw a "printed" flag first.
-            //----------------------------------------
+            OnProgress
+            (
+                LastKnownPagesPrinted,
+                LastKnownTotalPages
+            );
+
+
+            int JobStatus =
+                Job.Value.Status;
+
+
+            //--------------------------------------------------
+            // PRINTED FLAG
+            //--------------------------------------------------
 
             if
             (
-                !SawPrintedFlag
-                &&
-                (
-                    (Status & Win32Structures.JOB_STATUS_DELETING) != 0
-                    || (Status & Win32Structures.JOB_STATUS_DELETED) != 0
-                )
+                (JobStatus &
+                Win32Structures.JOB_STATUS_PRINTED) != 0
             )
             {
-                OnComplete(false, "Job was cancelled before it finished printing.");
+                SawPrintedFlag = true;
+
+
+                CompleteOnce
+                (
+                    true,
+                    "Finished"
+                );
+
+
                 yield break;
             }
 
-            //----------------------------------------
-            // Status flags are now purely informational - they drive
-            // OnPaused/OnResumed (so the UI can show *why*, when a driver
-            // does report it) but no longer gate the timeout below.
-            //----------------------------------------
 
-            PrintJobPauseReason NewPauseReason = PrintJobPauseReason.None;
-            string PauseMessage = null;
+            //--------------------------------------------------
+            // ACTUAL PAGE PROGRESS
+            //--------------------------------------------------
 
-            if ((Status & Win32Structures.JOB_STATUS_OFFLINE) != 0)
+            if
+            (
+                LastKnownPagesPrinted >
+                LastObservedPagesPrinted
+            )
             {
-                NewPauseReason = PrintJobPauseReason.PrinterOffline;
-                PauseMessage = "Printer is offline.";
-            }
-            else if ((Status & Win32Structures.JOB_STATUS_PAPEROUT) != 0)
-            {
-                NewPauseReason = PrintJobPauseReason.OutOfPaper;
-                PauseMessage = "Printer is out of paper.";
-            }
-            else if ((Status & Win32Structures.JOB_STATUS_USER_INTERVENTION) != 0)
-            {
-                NewPauseReason = PrintJobPauseReason.NeedsUserIntervention;
-                PauseMessage = "Printer needs attention (jam, cover open, etc).";
-            }
-            else if ((Status & Win32Structures.JOB_STATUS_PAUSED) != 0)
-            {
-                NewPauseReason = PrintJobPauseReason.QueuePaused;
-                PauseMessage = "Print queue is paused.";
-            }
-            else if ((Status & Win32Structures.JOB_STATUS_ERROR) != 0)
-            {
-                NewPauseReason = PrintJobPauseReason.NeedsUserIntervention;
-                PauseMessage = "Printer reported an error.";
+                LastObservedPagesPrinted =
+                    LastKnownPagesPrinted;
+
+
+                StuckTimer = 0f;
+
+
+                Debug.Log
+                (
+                    $"[{Printer.Name}] JobId {JobId} " +
+                    $"page progress: " +
+                    $"{LastKnownPagesPrinted}/" +
+                    $"{LastKnownTotalPages}"
+                );
             }
 
-            if (NewPauseReason != PrintJobPauseReason.None)
+
+            //--------------------------------------------------
+            // PRINTER-LEVEL STATUS
+            //--------------------------------------------------
+
+            int PrinterStatusFlags =
+                PrinterStatus.Success
+                    ? PrinterStatus.Status
+                    : 0;
+
+
+            bool PrinterIsActive =
+            (
+                (PrinterStatusFlags &
+                 Win32Structures.PRINTER_STATUS_PRINTING) != 0
+            )
+            ||
+            (
+                (PrinterStatusFlags &
+                 Win32Structures.PRINTER_STATUS_PROCESSING) != 0
+            )
+            ||
+            (
+                (PrinterStatusFlags &
+                 Win32Structures.PRINTER_STATUS_IO_ACTIVE) != 0
+            )
+            ||
+            (
+                (PrinterStatusFlags &
+                 Win32Structures.PRINTER_STATUS_BUSY) != 0
+            )
+            ||
+            (
+                (PrinterStatusFlags &
+                 Win32Structures.PRINTER_STATUS_INITIALIZING) != 0
+            )
+            ||
+            (
+                (PrinterStatusFlags &
+                 Win32Structures.PRINTER_STATUS_WARMING_UP) != 0
+            );
+
+
+            //--------------------------------------------------
+            // Explicit printer failure.
+            //--------------------------------------------------
+
+            bool PrinterHasError =
+            (
+                (PrinterStatusFlags &
+                 Win32Structures.PRINTER_STATUS_ERROR) != 0
+            )
+            ||
+            (
+                (PrinterStatusFlags &
+                 Win32Structures.PRINTER_STATUS_OFFLINE) != 0
+            )
+            ||
+            (
+                (PrinterStatusFlags &
+                 Win32Structures.PRINTER_STATUS_PAPER_JAM) != 0
+            )
+            ||
+            (
+                (PrinterStatusFlags &
+                 Win32Structures.PRINTER_STATUS_PAPER_OUT) != 0
+            )
+            ||
+            (
+                (PrinterStatusFlags &
+                 Win32Structures.PRINTER_STATUS_PAPER_PROBLEM) != 0
+            )
+            ||
+            (
+                (PrinterStatusFlags &
+                 Win32Structures.PRINTER_STATUS_DOOR_OPEN) != 0
+            )
+            ||
+            (
+                (PrinterStatusFlags &
+                 Win32Structures.PRINTER_STATUS_USER_INTERVENTION) != 0
+            )
+            ||
+            (
+                (PrinterStatusFlags &
+                 Win32Structures.PRINTER_STATUS_NO_TONER) != 0
+            );
+
+
+            //--------------------------------------------------
+            // Active printer processing.
+            //
+            // This is real evidence that the printer is alive.
+            // Reset the 15-second timer.
+            //--------------------------------------------------
+
+            if (PrinterIsActive)
+            {
+                if (!SawPrinterActivity)
+                {
+                    SawPrinterActivity = true;
+
+
+                    Debug.Log
+                    (
+                        $"[{Printer.Name}] Printer reports active " +
+                        $"processing. Status = " +
+                        $"0x{PrinterStatusFlags:X}"
+                    );
+                }
+
+
+                StuckTimer = 0f;
+            }
+
+
+            //--------------------------------------------------
+            // Printer error.
+            //--------------------------------------------------
+
+            if (PrinterHasError)
             {
                 SawErrorFlag = true;
-                LastErrorMessage = PauseMessage;
 
-                if (CurrentPauseReason == PrintJobPauseReason.None)
+
+                LastErrorMessage =
+                    PrinterStatus.Message;
+
+
+                if
+                (
+                    CurrentPauseReason ==
+                    PrintJobPauseReason.None
+                )
                 {
-                    CurrentPauseReason = NewPauseReason;
-                    OnPaused(NewPauseReason, PauseMessage);
+                    CurrentPauseReason =
+                        PrintJobPauseReason.NeedsUserIntervention;
+
+
+                    OnPaused
+                    (
+                        CurrentPauseReason,
+                        PrinterStatus.Message
+                    );
                 }
             }
-            else if (CurrentPauseReason != PrintJobPauseReason.None)
+            else
             {
-                CurrentPauseReason = PrintJobPauseReason.None;
-                OnResumed();
+                //--------------------------------------------------
+                // Job-level errors.
+                //--------------------------------------------------
+
+                PrintJobPauseReason NewPauseReason =
+                    PrintJobPauseReason.None;
+
+
+                string PauseMessage = null;
+
+
+                if
+                (
+                    (JobStatus &
+                    Win32Structures.JOB_STATUS_OFFLINE) != 0
+                )
+                {
+                    NewPauseReason =
+                        PrintJobPauseReason.PrinterOffline;
+
+
+                    PauseMessage =
+                        "Printer is offline.";
+                }
+                else if
+                (
+                    (JobStatus &
+                    Win32Structures.JOB_STATUS_PAPEROUT) != 0
+                )
+                {
+                    NewPauseReason =
+                        PrintJobPauseReason.OutOfPaper;
+
+
+                    PauseMessage =
+                        "Printer is out of paper.";
+                }
+                else if
+                (
+                    (JobStatus &
+                    Win32Structures.JOB_STATUS_USER_INTERVENTION) != 0
+                )
+                {
+                    NewPauseReason =
+                        PrintJobPauseReason.NeedsUserIntervention;
+
+
+                    PauseMessage =
+                        "Printer needs attention.";
+                }
+                else if
+                (
+                    (JobStatus &
+                    Win32Structures.JOB_STATUS_PAUSED) != 0
+                )
+                {
+                    NewPauseReason =
+                        PrintJobPauseReason.QueuePaused;
+
+
+                    PauseMessage =
+                        "Print queue is paused.";
+                }
+                else if
+                (
+                    (JobStatus &
+                    Win32Structures.JOB_STATUS_ERROR) != 0
+                )
+                {
+                    NewPauseReason =
+                        PrintJobPauseReason.NeedsUserIntervention;
+
+
+                    PauseMessage =
+                        "Print job reported an error.";
+                }
+
+
+                //--------------------------------------------------
+                // New pause/error state.
+                //--------------------------------------------------
+
+                if
+                (
+                    NewPauseReason !=
+                    PrintJobPauseReason.None
+                )
+                {
+                    SawErrorFlag = true;
+
+
+                    LastErrorMessage =
+                        PauseMessage;
+
+
+                    if
+                    (
+                        CurrentPauseReason ==
+                        PrintJobPauseReason.None
+                    )
+                    {
+                        CurrentPauseReason =
+                            NewPauseReason;
+
+
+                        OnPaused
+                        (
+                            NewPauseReason,
+                            PauseMessage
+                        );
+                    }
+                }
+
+
+                //--------------------------------------------------
+                // Printer recovered.
+                //--------------------------------------------------
+
+                else if
+                (
+                    CurrentPauseReason !=
+                    PrintJobPauseReason.None
+                )
+                {
+                    CurrentPauseReason =
+                        PrintJobPauseReason.None;
+
+
+                    OnResumed();
+                }
             }
 
-            //----------------------------------------
-            // Give up once there's been no real progress for too long -
-            // whether or not the driver ever told us why. A driver that
-            // silently never reports OFFLINE/ERROR on the job (like the
-            // one that prompted this) would otherwise hang here forever.
-            //----------------------------------------
 
-            if (StuckTimer >= StuckTimeoutSeconds)
+            //--------------------------------------------------
+            // Job explicitly deleted/cancelled.
+            //--------------------------------------------------
+
+            if
+            (
+                (JobStatus &
+                Win32Structures.JOB_STATUS_DELETING) != 0
+                ||
+                (JobStatus &
+                Win32Structures.JOB_STATUS_DELETED) != 0
+            )
             {
-                string GiveUpMessage =
-                    LastErrorMessage != ""
-                        ? $"No progress for over {StuckTimeoutSeconds}s: {LastErrorMessage}"
-                        : $"No print progress for over {StuckTimeoutSeconds}s and the printer never reported why (this driver may not surface status flags accurately).";
+                CompleteOnce
+                (
+                    false,
+                    "Print job was cancelled before completion."
+                );
 
-                // Actively cancel the job in the Windows spooler rather
-                // than just walking away from it - otherwise it sits
-                // there untouched, and if this printer reconnects later,
-                // Windows will happily resume and print it even though
-                // we've already given up on / rerouted this order.
-                bool Cancelled = Win32PrintSpooler.CancelJob(Printer.Name, JobId);
+
+                yield break;
+            }
+
+
+            //--------------------------------------------------
+            // 15-SECOND SAFETY TIMER
+            //
+            // If there is no active physical printer
+            // processing, the timer increases.
+            //--------------------------------------------------
+
+            if (!PrinterIsActive)
+            {
+                StuckTimer +=
+                    PollInterval;
+            }
+
+
+            //--------------------------------------------------
+            // HEARTBEAT
+            //--------------------------------------------------
+
+            HeartbeatTimer +=
+                PollInterval;
+
+
+            if
+            (
+                HeartbeatTimer >=
+                HeartbeatInterval
+            )
+            {
+                HeartbeatTimer = 0f;
+
+
+                Debug.Log
+                (
+                    $"[{Printer.Name}] " +
+                    $"JobId {JobId} | " +
+                    $"PrinterStatus=0x{PrinterStatusFlags:X} | " +
+                    $"PrinterMessage='{PrinterStatus.Message}' | " +
+                    $"JobStatus=0x{JobStatus:X} | " +
+                    $"Pages={LastKnownPagesPrinted}/" +
+                    $"{LastKnownTotalPages} | " +
+                    $"StuckTimer={StuckTimer:F1}/" +
+                    $"{StuckTimeoutSeconds}s"
+                );
+            }
+
+
+            //--------------------------------------------------
+            // 15 SECOND TIMEOUT
+            //--------------------------------------------------
+
+            if
+            (
+                StuckTimer >=
+                StuckTimeoutSeconds
+            )
+            {
+                string FailureMessage;
+
+
+                if
+                (
+                    SawErrorFlag &&
+                    !string.IsNullOrEmpty
+                    (
+                        LastErrorMessage
+                    )
+                )
+                {
+                    FailureMessage =
+                        $"Printer failed to make progress for " +
+                        $"{StuckTimeoutSeconds}s. " +
+                        $"{LastErrorMessage}";
+                }
+                else
+                {
+                    FailureMessage =
+                        $"Printer failed to show any printing " +
+                        $"activity for {StuckTimeoutSeconds}s.";
+                }
+
+
+                Debug.LogWarning
+                (
+                    $"[{Printer.Name}] {FailureMessage}"
+                );
+
+
+                //--------------------------------------------------
+                // Cancel the stuck spooler job.
+                //--------------------------------------------------
+
+                bool Cancelled =
+                    Win32PrintSpooler.CancelJob
+                    (
+                        Printer.Name,
+                        JobId
+                    );
+
 
                 if (Cancelled)
                 {
-                    Debug.Log($"[{Printer.Name}] Cancelled stuck JobId {JobId} in the Windows spooler.");
+                    Debug.Log
+                    (
+                        $"[{Printer.Name}] Cancelled stuck " +
+                        $"JobId {JobId}."
+                    );
                 }
                 else
                 {
                     Debug.LogWarning
                     (
-                        $"[{Printer.Name}] Couldn't cancel stuck JobId {JobId} in the Windows spooler - " +
-                        "it may still print later if this printer reconnects. Check printer permissions."
+                        $"[{Printer.Name}] Failed to cancel " +
+                        $"JobId {JobId}."
                     );
                 }
 
-                OnComplete(false, GiveUpMessage);
+
+                //--------------------------------------------------
+                // Report failure exactly once.
+                //--------------------------------------------------
+
+                CompleteOnce
+                (
+                    false,
+                    FailureMessage
+                );
+
+
                 yield break;
             }
 
-            HeartbeatTimer += 0.5f;
 
-            if (HeartbeatTimer >= HeartbeatInterval)
-            {
-                HeartbeatTimer = 0f;
+            //--------------------------------------------------
+            // Poll again.
+            //--------------------------------------------------
 
-                Debug.Log
+            yield return
+                new WaitForSeconds
                 (
-                    $"[{Printer.Name}] Still watching JobId {JobId} - " +
-                    $"Status: 0x{Status:X}, " +
-                    $"Pages: {LastKnownPagesPrinted}/{LastKnownTotalPages}, " +
-                    $"PauseReason: {CurrentPauseReason}, " +
-                    $"StuckTimer: {StuckTimer:F1}s / {StuckTimeoutSeconds}s"
+                    PollInterval
                 );
-            }
-
-            yield return new WaitForSeconds(0.5f);
         }
     }
 }
