@@ -2528,17 +2528,16 @@ public class Scene3Backend : MonoBehaviour
                         Debug.Log("Order is already queued / No printers available.");
 
                         // Only release tracking if this job never made it into a
-                        // worker's queue at all (no printers available). If it's
-                        // already queued elsewhere, that existing job owns
+                        // worker's queue at all (no printers available).
+                        
+                        // If it's already queued elsewhere, that existing job owns
                         // EndProcessingOrder - releasing it here too would let
                         // the next automatic-printing poll duplicate this order
                         // while it's still actively printing.
+
                         if (!PrintManager.Instance.AnyWorkerHasOrder(Order.OrderID))
                         {
                             PrintManager.Instance.EndProcessingOrder(Order.OrderID);
-
-                            Scene3ManagerScript.MessageText.text = "No Printers Available!";
-                            Scene3ManagerScript.EnableMessagePanel();
 
                             HomePageScript.PausePrinting();
                         }

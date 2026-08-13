@@ -27,6 +27,15 @@ public class QueueManager : MonoBehaviour
         GameObject PrinterQueuePanel = Instantiate(PrinterQueuePanelPrefab, PrinterQueuePanelsParent.transform);
         PrinterQueuePanel PrinterQueuePanelScript = PrinterQueuePanel.GetComponent <PrinterQueuePanel>();
 
+        if(Worker.WorkedLastTime)
+        {
+            PrinterQueuePanelScript.PrinterIs_Operational();
+        }
+        else
+        {
+            PrinterQueuePanelScript.PrinterIs_NonOperational();
+        }
+
         PrinterQueuePanelScript.SetPrintManagerScript(PrintManagerScript);
 
         PrinterQueuePanelScript.PrinterName.text = Worker.Printer.Name;

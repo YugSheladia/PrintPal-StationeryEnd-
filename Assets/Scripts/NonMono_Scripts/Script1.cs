@@ -4,8 +4,12 @@ using Unity.VisualScripting;
 
 public static class Script1
 {
-    public static StationeryInfo StationeryInfoObject = new StationeryInfo();
+    public static bool AutomaticPrinting = false;
 
+
+
+
+    public static StationeryInfo StationeryInfoObject = new StationeryInfo();
     public static void SetStationeryInfo(StationeryInfo Info)
     {
         if(Info != null)
@@ -15,8 +19,6 @@ public static class Script1
 
         StationeryInfoObject = Info;
     }
-
-
     public static void SetStationeryInfo2(UpdatedStationeryInfo Info)
     {
         if (Info != null)
@@ -29,8 +31,6 @@ public static class Script1
         StationeryInfoObject.Email              = Info.Email;
         StationeryInfoObject.UPINumber          = Info.UPINumber;
     }
-
-
     public static void PrintStationeryInfo()
     {
         if (StationeryInfoObject == null)
@@ -49,6 +49,8 @@ public static class Script1
 
 
 
+
+
     public static List<Printer> SelectedPrinters = new();
     public static void SetPrinters(List<Printer> printers)
     {
@@ -63,12 +65,14 @@ public static class Script1
     }
 
 
+
+
     public static bool GetAutomaticPrintingValue()
     {
-        return StationeryInfoObject.AutomaticPrinting;
+        return AutomaticPrinting;
     }
     public static void SetAutomaticPrintingValue(bool automaticPrinting)
     {
-        StationeryInfoObject.AutomaticPrinting =  automaticPrinting;
+        AutomaticPrinting =  automaticPrinting;
     }
 }

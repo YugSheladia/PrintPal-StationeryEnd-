@@ -12,9 +12,11 @@ public class PrinterQueuePanel : MonoBehaviour
     [SerializeField] public TMP_Text PrinterName;
     [SerializeField] public TMP_Text PrinterNumber;
 
-
+    [SerializeField] public GameObject Operational;
+    [SerializeField] public GameObject NonOperational;
 
     PrinterWorker Worker;
+
 
 
 
@@ -23,6 +25,9 @@ public class PrinterQueuePanel : MonoBehaviour
     {
         this.PrintManagerScript = PrintManagerScript;
     }
+
+
+
 
 
 
@@ -45,8 +50,34 @@ public class PrinterQueuePanel : MonoBehaviour
 
 
 
+
+
+
     public void ClickedJumpStartButton()
     {
         PrintManagerScript.JumpStartPrinter(PrinterName.text);
+
+        PrinterIs_Operational();
+    }
+    public void ClickedDisablePrinterButton()
+    {
+        PrintManagerScript.DisablePrinter(PrinterName.text);
+
+        PrinterIs_NonOperational();
+    }
+
+
+
+
+
+    public void PrinterIs_Operational()
+    {
+        NonOperational.SetActive(false);
+        Operational.SetActive(true);
+    }
+    public void PrinterIs_NonOperational()
+    {
+        Operational.SetActive(false);
+        NonOperational.SetActive(true);
     }
 }

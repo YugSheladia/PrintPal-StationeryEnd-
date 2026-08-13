@@ -16,16 +16,19 @@ public class Settings : MonoBehaviour
     [SerializeField] private GameObject ToggleOffImage;
     [SerializeField] private GameObject ToggleOnImage;
 
-    bool Toogle = false;
+    //bool Toogle = false;
 
 
 
 
 
+    //Removed the ability to turn AutomaticPrinting On / Off through Settings.
+    /*
     private void Start()
     {
         GetAutomaticPrintingStatus();
     }
+
     public void GetAutomaticPrintingStatus()
     {
         StartCoroutine
@@ -58,6 +61,7 @@ public class Settings : MonoBehaviour
             )
         );
     }
+    
     public void ClickedAutomaticPrintingToggleButton()
     {
         Scene5ManagerScript.EnableInvisiblePanel();
@@ -106,7 +110,7 @@ public class Settings : MonoBehaviour
         ToggleOnImage.SetActive(Toogle);
         ToggleOffImage.SetActive(!Toogle);
     }
-
+    */
 
 
 
@@ -162,10 +166,6 @@ public class Settings : MonoBehaviour
 
         GetPrinters();
     }
-
-
-
-
     public void GetPrinters()
     {
         UpdatePrintersScript.GetConnectedPrinters

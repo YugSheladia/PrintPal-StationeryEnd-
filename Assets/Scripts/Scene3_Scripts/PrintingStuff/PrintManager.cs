@@ -4,28 +4,35 @@ using UnityEngine;
 
 public class PrintManager : MonoBehaviour
 {
-    [SerializeField] Scene3Manager Scene3ManagerScript;
-    [SerializeField] Scene3Backend Scene3BackendScript;
-
-    [SerializeField] HomePage HomePageScript;
-
-    [SerializeField] QueueManager QueueManagerScript;
-
-
+    //Script references
+    [SerializeField] Scene3Manager  Scene3ManagerScript;
+    [SerializeField] Scene3Backend  Scene3BackendScript;
+    [SerializeField] HomePage       HomePageScript;
+    [SerializeField] QueueManager   QueueManagerScript;
 
     public static PrintManager Instance;
 
+
+
+
+
+
+
     private PrintJob LastFailedJob;
 
-    // One worker per physical printer. Each worker owns its own queue and
-    // runs independently, so all printers can be busy at once.
     public List<PrinterWorker> Workers = new List<PrinterWorker>();
 
     int NextWorkerIndex = 0;
 
 
 
-    //Resume revising the architecture from here.
+
+
+
+
+    //This HashSet contains all orders which are processing, so an order doesn't arrive in the same queue again,
+    //or 2 workers dont have the same order at the same time.
+    
     private readonly HashSet<int> ProcessingOrders = new();
     public bool IsOrderBeingProcessed(int OrderID)
     {
@@ -75,6 +82,9 @@ public class PrintManager : MonoBehaviour
 
 
 
+
+
+
     void Awake()
     {
         Instance = this;
@@ -87,7 +97,9 @@ public class PrintManager : MonoBehaviour
 
     // Rebuilds the worker list from Script1.SelectedPrinters (the approved
     // printer list fetched at login via Scene2Backend/Scene5Backend's
-    // GetApprovedPrintersFromServer). Call this again from those scripts
+    // GetApprovedPrintersFromServer).
+
+    // Call this again from those scripts
     // right after Script1.SetPrinters(...) if PrintManager is a persistent
     // singleton that might Start() before login finishes, or whenever the
     // stationery's approved-printer list changes mid-session.
@@ -231,6 +243,8 @@ public class PrintManager : MonoBehaviour
 
 
 
+
+    //Job Creation from a downloaded Order
     public PrintJob CreatePrintJob(OrderSummary Order)
     {
         PrintJob Job = new PrintJob();
@@ -265,34 +279,8 @@ public class PrintManager : MonoBehaviour
         return Job;
     }
 
-    //Old QueuePrintJob()
-    /*
-    public bool QueuePrintJob(PrintJob Job)
-    {
-        if (AnyWorkerHasOrder(Job.OrderID))
-        {
-            return false;
-        }
 
-        PrinterWorker Worker = PickNextWorker();
-
-        if (Worker == null)
-        {
-            Job.Status = PrintJobStatus.Failed;
-            Job.StatusMessage = "No printers available.";
-
-            return false;
-        }
-
-        Worker.Enqueue(Job);
-
-        QueueManagerScript.RefreshQueuedOrders();
-
-        return true;
-    }
-    */
-
-    //New QueuePrintJob()
+    //QueuePrintJob -> PickNextWorker.
     public bool QueuePrintJob(PrintJob Job)
     {
         if (Job == null)
@@ -350,10 +338,15 @@ public class PrintManager : MonoBehaviour
 
 
 
+
+
     //--------------------------------------------------
-    // Round-robin dispatch: Order#1 -> Printer#1, Order#2 -> Printer#2,
+    // Round-robin dispatch:
+    // Order#1 -> Printer#1,
+    // Order#2 -> Printer#2,
     // ... wrapping back around once every printer's had a turn.
-    //
+    
+
     // Rather than trusting Printer.IsOnline (which only reflects a status
     // string fetched once at login, and goes stale if a printer's actual
     // state changes mid-session), each candidate is actively checked here
@@ -361,36 +354,7 @@ public class PrintManager : MonoBehaviour
     // doesn't respond, move on to the next one.
     //--------------------------------------------------
 
-
-
-    //Old PickNextWorker()
-    /*
-    PrinterWorker PickNextWorker()
-    {
-        if (Workers.Count == 0)
-        {
-            Debug.LogWarning("0 printers available.");
-
-            Scene3ManagerScript.MessageText.text = "0 printers connected\nGo to settings and connect a printer to begin printing.";
-
-            Scene3ManagerScript.EnableMessagePanel();
-
-            return null;
-        }
-
-        int Index = NextWorkerIndex % Workers.Count;
-
-        PrinterWorker Candidate = Workers[Index];
-
-        Debug.Log("Worker selected = " + Candidate.Printer.Name);
-
-        NextWorkerIndex = (Index + 1) % Workers.Count;
-
-        return Candidate;
-    }
-    */
-
-    //New PickNextWorker()
+    
     PrinterWorker PickNextWorker()
     {
         if (Workers.Count == 0)
@@ -477,21 +441,26 @@ public class PrintManager : MonoBehaviour
             "No workers with WorkedLastTime = true are available."
         );
 
-        //Just to make sure that when the PrintingProcess is paused, all queues are empty.
+        //Just to make sure that when no Printer is working and when the PrintingProcess is paused, all Queues are empty.
         ClearAllPrinterQueues();
 
         Scene3ManagerScript.MessageText.text =
-            "No working printers available.\n" +
-            "JumpStart a printer to continue printing.";
+            "No working printers available. " +
+            "Make sure all connected printers are working, and that they are reactivated through Queue button on homepage.";
 
-        //No Printer Available, so we are hitting pause on Automatic Printing.
-        HomePageScript.PausePrinting();
+        //No Printer Available, so we are hitting pause on Automatic Printing. ( Removed the line below because PausePrinting() is already being called
+        //in it's plae somewhre else ).
+        //HomePageScript.PausePrinting();
 
         Scene3ManagerScript.EnableMessagePanel();
 
         return null;
     }
 
+
+    //PrintWorker calls RedistributeJobsFromWorker() when it fails to print a document from an order.
+    //In such a scenario, PrintWorker also marks itself as 'Not Working', which further sets the PrinterQueuePanel as 'Non Operational' upon Refresh.
+    //The PrintWorker also Removes all orders from it's queues before calling RedistributeJobsFromWorker().
     public void RedistributeJobsFromWorker
     (
         PrinterWorker FailedWorker
@@ -576,8 +545,10 @@ public class PrintManager : MonoBehaviour
                 // WorkedLastTime == false.
                 //--------------------------------------------------
 
-                //Removing this line of code for now.
+                //Removing this line of code for now, as I dont want a failed worker to have any order in it's queue.
                 //FailedWorker.Queue.Enqueue(Job);
+
+                HomePageScript.PausePrinting();
 
                 continue;
             }
@@ -664,11 +635,10 @@ public class PrintManager : MonoBehaviour
 
 
 
-
-
+    //ReorouteFailedJob() -> PickNextAvailableWorker()
 
     //--------------------------------------------------
-    // Called by a PrinterWorker when it fails to print a job.
+    // Also called by a PrinterWorker when it fails to print a job.
     // Tries to hand the job to the next available printer instead of
     // failing the order outright.
     //--------------------------------------------------
@@ -829,6 +799,7 @@ public class PrintManager : MonoBehaviour
         return true;
     }
 
+
     // Starts searching from the printer *after* the one that just failed
     // (e.g. Printer#2 fails -> try Printer#3 next), skipping any printer
     // already attempted for this specific job, and wrapping around.
@@ -928,34 +899,15 @@ public class PrintManager : MonoBehaviour
 
 
 
-    public void Reset_ListOfFailedAttemptsOf_LastFailedJob()
-    {
-        if (LastFailedJob == null)
-        {
-            Debug.LogWarning
-            (
-                "There is no last failed job to reset."
-            );
-
-            return;
-        }
-
-
-        Debug.Log
-        (
-            "Resetting failed-printer attempts of Order " +
-            LastFailedJob.OrderID
-        );
-
-
-        LastFailedJob.AttemptedPrinterIDs.Clear();
-    }
 
 
 
 
 
 
+
+
+    //JumpStartPrinter() is called when a Printer is 'fixed', so that it can again accept orders.
     public bool JumpStartPrinter(string PrinterName)
     {
         PrinterWorker Worker =
@@ -1003,6 +955,7 @@ public class PrintManager : MonoBehaviour
         return true;
     }
 
+    //DisablePrinter is called when a Printer is to be disabled, so that it doesn't accept orders anymore.
     public bool DisablePrinter(string PrinterName)
     {
         PrinterWorker Worker =
@@ -1044,6 +997,13 @@ public class PrintManager : MonoBehaviour
 
 
 
+
+
+
+
+
+
+    //To clear the Queues of all Printers once it is finalized that none of them work.
     public void ClearAllPrinterQueues()
     {
         foreach (PrinterWorker Worker in Workers)

@@ -64,6 +64,10 @@ public class HomePage : MonoBehaviour
     [SerializeField] public GameObject NoPrintersConnected;
 
 
+    [SerializeField] GameObject AutomaticPrinting_ToggleOn;
+    [SerializeField] GameObject AutomaticPrinting_ToggleOff;
+
+
 
 
 
@@ -288,10 +292,30 @@ public class HomePage : MonoBehaviour
 
     public void ClickedProfileButton()
     {
+        if(Script1.AutomaticPrinting)
+        {
+            Debug.Log("You cannot leave the Home Page while Automatic Printing is enabled or an order is being printed.");
+
+            Scene3ManagerScript.MessageText.text = "You cannot leave the Home Page while Automatic Printing is enabled or an order is being processed.";
+            Scene3ManagerScript.EnableMessagePanel();
+
+            return;
+        }
+
         SceneManager.LoadScene("Scene4_UpdateProfileInfo");
     }
     public void ClickedSettingsButton()
     {
+        if (Script1.AutomaticPrinting)
+        {
+            Debug.Log("You cannot leave the Home Page while Automatic Printing is enabled or an order is being processed.");
+
+            Scene3ManagerScript.MessageText.text = "You cannot leave the Home Page while Automatic Printing is enabled or an order is being processed.";
+            Scene3ManagerScript.EnableMessagePanel();
+
+            return;
+        }
+
         SceneManager.LoadScene("Scene5_Settings");
     }
 
@@ -437,6 +461,12 @@ public class HomePage : MonoBehaviour
 
     public void PausePrinting()
     {
+        if(PausePrintingBool)
+        {
+            Debug.Log("Printing is already Paused.");
+            return;
+        }
+
         Debug.Log("Printing Paused.");
         PausePrintingBool = true;
 
@@ -447,7 +477,17 @@ public class HomePage : MonoBehaviour
     }
     public void UnpausePrinting()
     {
+        if(!PausePrintingBool)
+        {
+            Debug.Log("Printing is already Unpaused.");
+            return;
+        }
+
         Debug.Log("Clicked Unpause Printing Button.");
+
+        //To make sure that all Pending Orders are queued, as this resets their 'BeingProcessed' status to false.
+        PrintManagerScript.EmptyProcessingOrdersHashSet();
+
         PausePrintingBool = false;
 
         StartHomePage();
@@ -459,16 +499,10 @@ public class HomePage : MonoBehaviour
     {
         Debug.Log("Clicked Exclamation Button.");
 
-        //The line below has been commented out because it only resets the list of failed attempts of one job, not all... exclamation mark is for resetting the same for all jobs.
-        //PrintManagerScript.Reset_ListOfFailedAttemptsOf_LastFailedJob();
-
-
-        PrintManagerScript.EmptyProcessingOrdersHashSet();
-
-
         //Unpause the printing process, and kickstart it using AutomaticPrinting().
         UnpausePrinting();
     }
+
 
 
 
@@ -479,5 +513,31 @@ public class HomePage : MonoBehaviour
 
         Scene3ManagerScript.DisableAllPanels();
         Scene3ManagerScript.EnableQueuePage();
+    }
+
+
+
+
+    public void ClickedStopAutomaticPrinting()
+    {
+        Debug.Log("Clicked StopAutomaticPrinting() Button.");
+
+        Script1.SetAutomaticPrintingValue(false);
+
+        StartHomePage();
+
+        AutomaticPrinting_ToggleOn.SetActive(false);
+        AutomaticPrinting_ToggleOff.SetActive(true);
+    }
+    public void ClickedStartAutomaticPrinting()
+    {
+        Debug.Log("Clicked StartAutomaticPrinting() Button.");
+
+        Script1.SetAutomaticPrintingValue(true);
+
+        StartHomePage();
+
+        AutomaticPrinting_ToggleOff.SetActive(false);
+        AutomaticPrinting_ToggleOn.SetActive(true);
     }
 }
