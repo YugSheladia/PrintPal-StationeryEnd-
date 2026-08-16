@@ -158,6 +158,17 @@ public class HomePage : MonoBehaviour
             yield break;
         }
 
+        if (Scene3BackendScript.ConfirmedOrders.Orders.Length <= 0)
+        {
+            Scene3ManagerScript.DisableAllPanels();
+            Scene3ManagerScript.EnableHomePagePanel();
+
+            Scene3ManagerScript.MessageText.text = "No Pending orders currently exist.";
+            Scene3ManagerScript.EnableMessagePanel();
+
+            yield break;
+        }
+
         OrderStatusManagerScript.CreateOrderStatusPanels();
 
         Scene3ManagerScript.DisableAllPanels();
@@ -193,6 +204,17 @@ public class HomePage : MonoBehaviour
             Scene3ManagerScript.DisableAllPanels();
 
             Scene3ManagerScript.MessageText.text = "Something went wrong, try again later.";
+            Scene3ManagerScript.EnableMessagePanel();
+
+            yield break;
+        }
+
+        if (Scene3BackendScript.ConfirmedOrders.Orders.Length <= 0)
+        {
+            Scene3ManagerScript.DisableAllPanels();
+            Scene3ManagerScript.EnableHomePagePanel();
+
+            Scene3ManagerScript.MessageText.text = "No Completed orders currently exist.";
             Scene3ManagerScript.EnableMessagePanel();
 
             yield break;
@@ -235,6 +257,17 @@ public class HomePage : MonoBehaviour
             yield break;
         }
 
+        if (Scene3BackendScript.ConfirmedOrders.Orders.Length <= 0)
+        {
+            Scene3ManagerScript.DisableAllPanels();
+            Scene3ManagerScript.EnableHomePagePanel();
+
+            Scene3ManagerScript.MessageText.text = "No Collected orders currently exist.";
+            Scene3ManagerScript.EnableMessagePanel();
+
+            yield break;
+        }
+
         OrderStatusManagerScript.CreateOrderStatusPanels();
 
         Scene3ManagerScript.DisableAllPanels();
@@ -267,6 +300,17 @@ public class HomePage : MonoBehaviour
             Scene3ManagerScript.DisableAllPanels();
 
             Scene3ManagerScript.MessageText.text = "Something went wrong, try again later.";
+            Scene3ManagerScript.EnableMessagePanel();
+
+            yield break;
+        }
+
+        if (Scene3BackendScript.ConfirmedOrders.Orders.Length <= 0)
+        {
+            Scene3ManagerScript.DisableAllPanels();
+            Scene3ManagerScript.EnableHomePagePanel();
+
+            Scene3ManagerScript.MessageText.text = "No Archived orders currently exist.";
             Scene3ManagerScript.EnableMessagePanel();
 
             yield break;

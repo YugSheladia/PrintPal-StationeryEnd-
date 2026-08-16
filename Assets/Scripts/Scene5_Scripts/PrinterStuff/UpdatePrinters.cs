@@ -56,12 +56,18 @@ public class UpdatePrinters : MonoBehaviour
 
                             IsSelected = false,
 
+                            //Old code, changing it for now.
+                            /*
                             IsOnline =
                                 printerInfo.status != "Offline",
 
                             IsBusy =
                                 printerInfo.status == "Busy"
                                 || printerInfo.status == "Printing",
+                            */
+
+                            IsOnline = true,
+                            IsBusy = false,
 
                             AutomaticPrinting = false
                         };

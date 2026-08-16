@@ -146,7 +146,7 @@ public class Scene5Backend : MonoBehaviour
             printer.IsSelected = true;
 
             // These will be updated later after querying Windows.
-            printer.IsOnline = false;
+            printer.IsOnline = true;
             printer.IsBusy = false;
             printer.AutomaticPrinting = false;
 

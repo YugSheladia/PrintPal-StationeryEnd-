@@ -1540,7 +1540,8 @@ GameObject:
   - component: {fileID: 3223447768806160136}
   - component: {fileID: 5562645264465295027}
   - component: {fileID: 2655872859458810607}
-  - component: {fileID: 768775551279989058}
+  - component: {fileID: 2034937481953926333}
+  - component: {fileID: 2288946437966266572}
   m_Layer: 5
   m_Name: Scroll View
   m_TagString: Untagged
@@ -1607,7 +1608,7 @@ MonoBehaviour:
   m_FillOrigin: 0
   m_UseSpriteMesh: 0
   m_PixelsPerUnitMultiplier: 1
---- !u!114 &768775551279989058
+--- !u!114 &2034937481953926333
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -1626,17 +1627,29 @@ MonoBehaviour:
   m_Elasticity: 0.1
   m_Inertia: 1
   m_DecelerationRate: 0.135
-  m_ScrollSensitivity: 1
+  m_ScrollSensitivity: 5
   m_Viewport: {fileID: 3786727066540554614}
   m_HorizontalScrollbar: {fileID: 8303039736757633736}
   m_VerticalScrollbar: {fileID: 0}
   m_HorizontalScrollbarVisibility: 0
   m_VerticalScrollbarVisibility: 0
-  m_HorizontalScrollbarSpacing: -3
-  m_VerticalScrollbarSpacing: -3
+  m_HorizontalScrollbarSpacing: 0
+  m_VerticalScrollbarSpacing: 0
   m_OnValueChanged:
     m_PersistentCalls:
       m_Calls: []
+--- !u!114 &2288946437966266572
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6632466389711173037}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 299ba7b8a40d33e48a6a4a703b73b610, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::NestedHorizontalScroll
 --- !u!1 &6852723870843549761
 GameObject:
   m_ObjectHideFlags: 0
