@@ -25,7 +25,9 @@ public class ViewPrinters : MonoBehaviour
                 printerPanelObject.GetComponent<PrinterPanel>();
 
             printerPanelScript.SetPrinter(printer);
-            printerPanelScript.DisableToggle();
+
+            printerPanelScript.EnableViewPrinterPanel_Stuff();
+            printerPanelScript.DisableToggles();
         }
     }
 

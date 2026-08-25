@@ -17,6 +17,11 @@ public class PrinterQueuePanel : MonoBehaviour
 
     PrinterWorker Worker;
 
+    [SerializeField] public GameObject ColorTMP;
+    [SerializeField] public GameObject DoubleSidedTMP;
+    [SerializeField] public GameObject Color_DoubleSidedTMP;
+
+
 
 
 

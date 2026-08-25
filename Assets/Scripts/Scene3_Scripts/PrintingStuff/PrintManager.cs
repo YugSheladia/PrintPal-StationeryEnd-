@@ -280,6 +280,8 @@ public class PrintManager : MonoBehaviour
     }
 
 
+
+
     //QueuePrintJob -> PickNextWorker.
     public bool QueuePrintJob(PrintJob Job)
     {
@@ -295,39 +297,114 @@ public class PrintManager : MonoBehaviour
 
 
         //--------------------------------------------------
-        // Select a working printer.
+        // Select the best compatible printer.
         //--------------------------------------------------
 
-        PrinterWorker Worker =
-            PickNextWorker();
-
+        PrinterWorker Worker = PickBestWorker(Job);
 
         if (Worker == null)
         {
-            Job.Status =
-                PrintJobStatus.Failed;
+            Job.Status = PrintJobStatus.Failed;
 
-            Job.StatusMessage =
-                "No working printers available.";
+            Job.StatusMessage = "No compatible printer available.";
 
             return false;
         }
 
 
         //--------------------------------------------------
-        // Give the complete ORDER to the selected printer.
-        //
-        // PrinterWorker will process all PrintDocuments inside
-        // this PrintJob sequentially.
+        // Give the complete order to the selected printer.
         //--------------------------------------------------
 
         Worker.Enqueue(Job);
 
-
         QueueManagerScript.RefreshQueuedOrders();
 
-
         return true;
+    }
+    PrinterWorker PickBestWorker(PrintJob Job)
+    {
+        if (Workers.Count == 0)
+        {
+            Debug.LogWarning("0 printers available.");
+
+            Scene3ManagerScript.MessageText.text =
+                "0 printers connected\n" +
+                "Go to settings and connect a printer to begin printing.";
+
+            Scene3ManagerScript.EnableMessagePanel();
+
+            return null;
+        }
+
+        bool NeedsColor = OrderNeedsColor(Job);
+        bool NeedsDuplex = OrderNeedsDuplex(Job);
+
+        for (int i = 0; i < Workers.Count; i++)
+        {
+            int Index = (NextWorkerIndex + i) % Workers.Count;
+
+            PrinterWorker Candidate = Workers[Index];
+
+            if (Candidate == null)
+                continue;
+
+            if (!Candidate.WorkedLastTime)
+                continue;
+
+            if (NeedsColor && !Candidate.Printer.SupportsColorPrinting)
+                continue;
+
+            if (NeedsDuplex && !Candidate.Printer.SupportsDoubleSidedPrinting)
+                continue;
+
+            Debug.Log
+            (
+                $"Compatible printer selected = {Candidate.Printer.Name}"
+            );
+
+            NextWorkerIndex = (Index + 1) % Workers.Count;
+
+            return Candidate;
+        }
+
+        Debug.LogWarning
+        (
+            $"No printer supports this order. Color={NeedsColor}, Duplex={NeedsDuplex}"
+        );
+
+        Scene3ManagerScript.MessageText.text =
+            "No compatible printer is available for this order.\n" +
+            "Check printer capabilities in Settings.\n" +
+            "This usually happens when no selected printer supports Double Sided Printing, Color Printing, or both";
+
+        Scene3ManagerScript.EnableMessagePanel();
+
+        return null;
+    }
+    bool OrderNeedsColor(PrintJob Job)
+    {
+        foreach (PrintDocument Document in Job.Documents)
+        {
+            if (Document.Print.Color == ColorEnum.Color)
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+    bool OrderNeedsDuplex(PrintJob Job)
+    {
+        foreach (PrintDocument Document in Job.Documents)
+        {
+            if (Document.Print.SideSelection == SideSelectionEnum.DoubleSided)
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 
 
@@ -345,7 +422,7 @@ public class PrintManager : MonoBehaviour
     // Order#1 -> Printer#1,
     // Order#2 -> Printer#2,
     // ... wrapping back around once every printer's had a turn.
-    
+
 
     // Rather than trusting Printer.IsOnline (which only reflects a status
     // string fetched once at login, and goes stale if a printer's actual
@@ -354,7 +431,7 @@ public class PrintManager : MonoBehaviour
     // doesn't respond, move on to the next one.
     //--------------------------------------------------
 
-    
+
     PrinterWorker PickNextWorker()
     {
         if (Workers.Count == 0)
@@ -611,26 +688,6 @@ public class PrintManager : MonoBehaviour
         QueueManagerScript.RefreshQueuedOrders();
     }
 
-
-
-    //For printers not supporting double sided printing ( Still havent integrated this )
-    /*
-    // Call this from the UI once the operator has physically flipped and
-    // reloaded the stack for a manual duplex job (Document.Status ==
-    // WaitingForManualDuplexFlip).
-    public void ConfirmManualDuplexFlip(PrintJob Job)
-    {
-        PrinterWorker Worker = Workers.Find(W => W.Printer == Job.Printer);
-
-        if (Worker == null)
-        {
-            Debug.LogError($"Couldn't find the worker printing Order {Job.OrderID} to confirm the duplex flip.");
-            return;
-        }
-
-        Worker.ConfirmManualDuplexFlip();
-    }
-    */
 
 
 

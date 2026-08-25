@@ -1,6 +1,6 @@
 using System.Collections.Generic;
 using UnityEngine;
-using UnityEngine.SceneManagement;
+
 using static Scene2Backend;
 
 public class UpdatePrinters : MonoBehaviour
@@ -12,6 +12,7 @@ public class UpdatePrinters : MonoBehaviour
     [SerializeField] GameObject PrinterPanelsParent;
 
     public List<PrinterPanel> PrinterList = new();
+
 
 
 
@@ -32,12 +33,10 @@ public class UpdatePrinters : MonoBehaviour
                 {
                     if (printers == null)
                     {
-                        Debug.LogError
-                        (
-                            "Failed to retrieve printers."
-                        );
+                        Debug.LogError("Failed to retrieve printers.");
 
-                        Scene5ManagerScript.MessageText.text = "No connected printers were found\nMake sure all printers are connected ( via USB or Bluetooth )";
+                        Scene5ManagerScript.MessageText.text =
+                            "No connected printers were found\nMake sure all printers are connected ( via USB or Bluetooth )";
 
                         OnComplete?.Invoke(false);
                         return;
@@ -45,31 +44,19 @@ public class UpdatePrinters : MonoBehaviour
 
                     foreach (PrinterInfo printerInfo in printers)
                     {
-                        Debug.Log($"Name    : {printerInfo.name}");
-                        Debug.Log($"Status  : {printerInfo.status}");
-                        Debug.Log($"Default : {printerInfo.isDefault}");
-                        Debug.Log("------------------------------");
-
                         Printer printer = new Printer()
                         {
                             Name = printerInfo.name,
 
                             IsSelected = false,
 
-                            //Old code, changing it for now.
-                            /*
-                            IsOnline =
-                                printerInfo.status != "Offline",
-
-                            IsBusy =
-                                printerInfo.status == "Busy"
-                                || printerInfo.status == "Printing",
-                            */
-
                             IsOnline = true,
                             IsBusy = false,
 
-                            AutomaticPrinting = false
+                            AutomaticPrinting = false,
+
+                            SupportsDoubleSidedPrinting = false,
+                            SupportsColorPrinting = false
                         };
 
                         CreatePrinterPanel(printer);
@@ -92,8 +79,11 @@ public class UpdatePrinters : MonoBehaviour
 
         panel.SetPrinter(printer);
 
+        panel.DisableViewPrinterPanel_Stuff();
+
         PrinterList.Add(panel);
     }
+
 
 
 

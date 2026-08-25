@@ -243,7 +243,13 @@ public class Scene2Backend : MonoBehaviour
     [System.Serializable]
     public class ApprovedPrinter
     {
+        public int StationeryPrinterID;
+        public int StationeryID;
+
         public string PrinterName;
+
+        public bool SupportsDoubleSidedPrinting;
+        public bool SupportsColorPrinting;
     }
 
     [System.Serializable]
@@ -318,11 +324,12 @@ public class Scene2Backend : MonoBehaviour
             printer.Name = approvedPrinter.PrinterName;
             printer.IsSelected = true;
 
-            // Placeholder until the live-status merge below fills these
-            // in - only stays like this if that merge can't find a match.
             printer.IsOnline = true;
-
             printer.IsBusy = false;
+            printer.AutomaticPrinting = false;
+
+            printer.SupportsDoubleSidedPrinting = approvedPrinter.SupportsDoubleSidedPrinting;
+            printer.SupportsColorPrinting = approvedPrinter.SupportsColorPrinting;
 
             printers.Add(printer);
         }
@@ -336,101 +343,6 @@ public class Scene2Backend : MonoBehaviour
         Script1.PrintAllPrinterDetails();
 
         OnComplete?.Invoke(true);
-
-
-        //Removed this part of code as we are no longer relying on Printer Status recieved from server.
-        /*
-        // --- Replace the tail of Scene2Backend.GetApprovedPrintersFromServer with this ---
-
-        List<Printer> printers = new();
-
-        foreach (ApprovedPrinter approvedPrinter in response.Printers)
-        {
-            Printer printer = new Printer();
-
-            printer.Name = approvedPrinter.PrinterName;
-            printer.IsSelected = true;
-
-            // Placeholder until the live-status merge below fills these
-            // in - only stays like this if that merge can't find a match.
-            printer.IsOnline = false;
-
-            printer.IsBusy = false;
-
-            printers.Add(printer);
-        }
-
-        //--------------------------------------------------
-        // Cross-reference with live Windows printer status - the same
-        // call SelectPrinters uses at setup - so IsOnline/IsBusy reflect
-        // reality instead of a hardcoded placeholder.
-        //--------------------------------------------------
-
-        yield return StartCoroutine
-        (
-            GetPrinters
-            (
-                LivePrinters =>
-                {
-                    if (LivePrinters == null)
-                    {
-                        Debug.LogWarning
-                        (
-                            "Couldn't fetch live printer status - approved printers will show as offline until this succeeds."
-                        );
-
-                        return;
-                    }
-
-                    foreach (Printer ApprovedPrinter in printers)
-                    {
-                        PrinterInfo Match = System.Array.Find
-                        (
-                            LivePrinters,
-                            LivePrinter => LivePrinter.name == ApprovedPrinter.Name
-                        );
-
-                        if (Match != null)
-                        {
-                            ApprovedPrinter.IsOnline = Match.status != "Offline";
-
-                            ApprovedPrinter.IsBusy =
-                                Match.status == "Busy"
-                                ||
-                                Match.status == "Printing";
-                        }
-                        else
-                        {
-                            Debug.LogWarning
-                            (
-                                $"Approved printer '{ApprovedPrinter.Name}' not found among currently connected printers - marking offline."
-                            );
-
-                            ApprovedPrinter.IsOnline = false;
-                        }
-                    }
-                }
-            )
-        );
-
-        Script1.SetPrinters(printers);
-
-        // In case PrintManager is a persistent singleton that already
-        // ran Start() before login finished.
-        PrintManager.Instance?.RefreshWorkersFromApprovedPrinters();
-
-        Debug.Log($"Retrieved {printers.Count} approved printers.");
-
-        Script1.PrintAllPrinterDetails();
-
-        OnComplete?.Invoke(true);
-
-
-        // --- Apply the exact same change to Scene5Backend.GetApprovedPrintersFromServer.
-        //     It's structurally identical, just using Scene2Backend.PrinterInfo /
-        //     Scene2Backend.ApprovedPrinter qualifiers since it reuses those nested
-        //     types, and its own local GetPrinters(...) method. ---
-        */
     }
 
 

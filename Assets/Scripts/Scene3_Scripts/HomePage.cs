@@ -459,7 +459,6 @@ public class HomePage : MonoBehaviour
     {
         int WorkingPrinters = 0;
 
-
         foreach (PrinterWorker Worker in PrintManagerScript.Workers)
         {
             if

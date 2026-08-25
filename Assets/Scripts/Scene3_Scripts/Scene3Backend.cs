@@ -2303,11 +2303,18 @@ public class Scene3Backend : MonoBehaviour
     }
     public IEnumerator Coroutine_RefreshUI()
     {
+        //====================================================================================================================
+        //NEW
+        //====================================================================================================================
+        IsRefreshingHomePage = true;
+
         Debug.Log("Coroutine_RefreshUI()");
         HomePageScript.CurrentDate.text = DateTime.Now.ToString("dd-MM-yyyy");
 
+        //To update number of working printers, based on their past activity.
         HomePageScript.UpdateNumberOfWorkingPrinters();
 
+        //To calculate stationery's revenue for today.
         bool RevenueSuccess = false;
 
         yield return StartCoroutine
@@ -2328,6 +2335,7 @@ public class Scene3Backend : MonoBehaviour
             yield break;
         }
 
+        //To count the total number of each type of orders.
         bool OrdersCountSuccess = false;
 
         yield return StartCoroutine
@@ -2347,6 +2355,7 @@ public class Scene3Backend : MonoBehaviour
             yield break;
         }
 
+        //To inform users thats 0 printers are conntected.
         if (Script1.SelectedPrinters.Count <= 0)
         {
             HomePageScript.NoPrintersConnected.SetActive(true);
@@ -2496,7 +2505,7 @@ public class Scene3Backend : MonoBehaviour
 
                     Debug.Log("Downloaded All PDFs of OrderID = " + Order.OrderID + " successfully.");
 
-                    //At this point, all prints of an order has been validated and has been downloaded, meaning
+                    //At this point, all prints of an order has been validated and have been downloaded, meaning
                     // it is safe to start the printing process, whose 1st step is to Create a PrintJob.
                     PrintJob Job = PrintManager.Instance.CreatePrintJob
                     (
@@ -2540,6 +2549,8 @@ public class Scene3Backend : MonoBehaviour
                             PrintManager.Instance.EndProcessingOrder(Order.OrderID);
 
                             HomePageScript.PausePrinting();
+
+                            Scene3ManagerScript.MessageText.text = "Order of ID = " + Order.OrderID + "Could not be queued for some reason...";
                         }
                     }
                 }

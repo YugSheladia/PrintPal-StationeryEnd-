@@ -41,6 +41,23 @@ public class QueueManager : MonoBehaviour
         PrinterQueuePanelScript.PrinterName.text = Worker.Printer.Name;
         PrinterQueuePanelScript.PrinterNumber.text = PrinterNumber.ToString();
 
+
+        if(Worker.Printer.SupportsColorPrinting && Worker.Printer.SupportsDoubleSidedPrinting)
+        {
+            PrinterQueuePanelScript.Color_DoubleSidedTMP.SetActive(true);
+        }
+
+        else if (Worker.Printer.SupportsDoubleSidedPrinting)
+        {
+            PrinterQueuePanelScript.DoubleSidedTMP.SetActive(true);
+        }
+        
+        else if(Worker.Printer.SupportsColorPrinting)
+        {
+            PrinterQueuePanelScript.ColorTMP.SetActive(true);
+        }
+
+
         PrinterQueuePanelScript.CreateQueuedOrders(Worker);
     }
 

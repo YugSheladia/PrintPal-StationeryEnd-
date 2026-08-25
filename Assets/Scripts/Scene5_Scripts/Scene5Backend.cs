@@ -130,7 +130,7 @@ public class Scene5Backend : MonoBehaviour
         {
             Debug.LogError("Failed to retrieve approved printers.");
 
-            Scene5ManagerScript.MessageText.text = "Failed to retrieve approved printers\nTry again later."; 
+            Scene5ManagerScript.MessageText.text = "Failed to retrieve approved printers\nTry again later.";
 
             OnComplete?.Invoke(false);
             yield break;
@@ -145,10 +145,12 @@ public class Scene5Backend : MonoBehaviour
             printer.Name = approvedPrinter.PrinterName;
             printer.IsSelected = true;
 
-            // These will be updated later after querying Windows.
             printer.IsOnline = true;
             printer.IsBusy = false;
             printer.AutomaticPrinting = false;
+
+            printer.SupportsDoubleSidedPrinting = approvedPrinter.SupportsDoubleSidedPrinting;
+            printer.SupportsColorPrinting = approvedPrinter.SupportsColorPrinting;
 
             printers.Add(printer);
         }
@@ -160,75 +162,6 @@ public class Scene5Backend : MonoBehaviour
         Script1.PrintAllPrinterDetails();
 
         OnComplete?.Invoke(true);
-
-
-        //Removed this part as we are no longer relying on Server to decide Printer Status.
-        /*
-        //--------------------------------------------------
-        // Cross-reference with live Windows printer status - the same
-        // call SelectPrinters uses at setup - so IsOnline/IsBusy reflect
-        // reality instead of a hardcoded placeholder.
-        //--------------------------------------------------
-
-        bool LiveStatusFetched = false;
-
-        yield return StartCoroutine
-        (
-            GetPrinters
-            (
-                LivePrinters =>
-                {
-                    LiveStatusFetched = LivePrinters != null;
-
-                    if (LivePrinters == null)
-                    {
-                        Debug.LogWarning
-                        (
-                            "Couldn't fetch live printer status - approved printers will show as offline until this succeeds."
-                        );
-
-                        return;
-                    }
-
-                    foreach (Printer ApprovedPrinter in printers)
-                    {
-                        PrinterInfo Match = System.Array.Find
-                        (
-                            LivePrinters,
-                            LivePrinter => LivePrinter.name == ApprovedPrinter.Name
-                        );
-
-                        if (Match != null)
-                        {
-                            ApprovedPrinter.IsOnline = Match.status != "Offline";
-
-                            ApprovedPrinter.IsBusy =
-                                Match.status == "Busy"
-                                ||
-                                Match.status == "Printing";
-                        }
-                        else
-                        {
-                            Debug.LogWarning
-                            (
-                                $"Approved printer '{ApprovedPrinter.Name}' not found among currently connected printers - marking offline."
-                            );
-
-                            ApprovedPrinter.IsOnline = false;
-                        }
-                    }
-                }
-            )
-        );
-
-        Script1.SetPrinters(printers);
-
-        Debug.Log($"Retrieved {printers.Count} approved printers.");
-
-        Script1.PrintAllPrinterDetails();
-
-        OnComplete?.Invoke(true);
-        */
     }
 
 

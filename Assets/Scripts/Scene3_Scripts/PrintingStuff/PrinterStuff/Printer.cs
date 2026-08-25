@@ -1,4 +1,5 @@
 using UnityEngine;
+
 [System.Serializable]
 public class Printer
 {
@@ -15,6 +16,9 @@ public class Printer
     public bool IsOnline;
     public bool IsBusy;
 
-    // Stationery setting
+    // Stationery settings
     public bool AutomaticPrinting;
+
+    public bool SupportsDoubleSidedPrinting;
+    public bool SupportsColorPrinting;
 }
