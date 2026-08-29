@@ -156,7 +156,7 @@ public class OrderStatus : MonoBehaviour
                 EnableArchivePanel();
 
                 StatusBoxText.text = "Archived";
-                StatusBoxColor.color = new Color32(36, 36, 36, 150);
+                StatusBoxColor.color = new Color32(255, 255, 255, 255);
 
                 //StatusTimeStampText.color = new Color32(36, 36, 36, 150);
 

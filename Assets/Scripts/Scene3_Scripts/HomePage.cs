@@ -442,6 +442,22 @@ public class HomePage : MonoBehaviour
             yield break;
         }
 
+        if (Scene3BackendScript.ConfirmedOrders.Orders.Length <= 0)
+        {
+            if(IDToSearchByEnum == IDToSearchBy.SearchByOrderID)
+            {
+                Scene3ManagerScript.MessageText.text = "No order of such OrderID found.";
+                Scene3ManagerScript.EnableMessagePanel();
+            }
+            else
+            {
+                Scene3ManagerScript.MessageText.text = "No user of such UserID found.";
+                Scene3ManagerScript.EnableMessagePanel();
+            }
+
+            yield break;
+        }
+
         OrderStatusManagerScript.CreateOrderStatusPanels();
 
         Scene3ManagerScript.DisableAllPanels();
@@ -453,6 +469,10 @@ public class HomePage : MonoBehaviour
     public void ClickedRefreshButton()
     {
         Debug.Log("ClickedRefreshButton()");
+
+        Scene3ManagerScript.MessageText.text = "Refreshed.";
+        Scene3ManagerScript.EnableMessagePanel();
+
         StartCoroutine(Scene3BackendScript.Coroutine_RefreshUI());
     }
     public void UpdateNumberOfWorkingPrinters()
@@ -571,6 +591,9 @@ public class HomePage : MonoBehaviour
 
         AutomaticPrinting_ToggleOn.SetActive(false);
         AutomaticPrinting_ToggleOff.SetActive(true);
+
+        Scene3ManagerScript.MessageText.text = "Automatic Printing Disabled.";
+        Scene3ManagerScript.EnableMessagePanel();
     }
     public void ClickedStartAutomaticPrinting()
     {
@@ -582,5 +605,8 @@ public class HomePage : MonoBehaviour
 
         AutomaticPrinting_ToggleOff.SetActive(false);
         AutomaticPrinting_ToggleOn.SetActive(true);
+
+        Scene3ManagerScript.MessageText.text = "Automatic Printing Enabled.";
+        Scene3ManagerScript.EnableMessagePanel(); 
     }
 }
