@@ -1,16 +1,27 @@
 using UnityEngine;
 using TMPro;
 
+
+
+//Class used to store Stationery phone number.
 public class StationeryPhoneNumber
 {
     public string PhoneNumber;
 }
 
+
+
+
+
 public class SetPhoneNumber : MonoBehaviour
 {
+    //Script references =
     [SerializeField] Scene2Manager Scene2ManagerScript;
     [SerializeField] Scene2Backend Scene2BackendScript;
 
+
+
+    //InputFields = 
     [SerializeField] TMP_InputField PhoneNumberInput;
 
 
@@ -18,12 +29,18 @@ public class SetPhoneNumber : MonoBehaviour
 
 
 
+    //Input button functions =
     public void ClickedSubmitButton()
     {
+        //CheckPhoneNumberLength() = returns true if Phone number is of correct length.
         if (CheckPhoneNumberLength())
         {
+            //To make sure any other input button is not clicked by the user while server checks if the inputed number is
+            //already taken or not.
             Scene2ManagerScript.EnableInvisiblePanel();
 
+
+            //Phone number status validation process = 
             StationeryPhoneNumber StationeryPhoneNumberObject = new StationeryPhoneNumber();
 
             StationeryPhoneNumberObject.PhoneNumber = PhoneNumberInput.text;
@@ -62,6 +79,7 @@ public class SetPhoneNumber : MonoBehaviour
         }
     }
 
+    //To go from SetPhoneNumber panel -> Login panel
     public void ClickedPreviousBUtton()
     {
         Scene2ManagerScript.DisableAllPanels();
@@ -73,6 +91,7 @@ public class SetPhoneNumber : MonoBehaviour
 
 
 
+    //CheckPhoneNumberLength() = To check if the Phone number is of 10 digits.
     public bool CheckPhoneNumberLength()
     {
         if(PhoneNumberInput.text.Length != 10)

@@ -1,3 +1,4 @@
+//namespaces = 
 using UnityEngine;
 using TMPro;
 using System.Collections;
@@ -6,7 +7,7 @@ using System.Collections;
 
 
 
-
+//A class used to store info about a stationery.
 [System.Serializable]
 public class StationeryInfo
 {
@@ -44,16 +45,21 @@ public class StationeryInfo
 
 public class Scene2Manager : MonoBehaviour
 {
+    //Panels of Scene2 = 
     [SerializeField] GameObject BlankPanel;
     [SerializeField] GameObject LoginPanel;
     [SerializeField] GameObject SetPhoneNumberPanel;
     [SerializeField] GameObject SetPasswordPanel;
     [SerializeField] GameObject SetProfileInfoPanel;
     [SerializeField] GameObject SelectPrintersPanel;
-
     [SerializeField] GameObject InvisiblePanel;
+
+
+    //Notification panel of Scene2 =
     [SerializeField] GameObject MessagePanel;
     [SerializeField] public TMP_Text MessageText;
+
+
 
 
 
@@ -69,6 +75,8 @@ public class Scene2Manager : MonoBehaviour
 
 
 
+
+    //Enabling & Disabling panels =
     public void DisableAllPanels()
     {
         DisableBlankPanel();
@@ -82,9 +90,6 @@ public class Scene2Manager : MonoBehaviour
 
         DisableMessagePanel();
     }
-
-
-
 
 
     public void EnableBlankPanel()
@@ -103,9 +108,7 @@ public class Scene2Manager : MonoBehaviour
     {
         InvisiblePanel.SetActive(false);
     }
-
-
-
+    
 
     public void EnableLoginPanel()
     {
@@ -149,10 +152,11 @@ public class Scene2Manager : MonoBehaviour
     }
 
 
+    
 
 
 
-
+    //Used for notification type panel.
     private Coroutine MessagePanelCoroutine;
     public void EnableMessagePanel()
     {

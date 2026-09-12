@@ -1,21 +1,32 @@
-using NUnit.Framework;
+//namespaces = 
 using TMPro;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
+
+
+//A class used to store Email & Password, which is then submitted to the server for validating login request.
 public class LoginInfo
 {
     public string PhoneNumber;
     public string Password;
 }
 
+
+
+
 public class Login : MonoBehaviour
 {
+    //Script references = 
     [SerializeField] Scene2Manager Scene2ManagerScript;
     [SerializeField] Scene2Backend Scene2BackendScript;
 
     [SerializeField] SelectPrinters SelectPrintersScript;
 
+
+
+
+    //Inputfield references =
     [SerializeField] TMP_InputField PhoneNumberInput;
     [SerializeField] TMP_InputField PasswordInput;
 
@@ -25,13 +36,18 @@ public class Login : MonoBehaviour
 
 
 
-
+    //Buttons in LoginPanel = 
     public void ClickedSubmitbutton()
     {
+        //CheckLoginInfo() returns true only if LoginInfo ic correct.
         if (CheckLoginInfo())
         {
+            //To make sure any other input button is not clicked by the user while login info is being validated.
             Scene2ManagerScript.EnableInvisiblePanel();
 
+
+
+            //Login info validation process =
             LoginInfo LoginInfoObject = new LoginInfo();
 
             LoginInfoObject.PhoneNumber = PhoneNumberInput.text;
@@ -69,7 +85,6 @@ public class Login : MonoBehaviour
             Scene2ManagerScript.EnableMessagePanel();
         }
     }
-
     public void ClickedCreateNewAccount()
     {
         Scene2ManagerScript.DisableAllPanels();
@@ -82,7 +97,10 @@ public class Login : MonoBehaviour
 
 
 
-
+    //To check if LoginInfo is correct, CheckLoginInfo() calls
+    //CheckPhoneNumberLength() = To check Phone number is of 10 digits.
+    //&
+    //CheckPasswordLength() = To check if Password field is not empty.
     public bool CheckLoginInfo()
     {
         if(!CheckPhoneNumberLength())

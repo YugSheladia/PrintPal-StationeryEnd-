@@ -4,11 +4,17 @@ using UnityEngine.SceneManagement;
 
 public class SetProfileInfo : MonoBehaviour
 {
+    //Reference scripts =
     [SerializeField] Scene2Manager Scene2ManagerScript;
     [SerializeField] Scene2Backend Scene2BackendScript;
 
     [SerializeField] SelectPrinters SelectPrintersScript;
 
+
+
+
+
+    //InputFields =
     [SerializeField] TMP_InputField StationeryNameInput;
     [SerializeField] TMP_InputField UPINumberInput;
     [SerializeField] TMP_InputField EmailInput;
@@ -17,12 +23,17 @@ public class SetProfileInfo : MonoBehaviour
 
 
 
+
+    //Buttons in ProfilePanel =
     public void ClickedSubmitButton()
     {
+        //CheckProfileInfo() returns true if all fields have been filled with correct format.
         if (CheckProfileInfo())
         {
+            //To make sure any other input button is not clicked by the user while account is being created.
             Scene2ManagerScript.EnableInvisiblePanel();
 
+            //Account creation process =
             Scene2BackendScript.StationeryInfoWrapperObject.StationeryInfoObject.StationeryName =
                 StationeryNameInput.text;
 
@@ -48,6 +59,8 @@ public class SetProfileInfo : MonoBehaviour
                             Scene2ManagerScript.MessageText.text = "Account created successfully";
                             Scene2ManagerScript.EnableMessagePanel();
 
+
+                            //To select a stationery's printer preference only when an account has been succesfully created.
                             GetPrinters();
                         }
                         else
@@ -70,11 +83,22 @@ public class SetProfileInfo : MonoBehaviour
             Scene2ManagerScript.EnableMessagePanel();
         }
     }
+
+    //To go from ProfilePanel -> PasswordPanel
     public void ClickedPreviousPage()
     {
         Scene2ManagerScript.DisableAllPanels();
         Scene2ManagerScript.EnableSetPasswordPanel();
     }
+    
+
+
+
+
+
+
+
+    //To get all printers which are or have been connected to a stationery computer in the past.
     public void GetPrinters()
     {
         Scene2ManagerScript.EnableInvisiblePanel();
@@ -88,6 +112,8 @@ public class SetProfileInfo : MonoBehaviour
                     Scene2ManagerScript.DisableAllPanels();
                     Scene2ManagerScript.EnableSelectPrintersPanel();
                 }
+
+                //In case the app fails get printers =
                 else
                 {
                     Scene2ManagerScript.DisableAllPanels();
@@ -107,7 +133,7 @@ public class SetProfileInfo : MonoBehaviour
 
 
 
-
+    //Check functions to check the validity of all fiels in ProfileInfo panel.
     public bool CheckProfileInfo()
     {
         if(!CheckNameLength())

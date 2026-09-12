@@ -1,3 +1,4 @@
+//namespaces = 
 using System.Collections;
 using System.Collections.Generic;
 using System.Text;
@@ -46,12 +47,16 @@ public class StationeryInfoVerificationResponse
 
 public class Scene2Backend : MonoBehaviour
 {
+    //ServerURL = 
     public string ServerURL = "http://localhost:3000";
 
+
+    //Script references =
     [SerializeField] Scene2Manager Scene2ManagerScript;
     [SerializeField] SelectPrinters SelectPrintersScript;
 
 
+    
     public StationeryInfoWrapper StationeryInfoWrapperObject = new StationeryInfoWrapper();
 
 
