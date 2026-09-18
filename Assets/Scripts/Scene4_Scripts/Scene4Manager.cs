@@ -1,3 +1,4 @@
+//namespaces =
 using TMPro;
 using UnityEngine;
 using System.Collections;
@@ -9,21 +10,35 @@ using UnityEngine.SceneManagement;
 
 public class Scene4Manager : MonoBehaviour
 {
+    //All pages of Scene4 =
     [SerializeField] GameObject BlankPanel;
     [SerializeField] GameObject ProfileMenuPanel;
     [SerializeField] GameObject ViewProfileInfoPanel;
     [SerializeField] GameObject UpdateProfilePanel;
 
-
-    public StationeryInfo StationeryInfoObject = new StationeryInfo();
-
     [SerializeField] GameObject InvisiblePanel;
+
+
+
+    //Message panel.
     [SerializeField] GameObject MessagePanel;
     [SerializeField] public TMP_Text MessageText;
 
+   
 
 
 
+
+
+    //Instantiation of StationeryInfo object.
+    public StationeryInfo StationeryInfoObject = new StationeryInfo();
+
+
+
+
+
+    
+  
 
 
 
@@ -37,6 +52,9 @@ public class Scene4Manager : MonoBehaviour
 
 
 
+    //=========================================================
+    //Enabling and Disabling of panels =
+    //=========================================================
     public void DisableAllPanels()
     {
         DisableProfileMenuPanel();
@@ -50,7 +68,6 @@ public class Scene4Manager : MonoBehaviour
 
 
     
-
 
     public void EnableBlankPanel()
     {
@@ -68,6 +85,7 @@ public class Scene4Manager : MonoBehaviour
     {
         InvisiblePanel.SetActive(false);
     }
+
 
 
 
@@ -135,7 +153,10 @@ public class Scene4Manager : MonoBehaviour
 
 
 
-    //Control Panel
+
+
+
+    //Control Panel button functions =
     public void ClickedHomePageButton()
     {
         SceneManager.LoadScene("Scene3_HomePage");

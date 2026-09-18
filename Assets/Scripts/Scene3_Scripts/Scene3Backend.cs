@@ -1,3 +1,4 @@
+//namespaces =
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -6,6 +7,9 @@ using System.Text;
 using TMPro;
 using UnityEngine;
 using UnityEngine.Networking;
+
+
+
 
 
 
@@ -301,10 +305,12 @@ public class PrintDetails
 
 public class Scene3Backend : MonoBehaviour
 {
+    //Script references =
     [SerializeField] HomePage HomePageScript;
     [SerializeField] Scene3Manager Scene3ManagerScript;
 
     [SerializeField] PrintManager PrintManagerScript;
+
 
 
 
@@ -319,11 +325,16 @@ public class Scene3Backend : MonoBehaviour
 
 
 
+
+    //This is an extremely important bool, Why?
+    //When a user clicks on Pending, Printed, Collected, Archived orders, or when AutomaticPrinting() tries to get all Pending orders, it is important that these requests dont overlap.
+    //This is because these all these different request types recieve and store order in one common object.
+    //This is why all of these requests are handled with a single IsBusy bool. If IsBusy is false, then the request is accepted, otherwise the request waits until the IsBusy becomes false.
     public bool IsBusy = false;
 
 
 
-    //To get orders, beloing to a stationery, of a specific status.
+    //To get orders, belonging to a stationery, of a specific status.
     public IEnumerator GetPendingOrders(int StationeryID, System.Action<bool> OnComplete)
     {
         // Wait for any other order fetch already in progress (manual or the
@@ -336,17 +347,27 @@ public class Scene3Backend : MonoBehaviour
 
         Debug.Log("Downloading Pending Orders...");
 
+
+
+        //Enabling IsBusy to make sure requests don't overlap.
         IsBusy = true;
 
+
+
+        //Cleaning up ConfirmedOrders, Prints, PrintSettings, & PrintBills =
         ConfirmedOrders.Orders = new OrderSummary[0];
         ConfirmedPrints.Prints = new PrintSummary[0];
         ConfirmedPrintSettings.PrintSettings = new PrintSettingsSummary[0];
         ConfirmedPrintBills.PrintBills = new PrintBillsSummary[0];
 
+
+
         UnityWebRequest request = UnityWebRequest.Get
         (
             $"http://localhost:3000/orders/pending?StationeryID={StationeryID}"
         );
+
+
 
         yield return request.SendWebRequest();
 
@@ -360,9 +381,10 @@ public class Scene3Backend : MonoBehaviour
             yield break;
         }
 
-#if UNITY_EDITOR
+        #if UNITY_EDITOR
         Debug.Log(request.downloadHandler.text);
-#endif
+        #endif
+
 
         OrderSummaryWrapper Response =
             JsonUtility.FromJson<OrderSummaryWrapper>
@@ -730,8 +752,10 @@ public class Scene3Backend : MonoBehaviour
 
 
 
-    //To get prints, printBills, and printSettings of Orders of a specific status
-    //( Called by functions above, e.g. - GetPendingOrders, GetCompletedOrders ).
+    //To get Prints, PrintBills, and PrintSettings of Orders of a specific status
+    //( Called by functions above -> GetPendingOrders(), GetCompletedOrders(), GetCollectedOrders(), GetArchivedOrders() ).
+
+    //Therefore, GetOrders() -> GetPrints() -> GetPrintSettings() -> GetPrintBills().
     IEnumerator GetPrints(System.Action<bool> OnComplete)
     {
         Debug.Log("Downloading Prints...");
@@ -949,6 +973,8 @@ public class Scene3Backend : MonoBehaviour
 
     //Making a PrintDetails object for each prints of each order ( of a specific order status ).
 
+    //This basically gets all the info from Print, PrintSettings, & PrintBills table, and combines it into a single class called PrintDetails.
+
     public Dictionary<int, PrintSettingsSummary> SettingsDictionary = new();
     public Dictionary<int, PrintBillsSummary> BillsDictionary = new();
     public Dictionary<int, List<PrintSummary>> PrintsDictionary = new();
@@ -1058,9 +1084,9 @@ public class Scene3Backend : MonoBehaviour
 
                 Order.Prints.Add(Details);
 
-#if UNITY_EDITOR
+                #if UNITY_EDITOR
                 Details.PrintOrderDetails();
-#endif
+                #endif
             }
         }
 
@@ -1073,7 +1099,7 @@ public class Scene3Backend : MonoBehaviour
 
 
 
-    //Get name of the customer on bill.
+    //Get name of the customer ( for OrderStatus panels ).
     [System.Serializable]
     public class UserInfo
     {
@@ -1723,7 +1749,7 @@ public class Scene3Backend : MonoBehaviour
             GetOrderCount
             (
                 "completed",
-                HomePageScript.TotalFinishedOrdersText,
+                HomePageScript.TotalPrintedOrdersText,
                 Result => CompletedSuccess = Result
             )
         );
@@ -2260,12 +2286,13 @@ public class Scene3Backend : MonoBehaviour
 
             if (!Success)
             {
-                HomePageScript.Disconnected.SetActive(true);
+                Scene3ManagerScript.DisableAllPanels();
+
+                Scene3ManagerScript.MessageText.text = "Something went wrong, restart the app or try again later.";
+                Scene3ManagerScript.EnableMessagePanel();
 
                 yield break;
             }
-
-            HomePageScript.Disconnected.SetActive(false);
 
             //Important !!!
             foreach (OrderSummary Order in ConfirmedOrders.Orders)
@@ -2303,18 +2330,41 @@ public class Scene3Backend : MonoBehaviour
     }
     public IEnumerator Coroutine_RefreshUI()
     {
-        //====================================================================================================================
-        //NEW
-        //====================================================================================================================
+        //This is to make sure that UI is not refreshed again while UI refreshing process is already going on.
         IsRefreshingHomePage = true;
+
 
         Debug.Log("Coroutine_RefreshUI()");
         HomePageScript.CurrentDate.text = DateTime.Now.ToString("dd-MM-yyyy");
 
-        //To update number of working printers, based on their past activity.
-        HomePageScript.UpdateNumberOfWorkingPrinters();
 
+        //=====================================================
+        //To count the total number of each type of orders.
+        //=====================================================
+        bool OrdersCountSuccess = false;
+
+        yield return StartCoroutine
+        (
+            GetOrdersCount
+            (
+                Result => OrdersCountSuccess = Result
+            )
+        );
+
+        if (!OrdersCountSuccess)
+        {
+            RefreshFailed();
+
+            IsRefreshingHomePage = false;
+
+            yield break;
+        }
+
+
+
+        //=====================================================
         //To calculate stationery's revenue for today.
+        //=====================================================
         bool RevenueSuccess = false;
 
         yield return StartCoroutine
@@ -2335,35 +2385,15 @@ public class Scene3Backend : MonoBehaviour
             yield break;
         }
 
-        //To count the total number of each type of orders.
-        bool OrdersCountSuccess = false;
 
-        yield return StartCoroutine
-        (
-            GetOrdersCount
-            (
-                Result => OrdersCountSuccess = Result
-            )
-        );
 
-        if (!OrdersCountSuccess)
-        {
-            RefreshFailed();
+        //To update number of working printers, based on their past activity.
+        HomePageScript.UpdateNumberOfWorkingPrinters();
 
-            IsRefreshingHomePage = false;
+        //To inform users if 0 printers are conntected.
+        HomePageScript.UpdateNumberOfConnectedPrinters();
 
-            yield break;
-        }
 
-        //To inform users thats 0 printers are conntected.
-        if (Script1.SelectedPrinters.Count <= 0)
-        {
-            HomePageScript.NoPrintersConnected.SetActive(true);
-        }
-        else
-        {
-            HomePageScript.NoPrintersConnected.SetActive(false);
-        }
 
         IsRefreshingHomePage = false;
     }
@@ -2560,6 +2590,7 @@ public class Scene3Backend : MonoBehaviour
     }
 
 
+    //This downloads PDFs of all prints of an order which is to be Printed / Opened.
     public IEnumerator Coroutine_DownloadAllPDFs(OrderSummary Order, System.Action<bool> OnComplete)
     {
         foreach (PrintDetails Print in Order.Prints)
@@ -2593,13 +2624,16 @@ public class Scene3Backend : MonoBehaviour
     }
     IEnumerator Coroutine_DownloadPDF(int PrintID, System.Action<bool, string> OnComplete)
     {
+        //This is important.
+        //Here, we are combining Unity's path + PrintID + .pdf, as currently, we are downloading and saving
+        //all PDFs in the same folder as that of the Unity project.
         string SavePath = Path.Combine
         (
             Application.persistentDataPath,
             PrintID + ".pdf"
         );
 
-        // Already downloaded.
+        //If the PDF of the same name is already downloaded.
         if (File.Exists(SavePath))
         {
             Debug.Log("PDF already exists.");
@@ -2752,6 +2786,26 @@ public class Scene3Backend : MonoBehaviour
         PrintManager.Instance.EndProcessingOrder(OrderID);
 
         Scene3ManagerScript.DisableInvisiblePanel();
+    }
+
+
+
+
+
+
+    //To check if the app is connected to the server or not =
+    public IEnumerator CheckServer(System.Action<bool> OnComplete)
+    {
+        using (UnityWebRequest request = UnityWebRequest.Get("http://localhost:3000/health"))
+        {
+            yield return request.SendWebRequest();
+
+            bool isOnline = request.result == UnityWebRequest.Result.Success;
+
+            Debug.Log(isOnline ? "Server is ONLINE" : "Server is OFFLINE");
+
+            OnComplete?.Invoke(isOnline);
+        }
     }
 }
 

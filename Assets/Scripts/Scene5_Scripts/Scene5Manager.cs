@@ -1,10 +1,22 @@
+//namespaces =
 using System.Collections;
 using TMPro;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
+
+
+
+
+
+
+
+
+
+
 public class Scene5Manager : MonoBehaviour
 {
+    //All pages of Scene5 =
     [SerializeField] private GameObject SettingsPanel;
     [SerializeField] private GameObject ViewPrintersPanel;
     [SerializeField] private GameObject UpdatePrintersPanel;
@@ -12,9 +24,11 @@ public class Scene5Manager : MonoBehaviour
     [SerializeField] private GameObject InvisiblePanel;
     [SerializeField] private GameObject MessagePanel;
 
+
+
+
+    //Message page =
     [SerializeField] public TMP_Text MessageText;
-
-
 
 
 
@@ -33,7 +47,7 @@ public class Scene5Manager : MonoBehaviour
 
 
 
-
+    //Enabling & Disabling panels =
     public void DisableAllPanels()
     {
         DisableInvisiblePanel();
@@ -84,6 +98,7 @@ public class Scene5Manager : MonoBehaviour
 
 
 
+    //Message panel stuff =
     private Coroutine MessagePanelCoroutine;
     public void EnableMessagePanel()
     {
@@ -119,14 +134,19 @@ public class Scene5Manager : MonoBehaviour
 
 
 
+    //=======================
     //Control Panel
+    //=======================
+
+    //To go from Settings -> Home
     public void ClickedHomePageButton()
     {
         SceneManager.LoadScene("Scene3_HomePage");
     }
+
+    //To go from Settings -> Account
     public void ClickedAccountButton()
     {
         SceneManager.LoadScene("Scene4_UpdateProfileInfo");
     }
-
 }

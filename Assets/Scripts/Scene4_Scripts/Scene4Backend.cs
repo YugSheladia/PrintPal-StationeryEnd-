@@ -1,9 +1,10 @@
+//namespaces =
 using System.Collections;
 using UnityEngine;
 using UnityEngine.Networking;
 
 
-//To verify if the updated stationery info ( updated through profile info -> view profile -> edit ) has reacehd the server or not.
+//To verify if the updated stationery info ( updated through profile info -> view profile -> edit ) has reachwed the server or not.
 public class UpdatedStationeryInfoWrapper
 {
     public string Message;
@@ -15,10 +16,19 @@ public class UpdatedStationeryInfoWrapper
 
 public class Scene4Backend : MonoBehaviour
 {
+    //Script refernces =
     [SerializeField] Scene4Manager Scene4ManagerScript;
     [SerializeField] ViewProfile ViewProfileScript;
  
+
+
+
+
+    //Instantiation of StationeryInfoWrapper Object =
     StationeryInfoWrapper StationeryInfoWrapperObject = new StationeryInfoWrapper();
+
+
+
 
 
     //To update a stationery's profile info.
@@ -111,6 +121,8 @@ public class Scene4Backend : MonoBehaviour
             yield break;
         }
     }
+
+
 
 
 

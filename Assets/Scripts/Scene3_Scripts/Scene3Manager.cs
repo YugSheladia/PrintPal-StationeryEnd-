@@ -1,4 +1,4 @@
-using System; 
+//namespaces =
 using UnityEngine;
 using TMPro;
 using System.Collections;
@@ -9,20 +9,26 @@ using System.Collections;
 
 public class Scene3Manager : MonoBehaviour
 {
-    
+    //Script references =    
     [SerializeField] Scene3Backend Scene3BackendScript;
 
     [SerializeField] HomePage HomePageScript;
 
 
+
+    //All panels in Scene3
     [SerializeField] GameObject BlankPanel;
     [SerializeField] GameObject HomePagePanel;
     [SerializeField] GameObject OrdersPage;
     [SerializeField] GameObject RevenuePage;
     [SerializeField] GameObject QueuePage;
 
-
     [SerializeField] GameObject InvisiblePanel;
+
+
+
+
+    //Notification panel
     [SerializeField] GameObject MessagePanel;
     [SerializeField] public TMP_Text MessageText;
 
@@ -40,6 +46,13 @@ public class Scene3Manager : MonoBehaviour
 
 
 
+
+
+
+
+
+
+    //Enabling & disabling panels =
     public void DisableAllPanels()
     {
         Debug.Log("Scene3Manager.DisabledAllPanels()");
@@ -76,6 +89,11 @@ public class Scene3Manager : MonoBehaviour
 
 
 
+    //========================================================
+    //InitializeHomePagePanel() v EnableHomePagePanel() ->
+    //========================================================
+
+    //InitializeHomePagePanel() = Enables HomePage panel + HomePageScript.StartHomePage().
     public void InitializeHomePagePanel()
     {
         Debug.Log("InitializeHomePagePanel()");
@@ -83,6 +101,8 @@ public class Scene3Manager : MonoBehaviour
         HomePagePanel.SetActive(true);
         HomePageScript.StartHomePage();
     }
+
+    //EnableHomePagePanel() = Enables HomePage panel.
     public void EnableHomePagePanel()
     {
         Debug.Log("EnableHomePagePanel()");
@@ -97,7 +117,6 @@ public class Scene3Manager : MonoBehaviour
 
 
 
-
     public void EnableOrdersPage()
     {
         OrdersPage.SetActive(true);
@@ -108,7 +127,6 @@ public class Scene3Manager : MonoBehaviour
     }
 
 
-
     public void EnableRevenuePage()
     {
         RevenuePage.SetActive(true);
@@ -117,7 +135,6 @@ public class Scene3Manager : MonoBehaviour
     {
         RevenuePage.SetActive(false);
     }
-
 
 
     public void EnableQueuePage()
@@ -136,6 +153,11 @@ public class Scene3Manager : MonoBehaviour
 
 
 
+
+
+
+
+    //Message Panel functions =
     private Coroutine MessagePanelCoroutine;
     public void EnableMessagePanel()
     {
@@ -168,10 +190,36 @@ public class Scene3Manager : MonoBehaviour
 
 
 
+
+
+
+
+
+
+
+
+    //When the app can't connect to the server, it enables the "BlankPage" which has a refresh button to try to
+    // connect to the server again... this function is connected to the same refresh button.
     public void ClickedBlankPageRefreshButton()
     {
-        //EnableHomePagePanel();
+        //Old
+        //InitializeHomePagePanel();
 
-        InitializeHomePagePanel();
+        //New =
+        StartCoroutine(Scene3BackendScript.CheckServer((isOnline) =>
+        {
+            if (isOnline)
+            {
+                Debug.Log("Server is active");
+                InitializeHomePagePanel();
+            }
+            else
+            {
+                Debug.Log("Server is inactive");
+
+                MessageText.text = "Something went wrong, try again later.";
+                EnableMessagePanel();
+            }
+        }));
     }
 }

@@ -1,21 +1,24 @@
+//namespaces =
 using System.Collections;
 using System.Collections.Generic;
 using System.Text;
 using UnityEngine;
 using UnityEngine.Networking;
-using static Scene2Backend;
+
+
+
 
 
 
 public class Scene5Backend : MonoBehaviour
 {
+    //Script references =
     [SerializeField] Scene5Manager Scene5ManagerScript;
 
 
 
-
-
-
+    
+    //Server URL =
     public string ServerURL = "http://localhost:3000";
 
 
@@ -256,8 +259,11 @@ public class Scene5Backend : MonoBehaviour
 
 
 
-
-
+    //==============================================================
+    //Feature of Enabling / Disabling Automatic Printing has been transferred from Settings -> HomePage
+    //Regardless, the below lines of code made Automatic Printing a preference, and connected it to the database, which is a legcay feature now, so this is retired. 
+    //==============================================================
+    /*
     [System.Serializable]
     public class AutomaticPrintingRequest
     {
@@ -336,11 +342,9 @@ public class Scene5Backend : MonoBehaviour
 
         OnComplete?.Invoke(true);
     }
+    */
 
-
-
-
-
+    /*
     [System.Serializable]
     public class GetAutomaticPrintingResponse
     {
@@ -390,4 +394,5 @@ public class Scene5Backend : MonoBehaviour
 
         OnComplete?.Invoke(Response.AutomaticPrinting);
     }
+    */
 }

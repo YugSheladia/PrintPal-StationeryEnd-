@@ -1,41 +1,57 @@
+//namespaces =
 using UnityEngine;
+
+
+
 
 public class OrderStatusManager : MonoBehaviour
 {
+    //Script references =
     [SerializeField] Scene3Manager      Scene3ManagerScript;
     [SerializeField] Scene3Backend      Scene3BackendScript;
 
     [SerializeField] HomePage HomePageScript;
 
 
+
+
     [Header("Order Status")]
+
+    //Prefab of OrderStatus panel.
     [SerializeField] GameObject OrderStatusPrefab;
+
+    //An object which acts as a parent to OrderStatus panels.
     [SerializeField] GameObject OrderStatusListParent;
 
+    //A reference to OrderStatus panel itself.
+    [SerializeField] public GameObject OrdersStatusManagerPanel;
 
-    [SerializeField] public GameObject OrdersStatusPanel;
 
 
 
+
+
+    //Called by HomePage when a user clicks on Pending / Printed / Collected orders.
     public void CreateOrderStatusPanels()
     {
         if (Scene3BackendScript.ConfirmedOrders.Orders.Length <= 0)
 
         {
-            //Create the "No Orders exist" wala object here.
+            //In future, if I ever want to make a "No Orders exist" wala object, it should be instantitated here.
 
             return;
         }
 
         foreach (OrderSummary Order in Scene3BackendScript.ConfirmedOrders.Orders)
         {
-            //Debug.Log("OrderID = " + Order.OrderID);
-
             CreateOrderStatusPanel(Order);
         }
     }
+
+    //Called by CreateOrderStatusPanels() to instantiate a panel for each order in Scene3Backend.ConfirmedOrders.Orders
     public void CreateOrderStatusPanel(OrderSummary Order)
     {
+        //To check if the same order already exists.
         foreach (OrderStatus Panel in OrderStatusListParent.GetComponentsInChildren<OrderStatus>())
         {
             if (Panel.Order.OrderID == Order.OrderID) { return; }
@@ -52,21 +68,25 @@ public class OrderStatusManager : MonoBehaviour
 
         OrderStatusScript.SetOrder(Order);
 
+        //To set the name of the customer to whom the order belongs to.
         Scene3BackendScript.GetUsernameFromServer(Order.UserID, OrderStatusScript);
     }
 
 
+
+
     
 
+    //To go from OrderStatus page to HomePage.
     public void ClickedPreviousPageButton()
     {
         DeleteAllOrderPanels();
 
         Scene3ManagerScript.DisableAllPanels();
         Scene3ManagerScript.EnableHomePagePanel();
-
-        //HomePageScript.UnpausePrinting();
     }
+
+    //To delete all OrderStatus panels before leaving the OrderStatus page.
     private void DeleteAllOrderPanels()
     {
         foreach (Transform Child in OrderStatusListParent.transform)
@@ -78,6 +98,9 @@ public class OrderStatusManager : MonoBehaviour
 
 
 
+
+
+    //Dunno what this is used for, but looks useful when one wants to delete a OrderStatus panel of a specific OrderID.
     public void RemoveOrderPanel(int OrderID)
     {
         foreach (OrderStatus Panel in OrderStatusListParent.GetComponentsInChildren<OrderStatus>())

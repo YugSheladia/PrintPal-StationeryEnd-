@@ -32,6 +32,8 @@ public static class Script1
             PrintStationeryInfo();
 
             StationeryInfoObject = Info;
+
+            return;
         }
 
         Debug.LogWarning("StationeryInfoObject is NULL.");
@@ -49,6 +51,8 @@ public static class Script1
             StationeryInfoObject.StationeryLocation = Info.StationeryLocation;
             StationeryInfoObject.Email = Info.Email;
             StationeryInfoObject.UPINumber = Info.UPINumber;
+
+            return;
         }
 
         Debug.LogWarning("UpdatedStationeryInfoObject is NULL.");
@@ -86,7 +90,14 @@ public static class Script1
     //SetPrinters() = used to save printer preferences in Script1.
     public static void SetPrinters(List<Printer> printers)
     {
-        SelectedPrinters = printers;
+        if (printers != null)
+        {
+            SelectedPrinters = printers;
+
+            return;
+        }
+
+        Debug.LogWarning("Printers list is NULL.");
     }
 
     //PrintAllPrinterDetails() = used to print details of all selected printers. 

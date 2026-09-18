@@ -1,7 +1,14 @@
+//namespaces = 
 using UnityEngine;
 using TMPro;
 using System.Collections;
 
+
+
+
+
+
+//This class is used to store all the info the user has inputted in UpdateProfile page's Text Input fields.
 public class UpdatedStationeryInfo
 {
     public string PhoneNumber;
@@ -13,13 +20,25 @@ public class UpdatedStationeryInfo
     public string Email;
 }
 
+
+
+
+
+
+
+
 public class UpdateProfile : MonoBehaviour
 {
+    //Script references =
     [SerializeField] Scene4Manager Scene4ManagerScript;
     [SerializeField] Scene4Backend Scene4BackendScript;
 
     [SerializeField] ViewProfile ViewProfileScript;
 
+
+
+
+    //UpdateProfile's UI Text fields =
     [SerializeField] TMP_InputField StationeryNameInput;
     [SerializeField] TMP_InputField StationeryLocationInput;
     [SerializeField] TMP_InputField UPINumberInput;
@@ -28,15 +47,22 @@ public class UpdateProfile : MonoBehaviour
 
 
 
+    //Instantiation of UpdateStationeryInfo object.
     UpdatedStationeryInfo UpdatedStationeryInfoObject = new UpdatedStationeryInfo();
 
 
 
 
+
+
+
+
+    //This function is called by ViewProfile when a user clicks on Edit button.
     public IEnumerator UpdateProfileInfo()
     {
         bool Success = false;
 
+        //Used to recieve all Stationery info from the server, to display it in UpdateProfile page.
         yield return (StartCoroutine(Scene4BackendScript.GetStationeryInfoFromServer(
                                                                                         Result =>
                                                                                         {
@@ -62,8 +88,8 @@ public class UpdateProfile : MonoBehaviour
         Scene4ManagerScript.DisableAllPanels();
         Scene4ManagerScript.EnableUpdateProfilePanel();
     }
-
-
+    
+    //This functions is called by UpdateProfileInfo() to Update UI Textfields of UpdateProfile page.
     public void UpdateUI()
     {
         StationeryNameInput.text        = Script1.StationeryInfoObject.StationeryName;
@@ -74,6 +100,19 @@ public class UpdateProfile : MonoBehaviour
     }
 
 
+
+
+
+
+
+
+
+    //============================
+    //Button functions =
+    //============================
+
+
+    //This function is called when a user clicks on Submit button.
     public void ClickedSubmitButton()
     {
         Scene4ManagerScript.EnableInvisiblePanel();
@@ -85,20 +124,23 @@ public class UpdateProfile : MonoBehaviour
         UpdatedStationeryInfoObject.UPINumber           = UPINumberInput.text;
         UpdatedStationeryInfoObject.Email               = EmailInput.text;
 
+        //This is to actually update the Stationery info in the server.
         StartCoroutine(UpdateInfoInServer());
     }
-
-
     public IEnumerator UpdateInfoInServer()
     {
         bool Success = false;
 
-        yield return StartCoroutine(
-                                    Scene4BackendScript.UpdateStationeryInfoInServer(
-                                    UpdatedStationeryInfoObject, Result =>
-                                    {
-                                    Success = Result;
-                                    }));
+        yield return StartCoroutine
+                     (
+                        Scene4BackendScript.UpdateStationeryInfoInServer
+                        (
+                            UpdatedStationeryInfoObject, Result =>
+                            {
+                                Success = Result;
+                            }
+                        )
+                     );
 
         if (!Success)
         {
@@ -123,6 +165,9 @@ public class UpdateProfile : MonoBehaviour
     }
 
 
+
+
+    //IT is used to go from UpdateProfile page -> ViewProfile page.
     public void ClickedPreviousPageButton()
     {
         Scene4ManagerScript.DisableAllPanels();

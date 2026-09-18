@@ -1,28 +1,35 @@
+//namespaces =
 using UnityEngine;
 using UnityEngine.SceneManagement;
-using UnityEngine.UI;
+
+
+
+
 
 public class Settings : MonoBehaviour
 {
+    //Script references =
     [SerializeField] Scene5Manager Scene5ManagerScript;
     [SerializeField] Scene5Backend Scene5BackendScript;
 
     [SerializeField] ViewPrinters ViewPrintersScript;
     [SerializeField] UpdatePrinters UpdatePrintersScript;
 
-    [SerializeField] GameObject ErrorPanel;
-
-
-    [SerializeField] private GameObject ToggleOffImage;
-    [SerializeField] private GameObject ToggleOnImage;
 
 
 
+
+    //==============================
+    //Button functions =
+    //==============================
     
+    //To view previously selected printers.
     public void ClickedViewSelectedPrinters()
     {
+        //To prevent user from pressing any button while the below process is occuring.
         Scene5ManagerScript.EnableInvisiblePanel();
 
+        //This coroutine gets the selected printers from the server's database, and saves it inside Script1.
         StartCoroutine
         (
             Scene5BackendScript.GetApprovedPrintersFromServer
@@ -42,28 +49,33 @@ public class Settings : MonoBehaviour
 
                     if (Script1.SelectedPrinters.Count <= 0)
                     {
-                        Scene5ManagerScript.MessageText.text = "No printers have been selected\n Click on Select new printers in Settings.";
-
                         Scene5ManagerScript.DisableAllPanels();
-
                         Scene5ManagerScript.EnableSettingsPanel();
+
+                        Scene5ManagerScript.MessageText.text = "No printers have been selected\n Click on Select new printers in Settings.";
                         Scene5ManagerScript.EnableMessagePanel();
 
                         return;
                     }
 
-                    Scene5ManagerScript.MessageText.text = "Total printers currently in use : " + Script1.SelectedPrinters.Count;
 
                     ViewPrintersScript.CreatePrinterPanels();
 
                     Scene5ManagerScript.DisableAllPanels();
-
-                    Scene5ManagerScript.EnableMessagePanel();
                     Scene5ManagerScript.EnableViewPrintersPanel();
+
+                    Scene5ManagerScript.MessageText.text = "Total printers currently in use : " + Script1.SelectedPrinters.Count;
+                    Scene5ManagerScript.EnableMessagePanel();
                 }
             )
         );
     }
+
+
+
+
+
+    //To update printer selection.
     public void ClickedUpdatePrinters()
     {
         Scene5ManagerScript.EnableInvisiblePanel();
@@ -71,8 +83,11 @@ public class Settings : MonoBehaviour
 
         GetPrinters();
     }
+
+    //Called by ClickedUpdatePrinters().
     public void GetPrinters()
     {
+        //This retrieves all the printers which have been stored in the computer's history.
         UpdatePrintersScript.GetConnectedPrinters
         (
             Result =>
@@ -93,13 +108,5 @@ public class Settings : MonoBehaviour
                 }
             }
         );
-    }
-
-
-
-
-    public void ClickedPreviousPage()
-    {
-        SceneManager.LoadScene("Scene3_HomePage");
     }
 }

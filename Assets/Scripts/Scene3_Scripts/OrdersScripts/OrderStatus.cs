@@ -1,43 +1,77 @@
+//namespaces =
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 
+
+
+
+
 public class OrderStatus : MonoBehaviour
 {
+    //Script references =
     Scene3Manager           Scene3ManagerScript;
     Scene3Backend           Scene3BackendScript;
     OrderStatusManager      OrderStatusManagerScript;
 
+
+
+
+    //=============================
     [Header("Prefabs")]
+    //=============================
+
+    //Prefabs for =
+    //1. PrintBlls ( Bills of each Print of an Order ).
+    //2. Print_FinalBill 
+    //3. OrderStatusInfo ( contains the PrintBills & Print_FinalBill ).
     [SerializeField] GameObject OrderStatusInfoPrefab;
     [SerializeField] GameObject PrintBillPrefab;
     [SerializeField] GameObject Print_FinalBillPrefab;
 
+
+
+
+    //=================
     [Header("UI")]
+    //=================
+
+    //Name of the Customer.
     public string UsernameString;
     [SerializeField] TMP_Text Username;
 
+    //Time at which the order was recieved.
     [SerializeField] TMP_Text StatusTimeStampText;
 
+    //OrderID & OTP.
     [SerializeField] TMP_Text OrderIDText;
     [SerializeField] TMP_Text OrderOTP;
 
+
+    //Depending upon the status of the Order, one of these panels will be activated.
+    //This is done as the positioning of buttons, and which buttons are available to use, change on the basis of the status of the order.
     [SerializeField] GameObject ArchivePanel;
     [SerializeField] GameObject PendingPanel;
     [SerializeField] GameObject CompletedPanel;
     [SerializeField] GameObject CollectedPanel;
 
-    
+
+
+    //This changes based on the status of the order as well.
+    //e.g. Red for Pending, Yellow for Printed, etc.
     [SerializeField] Image StatusBoxColor;
     [SerializeField] TMP_Text StatusBoxText;
 
-    //[SerializeField] Image ViewDetailsColor;
-    [SerializeField] Image StatusIndicator;
 
-    //[SerializeField] Image MidSectionOutline;
-
+    //This is a reference to the OrderStatusInfo object itself, which contains everything mentioned above.
     GameObject OrderStatusInfoObject;
 
+
+
+
+    //============
+    //Enums
+    //============
 
     enum OrderStatusEnum
     {
@@ -47,7 +81,6 @@ public class OrderStatus : MonoBehaviour
     }
     OrderStatusEnum orderStatusEnum;
 
-
     enum ArchiveStatusEnum
     {
         Unarchived,
@@ -56,6 +89,17 @@ public class OrderStatus : MonoBehaviour
     ArchiveStatusEnum archiveStatusEnum;
 
 
+
+
+
+
+
+
+
+
+
+
+    //Setting the required scripts after instantiating OrderStatus object.
     public void SetRequiredScripts(
                                     Scene3Manager Scene3ManagerScript,
                                     Scene3Backend Scene3BackendScript,
@@ -70,10 +114,13 @@ public class OrderStatus : MonoBehaviour
 
 
 
+
+
+
+    //OrderSummary is The object which contains all information about an order.
     public OrderSummary Order;
     public void SetOrder(OrderSummary Order)
     {
-        //Debug.Log("Inside SetOrder()");
         this.Order = Order;
     }
     public void UpdateUI()
@@ -81,9 +128,12 @@ public class OrderStatus : MonoBehaviour
         orderStatusEnum = (OrderStatusEnum)Order.Status;
         archiveStatusEnum = (ArchiveStatusEnum)Order.ArchivedByStationery;
 
+
+        //Changing OrderStatus panel on the basis of it's status =
         switch(orderStatusEnum)
         {
             case OrderStatusEnum.Pending:
+
                 DisableAllPanels();
                 EnablePendingPanel();
 
@@ -91,17 +141,11 @@ public class OrderStatus : MonoBehaviour
                 StatusBoxColor.color = new Color32(246, 59, 57, 200);
                 
                 StatusTimeStampText.text = "Order Created at " + Order.CreatedAt;
-                //StatusTimeStampText.color = new Color32(246, 59, 57, 200);
-
-                //ViewDetailsColor.color = new Color32(246, 59, 57, 200);
-
-                StatusIndicator.color = new Color32(246, 59, 57, 200);
-
-                //MidSectionOutline.color = new Color32(246, 59, 57, 200); 
                 
                 break;
 
             case OrderStatusEnum.Completed:
+
                 DisableAllPanels();
                 EnableCompletedPanel();
 
@@ -109,17 +153,11 @@ public class OrderStatus : MonoBehaviour
                 StatusBoxColor.color = new Color32(245, 207, 73, 230);
 
                 StatusTimeStampText.text = "Order Completed at " + Order.CompletedAt;
-                //StatusTimeStampText.color = new Color32(245, 207, 73, 230);
-
-                //ViewDetailsColor.color = new Color32(245, 207, 73, 230);
-
-                StatusIndicator.color = new Color32(245, 207, 73, 230);
-
-                //MidSectionOutline.color = new Color32(245, 207, 73, 230); 
 
                 break;
 
             case OrderStatusEnum.Collected:
+
                 DisableAllPanels();
                 EnableCollectedPanel();
 
@@ -127,17 +165,11 @@ public class OrderStatus : MonoBehaviour
                 StatusBoxColor.color = new Color32(2, 141, 26, 220);
 
                 StatusTimeStampText.text = "Order Collected at " + Order.CollectedAt;
-                //StatusTimeStampText.color = new Color32(2, 141, 26, 220);
-
-                //ViewDetailsColor.color = new Color32(2, 141, 26, 220);
-
-                StatusIndicator.color = new Color32(2, 141, 26, 220);
-
-                //MidSectionOutline.color = new Color32(2, 141, 26, 220); 
-
+ 
                 break;
 
             default:
+
                 DisableAllPanels();
            
                 Debug.Log("Invalid Order Status");
@@ -146,6 +178,8 @@ public class OrderStatus : MonoBehaviour
                 break;
         }
 
+
+        //Changing OrderStatus panel on the basis of it's archival status =
         switch (archiveStatusEnum)
         {
             case ArchiveStatusEnum.Unarchived:
@@ -158,30 +192,23 @@ public class OrderStatus : MonoBehaviour
                 StatusBoxText.text = "Archived";
                 StatusBoxColor.color = new Color32(255, 255, 255, 255);
 
-                //StatusTimeStampText.color = new Color32(36, 36, 36, 150);
-
-                //ViewDetailsColor.color = new Color32(36, 36, 36, 150);
-
-                StatusIndicator.color = new Color32(36, 36, 36, 150);
-
-                //MidSectionOutline.color = new Color32(36, 36, 36, 150); 
                 break;
         }
 
+
+        //Other vital information =
         Username.text = UsernameString;
 
         OrderIDText.text                = Order.OrderID.ToString();
         OrderOTP.text                   = Order.OrderOTP.ToString();
-        
-
-        //print("OrderID                      = " + Order.OrderID.ToString()      +
-        //      "\nOrderOTP                   = " + Order.OrderOTP.ToString()     +
-        //      "\nApproximate time left      = " + Order.ApproximateTimeLeft);
     }
 
 
     
 
+
+
+    //This is the function which is called when user clicks on 'View Details' inside OrderStatus panel.
     public void ClickedOrderStatusPanel()
     {
         if (Order == null)
@@ -192,10 +219,16 @@ public class OrderStatus : MonoBehaviour
 
         CreateOrderStatusInfo();
 
-        OrderStatusManagerScript.OrdersStatusPanel.SetActive(false);
+        //This is to turn off OrderStatusManager panel.
+        OrderStatusManagerScript.OrdersStatusManagerPanel.SetActive(false);
     }
+
+    //This is called by ClickedOrderStatusPanel().
+    //It creates all Bills.
     private void CreateOrderStatusInfo()
     {
+        //Instantiation of OrderStatusInfo object.
+        //OrderStatusInfo contains = Bills (s) + FinalBill.
         OrderStatusInfoObject = Instantiate(
                                                     OrderStatusInfoPrefab,
                                                     OrderStatusManagerScript.transform,
@@ -205,9 +238,14 @@ public class OrderStatus : MonoBehaviour
         OrderStatusInfo OrderStatusInfoScript = 
             OrderStatusInfoObject.GetComponent<OrderStatusInfo>();
 
+        //Providing reference to the required scripts.
         OrderStatusInfoScript.SetScene3ManagerScript(Scene3ManagerScript);
-        OrderStatusInfoScript.SetOrdersStatusPanel(OrderStatusManagerScript.OrdersStatusPanel);
+        
+        //Providing reference to this OrderStatusManager panel itself.
+        OrderStatusInfoScript.SetOrdersStatusPanel(OrderStatusManagerScript.OrdersStatusManagerPanel);
 
+        //This is to obtain the reference of the OrderStatusInfoListParent ( which is a child of OrderStatusInfo ).
+        //This object will act as a parent to all Bills as well as the FinalBill.
         OrderStatusInfoListParentScript Parent = 
             OrderStatusInfoObject.GetComponentInChildren<OrderStatusInfoListParentScript>();
 
@@ -234,6 +272,8 @@ public class OrderStatus : MonoBehaviour
 
         CreateFinalBill(BillParent);
     }
+
+    //Called By CreateOrderStatusInfo() for final bill creation.
     private void CreateFinalBill(Transform BillParent)
     {
         GameObject FinalBillObject = Instantiate(Print_FinalBillPrefab, BillParent, false);
@@ -252,6 +292,7 @@ public class OrderStatus : MonoBehaviour
 
 
 
+    //These are functions to mark a specific Order as Pending / Completed / Collected / Arhived.
     public void ClickedMarkAsPending()
     {
         if (Order == null)
@@ -260,12 +301,12 @@ public class OrderStatus : MonoBehaviour
             return;
         }
 
+        Scene3ManagerScript.EnableInvisiblePanel();
+
         if (archiveStatusEnum == ArchiveStatusEnum.Archived)
         {
             Scene3BackendScript.SetOrderAsUnarchived(Order.OrderID, this.gameObject);
         }
-
-        Scene3ManagerScript.EnableInvisiblePanel();
 
         Scene3BackendScript.SetOrderAsPending(Order.OrderID, this.gameObject);
 
@@ -279,12 +320,12 @@ public class OrderStatus : MonoBehaviour
             return;
         }
 
+        Scene3ManagerScript.EnableInvisiblePanel();
+
         if (archiveStatusEnum == ArchiveStatusEnum.Archived)
         {
             Scene3BackendScript.SetOrderAsUnarchived(Order.OrderID, this.gameObject);
         }
-
-        Scene3ManagerScript.EnableInvisiblePanel();
 
         Scene3BackendScript.SetOrderAsCompleted(Order.OrderID, this.gameObject);
 
@@ -298,12 +339,12 @@ public class OrderStatus : MonoBehaviour
             return;
         }
 
+        Scene3ManagerScript.EnableInvisiblePanel();
+
         if (archiveStatusEnum == ArchiveStatusEnum.Archived)
         {
             Scene3BackendScript.SetOrderAsUnarchived(Order.OrderID, this.gameObject);
         }
-
-        Scene3ManagerScript.EnableInvisiblePanel();
 
         Scene3BackendScript.SetOrderAsCollected(Order.OrderID, this.gameObject);
 
@@ -340,6 +381,10 @@ public class OrderStatus : MonoBehaviour
 
 
 
+    //==================================================================================================
+    //These panels are made as the UI differs depending upon the state of the Order.
+    //As in the placement of Mark as Pending / Printed / Collected buttons differ from state to state.
+    //==================================================================================================
 
     public void DisableAllPanels()
     {
@@ -388,7 +433,7 @@ public class OrderStatus : MonoBehaviour
 
 
 
-
+    //This button is used to open PDFs of all prints of an order.
     public void ClickedOpenButton()
     {
         StartCoroutine
@@ -421,6 +466,10 @@ public class OrderStatus : MonoBehaviour
         );
     }
 
+
+
+    //This is to manually print an Order.
+    //This is where we begin when we restructure the printing architecture.
     public void ClickedPrintButton()
     {
         Debug.Log("Clicked Print Button.");
@@ -429,5 +478,4 @@ public class OrderStatus : MonoBehaviour
 
         Scene3BackendScript.StartPrintJob(Order);
     }
-
 }
