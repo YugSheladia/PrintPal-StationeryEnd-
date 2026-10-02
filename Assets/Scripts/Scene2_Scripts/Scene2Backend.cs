@@ -221,6 +221,8 @@ public class Scene2Backend : MonoBehaviour
                     StationeryInfoWrapperObject.StationeryInfoObject
                 );
 
+                StationeryInfoWrapperObject.StationeryInfoObject.PrintStationeryDetails();
+
                 OnComplete?.Invoke(true);
             }
             else
@@ -255,6 +257,9 @@ public class Scene2Backend : MonoBehaviour
 
         public bool SupportsDoubleSidedPrinting;
         public bool SupportsColorPrinting;
+
+        public int PageCapacity;
+        public int PagesLeft;
     }
 
     [System.Serializable]
@@ -335,6 +340,9 @@ public class Scene2Backend : MonoBehaviour
 
             printer.SupportsDoubleSidedPrinting = approvedPrinter.SupportsDoubleSidedPrinting;
             printer.SupportsColorPrinting = approvedPrinter.SupportsColorPrinting;
+
+            printer.PageCapacity = approvedPrinter.PageCapacity;
+            printer.PagesLeft = approvedPrinter.PagesLeft;
 
             printers.Add(printer);
         }

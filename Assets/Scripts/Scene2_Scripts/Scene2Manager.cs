@@ -23,6 +23,8 @@ public class StationeryInfo
 
     //public bool AutomaticPrinting = false;
 
+    public bool IsOperational;
+
     public StationeryInfo() { }
 
     public void PrintStationeryDetails()
@@ -33,7 +35,8 @@ public class StationeryInfo
                   "\nStationery Name        = " + StationeryName        +
                   "\nStationery Location    = " + StationeryLocation    +
                   "\nUPI Number             = " + UPINumber             + 
-                  "\nEmail                  = " + Email);
+                  "\nEmail                  = " + Email                 +
+                  "\nIsOperational          = " + IsOperational);
     }
 }
 

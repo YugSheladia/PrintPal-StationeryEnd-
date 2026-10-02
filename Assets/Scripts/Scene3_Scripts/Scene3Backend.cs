@@ -37,6 +37,7 @@ public class OrderSummary
     public string CreatedAt;
     public string CompletedAt;
     public string CollectedAt;
+    public string FailedAt;
     public string DeletedAt;
 
     public string ArchivedByStationeryAt;
@@ -311,6 +312,10 @@ public class Scene3Backend : MonoBehaviour
 
     [SerializeField] PrintManager PrintManagerScript;
 
+    [SerializeField] RevenuePageManager RevenuePageManagerScript;
+
+    [SerializeField] QueueManager QueueManagerScript;
+
 
 
 
@@ -331,6 +336,88 @@ public class Scene3Backend : MonoBehaviour
     //This is because these all these different request types recieve and store order in one common object.
     //This is why all of these requests are handled with a single IsBusy bool. If IsBusy is false, then the request is accepted, otherwise the request waits until the IsBusy becomes false.
     public bool IsBusy = false;
+
+
+
+
+
+
+
+
+
+    //To check if the app is connected to the server or not =
+    public IEnumerator CheckServer(System.Action<bool> OnComplete)
+    {
+        using (UnityWebRequest request = UnityWebRequest.Get("http://localhost:3000/health"))
+        {
+            yield return request.SendWebRequest();
+
+            bool isOnline = request.result == UnityWebRequest.Result.Success;
+
+            Debug.Log(isOnline ? "Server is ONLINE" : "Server is OFFLINE");
+
+            OnComplete?.Invoke(isOnline);
+        }
+    }
+
+
+
+
+
+
+
+
+
+
+
+    //To Open / Close a stationery =
+
+    [System.Serializable]
+    public class OperationalRequest
+    {
+        public bool IsOperational;
+    }
+
+    public IEnumerator SetStationeryOperational(int stationeryID, bool isOperational, System.Action<bool> OnComplete)
+    {
+        string json = JsonUtility.ToJson(new OperationalRequest
+        {
+            IsOperational = isOperational
+        });
+
+        using (UnityWebRequest request = new UnityWebRequest(
+            "http://localhost:3000/stationery/operational/" + stationeryID,
+            "PUT"))
+        {
+            byte[] body = System.Text.Encoding.UTF8.GetBytes(json);
+
+            request.uploadHandler = new UploadHandlerRaw(body);
+            request.downloadHandler = new DownloadHandlerBuffer();
+
+            request.SetRequestHeader("Content-Type", "application/json");
+
+            yield return request.SendWebRequest();
+
+            if (request.result == UnityWebRequest.Result.Success)
+            {
+                Debug.Log("Operational status updated.");
+
+                OnComplete?.Invoke(true);
+            }
+            else
+            {
+                Debug.LogError(request.error);
+
+                OnComplete?.Invoke(false);
+            }
+        }
+    }
+
+
+
+
+
+
 
 
 
@@ -638,6 +725,108 @@ public class Scene3Backend : MonoBehaviour
         }
 
         Debug.Log("Finished Downloading Collected Orders.");
+        IsBusy = false;
+
+        OnComplete(true);
+    }
+    public IEnumerator GetFailedOrders(int StationeryID, System.Action<bool> OnComplete)
+    {
+        // Wait for any other order fetch already in progress (manual or the
+        // automatic-printing background poll) to finish first, rather than
+        // corrupting its in-flight shared Confirmed*/ state.
+        while (IsBusy)
+        {
+            yield return null;
+        }
+
+        Debug.Log("Downloading Failed Orders...");
+
+        IsBusy = true;
+
+        ConfirmedOrders.Orders = new OrderSummary[0];
+        ConfirmedPrints.Prints = new PrintSummary[0];
+        ConfirmedPrintSettings.PrintSettings = new PrintSettingsSummary[0];
+        ConfirmedPrintBills.PrintBills = new PrintBillsSummary[0];
+
+        UnityWebRequest request = UnityWebRequest.Get
+        (
+            $"http://localhost:3000/orders/failed?StationeryID={StationeryID}"
+        );
+
+        yield return request.SendWebRequest();
+
+        if (request.result != UnityWebRequest.Result.Success)
+        {
+            Debug.LogError
+            (
+                "Orders Download Failed: "
+                + request.error
+            );
+
+            IsBusy = false;
+
+            OnComplete(false);
+            yield break;
+        }
+
+        #if UNITY_EDITOR
+        Debug.Log(request.downloadHandler.text);
+        #endif
+
+        OrderSummaryWrapper Response =
+            JsonUtility.FromJson<OrderSummaryWrapper>
+            (
+                request.downloadHandler.text
+            );
+
+        if (Response == null)
+        {
+            Debug.LogError("Orders JSON Parsing Failed.");
+            IsBusy = false;
+
+            OnComplete(false);
+            yield break;
+        }
+
+        if (!Response.Success)
+        {
+            Debug.LogError
+            (
+                "Server Error: "
+                + Response.Message
+            );
+
+            IsBusy = false;
+
+            OnComplete(false);
+            yield break;
+        }
+
+        ConfirmedOrders.Orders =
+            Response.Orders ?? new OrderSummary[0];
+
+        Debug.Log
+        (
+            $"Downloaded {ConfirmedOrders.Orders.Length} Failed Orders."
+        );
+
+        bool PrintsSuccess = false;
+
+        yield return StartCoroutine
+        (
+            GetPrints(Result => PrintsSuccess = Result)
+        );
+
+        if (!PrintsSuccess)
+        {
+            OnComplete(false);
+
+            IsBusy = false;
+
+            yield break;
+        }
+
+        Debug.Log("Finished Downloading Failed Orders.");
         IsBusy = false;
 
         OnComplete(true);
@@ -1223,6 +1412,21 @@ public class Scene3Backend : MonoBehaviour
             )
         );
     }
+    public void SetOrderAsFailed(int OrderID, GameObject Panel)
+    {
+        StartCoroutine
+        (
+            SetOrderAsFailed
+            (
+                OrderID,
+                Success => HandleStandaloneStatusChange
+                (
+                    Success,
+                    Panel
+                )
+            )
+        );
+    }
     public void SetOrderAsUnarchived(int OrderID, GameObject Panel)
     {
         StartCoroutine
@@ -1253,7 +1457,15 @@ public class Scene3Backend : MonoBehaviour
             return;
         }
 
-        Destroy(Panel);
+        //This if statement is added because in some ocassions, we may call the "SetOrderAs...()" functions without the need to destroy the panel.
+        if(Panel)
+        {
+            Destroy(Panel);
+        }
+        else
+        {
+            Debug.Log("No Panel to destroy.");
+        }
     }
 
 
@@ -1384,6 +1596,49 @@ public class Scene3Backend : MonoBehaviour
         }
 
         Debug.Log("Order marked as Collected.");
+
+        OnComplete(true);
+    }
+    public IEnumerator SetOrderAsFailed(int OrderID, System.Action<bool> OnComplete)
+    {
+        OrderIDRequest requestBody = new();
+        requestBody.OrderID = OrderID;
+
+        string json = JsonUtility.ToJson(requestBody);
+
+        byte[] body =
+            System.Text.Encoding.UTF8.GetBytes(json);
+
+        UnityWebRequest request = new UnityWebRequest
+        (
+            "http://localhost:3000/order/failed",
+            "POST"
+        );
+
+        request.uploadHandler = new UploadHandlerRaw(body);
+        request.downloadHandler = new DownloadHandlerBuffer();
+
+        request.SetRequestHeader
+        (
+            "Content-Type",
+            "application/json"
+        );
+
+        yield return request.SendWebRequest();
+
+        if (request.result != UnityWebRequest.Result.Success)
+        {
+            Debug.LogError
+            (
+                "Failed To Mark Order As Failed: "
+                + request.error
+            );
+
+            OnComplete(false);
+            yield break;
+        }
+
+        Debug.Log("Order marked as Failed.");
 
         OnComplete(true);
     }
@@ -1779,6 +2034,24 @@ public class Scene3Backend : MonoBehaviour
             yield break;
         }
 
+        bool FailedSuccess = false;
+
+        yield return StartCoroutine
+        (
+            GetOrderCount
+            (
+                "failed",
+                HomePageScript.TotalFailedOrdersText,
+                Result => FailedSuccess = Result
+            )
+        );
+
+        if (!FailedSuccess)
+        {
+            OnComplete(false);
+            yield break;
+        }
+
         OnComplete(true);
     }
     public IEnumerator GetOrderCount(string status, TMP_Text targetText, System.Action<bool> OnComplete)
@@ -1940,7 +2213,7 @@ public class Scene3Backend : MonoBehaviour
             Response.Amount.ToString("F2");
 
         OnComplete(true);
-    } /////////
+    } 
 
 
 
@@ -2036,6 +2309,52 @@ public class Scene3Backend : MonoBehaviour
     //==================================================
     // 30 days Revenue
     //==================================================
+
+    public void LoadRevenue(int StationeryID)
+    {
+        GetRevenueFromServer
+        (
+            StationeryID,
+            RevenueRows =>
+            {
+                if (RevenueRows == null)
+                {
+                    Scene3ManagerScript.DisableInvisiblePanel();
+
+                    Scene3ManagerScript.EnableMessagePanel();
+
+                    return;
+                }
+
+                if (RevenueRows.Length <= 0)
+                {
+                    Scene3ManagerScript.DisableInvisiblePanel();
+
+                    Scene3ManagerScript.MessageText.text = "No revenue has been made in the last 31 days.";
+                    Scene3ManagerScript.EnableMessagePanel();
+
+                    return;
+                }
+
+                foreach (RevenueDetails Row in RevenueRows)
+                {
+                    Debug.Log
+                    (
+                        $"{Row.RevenueDate} | " +
+                        $"Revenue = {Row.Revenue} | " +
+                        $"Orders = {Row.TotalOrders}"
+                    );
+
+                    RevenuePageManagerScript.CreateRevenuePanel(Row);
+                }
+
+                Scene3ManagerScript.DisableAllPanels();
+                Scene3ManagerScript.EnableRevenuePage();
+
+                Scene3ManagerScript.DisableInvisiblePanel();
+            }
+        );
+    }
 
     [System.Serializable]
     public class RevenueDetails
@@ -2304,7 +2623,8 @@ public class Scene3Backend : MonoBehaviour
 
                 PrintManager.Instance.BeginProcessingOrder(Order.OrderID);
 
-                StartPrintJob(Order);
+                //StartPrintJob(Order);
+                StartCoroutine(ProcessOrder(Order));
             }
         }
         finally
@@ -2410,7 +2730,16 @@ public class Scene3Backend : MonoBehaviour
 
 
 
-    //Printing process -
+
+
+
+
+    //=====================================
+    //Printing process ( Updated )
+    //=====================================
+
+
+    //Required class definitions =
 
     private const string ServerURL = "http://localhost:3000";
 
@@ -2445,17 +2774,89 @@ public class Scene3Backend : MonoBehaviour
     }
 
 
-    public void StartPrintJob(OrderSummary Order)
-    {
-        Debug.Log("Inside StartPrintJob().");
 
-        StartCoroutine(Coroutine_CreatePrintJob(Order));
+
+
+
+
+
+
+
+
+
+
+    //Called by Print button in OrderStatus panel.
+    //PrintButton -> ProcessOrder -> ValidateOrder() + DownloadPDFS() + CreatePrintJob()
+    public IEnumerator ProcessOrder(OrderSummary Order)
+    {
+        bool Success = false;
+
+
+        //==================================================
+        // 1. VALIDATE ORDER
+        //==================================================
+
+        yield return ValidateOrder
+        (
+            Order,
+            Result => Success = Result
+        );
+
+        if (!Success) yield break;
+
+
+        //==================================================
+        // 2. DOWNLOAD PDFs
+        //==================================================
+
+        yield return DownloadPDFs
+        (
+            Order,
+            Result => Success = Result
+        );
+
+        if (!Success) yield break;
+
+
+        //==================================================
+        // 3. CREATE + QUEUE PRINT JOB
+        //==================================================
+
+        yield return CreatePrintJob
+        (
+            Order,
+            Result => Success = Result
+        );
+
+        if (!Success) yield break;
+
+
+        //==================================================
+        // PRINTING IS NOW HANDLED BY PrinterWorker
+        //==================================================
+
+        Debug.Log
+        (
+            "OrderID = " +
+            Order.OrderID +
+            " has successfully entered the printing queue."
+        );
     }
-    IEnumerator Coroutine_CreatePrintJob(OrderSummary Order)
-    {
-        Debug.Log("Inside Coroutine_CreatePrintJob()");
 
-        //Validation is to check whether all the info relating to the order, i.e. Prints, PrintSettings, PrintBills, etc all exist.
+
+
+
+
+
+
+
+
+    IEnumerator ValidateOrder
+    (
+        OrderSummary Order,
+        System.Action<bool> OnComplete
+    )
+    {
         ValidatePrintRequest Request = new ValidatePrintRequest()
         {
             OrderID = Order.OrderID,
@@ -2464,131 +2865,180 @@ public class Scene3Backend : MonoBehaviour
 
         string JsonData = JsonUtility.ToJson(Request);
 
-        UnityWebRequest RequestObject = new UnityWebRequest
+
+        using
         (
-            ServerURL + "/printOrder/validate",
-            "POST"
-        );
-
-        byte[] Body = Encoding.UTF8.GetBytes(JsonData);
-
-        RequestObject.uploadHandler = new UploadHandlerRaw(Body);
-        RequestObject.downloadHandler = new DownloadHandlerBuffer();
-        RequestObject.SetRequestHeader("Content-Type", "application/json");
-
-        yield return RequestObject.SendWebRequest();
-
-        if (RequestObject.result != UnityWebRequest.Result.Success)
+            UnityWebRequest RequestObject =
+                new UnityWebRequest
+                (
+                    ServerURL + "/printOrder/validate",
+                    "POST"
+                )
+        )
         {
-            Debug.LogError(RequestObject.responseCode);
-            Debug.LogError(RequestObject.error);
-            Debug.LogError(RequestObject.downloadHandler.text);
+            byte[] Body = Encoding.UTF8.GetBytes(JsonData);
 
-            Scene3ManagerScript.DisableInvisiblePanel();
+            RequestObject.uploadHandler =
+                new UploadHandlerRaw(Body);
 
-            PrintManager.Instance.EndProcessingOrder(Order.OrderID);
+            RequestObject.downloadHandler =
+                new DownloadHandlerBuffer();
 
-            yield break;
-        }
-
-        ValidatePrintResponse Response =
-            JsonUtility.FromJson<ValidatePrintResponse>
+            RequestObject.SetRequestHeader
             (
-                RequestObject.downloadHandler.text
+                "Content-Type",
+                "application/json"
             );
 
-        if (!Response.Success)
-        {
-            Scene3ManagerScript.MessageText.text = Response.Message;
 
-            Scene3ManagerScript.EnableMessagePanel();
-            Scene3ManagerScript.DisableInvisiblePanel();
+            yield return RequestObject.SendWebRequest();
 
-            PrintManager.Instance.EndProcessingOrder(Order.OrderID);
 
-            yield break;
+            //==================================================
+            // REQUEST FAILED
+            //==================================================
+
+            if
+            (
+                RequestObject.result !=
+                UnityWebRequest.Result.Success
+            )
+            {
+                Debug.LogError(RequestObject.responseCode);
+                Debug.LogError(RequestObject.error);
+                Debug.LogError(RequestObject.downloadHandler.text);
+
+
+                //Scene3ManagerScript.DisableInvisiblePanel();
+
+                PrintManager.Instance.EndProcessingOrder
+                (
+                    Order.OrderID
+                );
+
+                //The order now must go to the failed order list, as it's vaildation failed.
+                SetOrderAsFailed(Order.OrderID, (GameObject)null);
+
+
+                OnComplete(false);
+
+                yield break;
+            }
+
+
+            //==================================================
+            // READ RESPONSE
+            //==================================================
+
+            ValidatePrintResponse Response =
+                JsonUtility.FromJson<ValidatePrintResponse>
+                (
+                    RequestObject.downloadHandler.text
+                );
+
+
+            //==================================================
+            // VALIDATION FAILED
+            //==================================================
+
+            if (!Response.Success)
+            {
+                Scene3ManagerScript.MessageText.text = Response.Message;
+                Scene3ManagerScript.EnableMessagePanel();
+
+                //Scene3ManagerScript.DisableInvisiblePanel();
+
+                PrintManager.Instance.EndProcessingOrder
+                (
+                    Order.OrderID
+                );
+
+                //The order now must go to the failed order list, as it's validation failed.
+                SetOrderAsFailed(Order.OrderID, (GameObject)null);
+
+                OnComplete(false);
+
+                yield break;
+            }
+
+
+            //==================================================
+            // SUCCESS
+            //==================================================
+
+            Debug.Log
+            (
+                "All Prints of OrderID = " +
+                Order.OrderID +
+                " have been validated."
+            );
+
+            OnComplete(true);
         }
+    }
 
-        Debug.Log("All Prints of OrderID = " + Order.OrderID + " has been validated.");
 
 
-        //Downloading all PDFS in the app's file directory ( if they haven't been already ).
+
+
+
+    IEnumerator DownloadPDFs
+    (
+        OrderSummary Order,
+        System.Action<bool> OnComplete
+    )
+    {
+        bool Success = false;
+
+
         yield return StartCoroutine
         (
             Coroutine_DownloadAllPDFs
             (
                 Order,
-                Success =>
-                {
-                    if (!Success)
-                    {
-                        Scene3ManagerScript.MessageText.text =
-                            "PrintPal couldn't download all PDFs.";
-
-                        Scene3ManagerScript.EnableMessagePanel();
-                        Scene3ManagerScript.DisableInvisiblePanel();
-
-                        PrintManager.Instance.EndProcessingOrder(Order.OrderID);
-
-                        return;
-                    }
-
-                    Debug.Log("Downloaded All PDFs of OrderID = " + Order.OrderID + " successfully.");
-
-                    //At this point, all prints of an order has been validated and have been downloaded, meaning
-                    // it is safe to start the printing process, whose 1st step is to Create a PrintJob.
-                    PrintJob Job = PrintManager.Instance.CreatePrintJob
-                    (
-                        Order
-                    );
-
-                    if (Job == null)
-                    {
-                        Scene3ManagerScript.MessageText.text =
-                            "Failed to prepare print job.";
-
-                        Scene3ManagerScript.EnableMessagePanel();
-                        Scene3ManagerScript.DisableInvisiblePanel();
-
-                        PrintManager.Instance.EndProcessingOrder(Order.OrderID);
-
-                        return;
-                    }
-
-                    Debug.Log("Job for OrderID = " + Order.OrderID + " has been created.");
-
-                    Job.PrintJobDetails();
-
-                    //Queing the Job.
-                    bool Queued = PrintManager.Instance.QueuePrintJob(Job);
-
-                    if (!Queued)
-                    {
-                        Debug.Log("Order is already queued / No printers available.");
-
-                        // Only release tracking if this job never made it into a
-                        // worker's queue at all (no printers available).
-                        
-                        // If it's already queued elsewhere, that existing job owns
-                        // EndProcessingOrder - releasing it here too would let
-                        // the next automatic-printing poll duplicate this order
-                        // while it's still actively printing.
-
-                        if (!PrintManager.Instance.AnyWorkerHasOrder(Order.OrderID))
-                        {
-                            PrintManager.Instance.EndProcessingOrder(Order.OrderID);
-
-                            HomePageScript.PausePrinting();
-
-                            Scene3ManagerScript.MessageText.text = "Order of ID = " + Order.OrderID + "Could not be queued for some reason...";
-                        }
-                    }
-                }
+                Result => Success = Result
             )
         );
-        Scene3ManagerScript.DisableInvisiblePanel();
-    }
 
+
+        //==================================================
+        // DOWNLOAD FAILED
+        //==================================================
+
+        if (!Success)
+        {
+            Scene3ManagerScript.MessageText.text = "PrintPal couldn't download all PDFs.";
+            Scene3ManagerScript.EnableMessagePanel();
+            
+            //Scene3ManagerScript.DisableInvisiblePanel();
+
+            PrintManager.Instance.EndProcessingOrder
+            (
+                Order.OrderID
+            );
+
+            //The order now must go to the failed order list, as it's downloading process failed.
+            SetOrderAsFailed(Order.OrderID, (GameObject)null);
+
+            OnComplete(false);
+
+            yield break;
+        }
+
+
+        //==================================================
+        // SUCCESS
+        //==================================================
+
+        Debug.Log
+        (
+            "Downloaded all PDFs of OrderID = " +
+            Order.OrderID +
+            " successfully."
+        );
+
+        OnComplete(true);
+    }
 
     //This downloads PDFs of all prints of an order which is to be Printed / Opened.
     public IEnumerator Coroutine_DownloadAllPDFs(OrderSummary Order, System.Action<bool> OnComplete)
@@ -2672,6 +3122,138 @@ public class Scene3Backend : MonoBehaviour
     }
 
 
+
+
+
+
+
+    IEnumerator CreatePrintJob
+    (
+        OrderSummary Order,
+        System.Action<bool> OnComplete
+    )
+    {
+        PrintJob Job = PrintManager.Instance.CreatePrintJob(Order);
+
+
+        //==================================================
+        // JOB CREATION FAILED
+        //==================================================
+
+        //This happens if a LocalPDFPath of any print of an order is empty / NULL.
+        if (Job == null)
+        {
+            //Scene3ManagerScript.DisableInvisiblePanel();
+
+            PrintManager.Instance.EndProcessingOrder
+            (
+                Order.OrderID
+            );
+
+            //The order now must go to the failed order list, as one of it's PDF could not be found.
+            SetOrderAsFailed(Order.OrderID, (GameObject)null);
+
+
+            OnComplete(false);
+
+            yield break;
+        }
+
+
+        Debug.Log
+        (
+            "Job for OrderID = " +
+            Order.OrderID +
+            " has been created."
+        );
+
+
+
+
+
+
+
+        //==================================================
+        // QUEUE JOB
+        //==================================================
+
+        bool Queued = PrintManager.Instance.QueuePrintJob(Job);
+
+
+
+        //Two reasons for a Job not being queued =
+        //1. The Job in QueuePrintJob ( Job ) is null.
+        //2. No compatible printer was found.
+
+        if (!Queued)
+        {
+            Debug.Log
+            (
+                "Order could not be Queued."
+            );
+
+
+            //==================================================
+            // JOB MAY ALREADY HAVE BEEN QUEUED ELSEWHERE
+            //==================================================
+
+            if
+            (
+                !PrintManager.Instance.AnyWorkerHasOrder
+                (
+                    Order.OrderID
+                )
+            )
+            {
+                PrintManager.Instance.EndProcessingOrder
+                (
+                    Order.OrderID
+                );
+
+
+                //The order now must go to the failed order list, as it's Queueing process failed.
+                SetOrderAsFailed(Order.OrderID, (GameObject)null);
+
+
+                //Scene3ManagerScript.DisableInvisiblePanel();
+
+
+                OnComplete(false);
+
+                yield break;
+            }
+
+
+            // Existing worker already owns the order.
+            // Do NOT end processing here.
+        }
+
+
+        //==================================================
+        // SUCCESS
+        //==================================================
+
+        //Printing the job details =
+        Job.PrintJobDetails();
+
+        OnComplete(true);
+    }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    //This function is called by PrintWorker script when an Order is succesfully printed.
     public IEnumerator CompletePrintedOrder(int OrderID)
     {
         yield return StartCoroutine
@@ -2758,7 +3340,7 @@ public class Scene3Backend : MonoBehaviour
 
         //Refreshing Completed Orders and Pending Orders ( I believe there is no need for this to happen silently... could be wrong. 
         //Update - was wrong lmao... do not touch this.
-        
+
         //--------------------------------------------------
         // Refresh Completed Orders
         //--------------------------------------------------
@@ -2781,31 +3363,13 @@ public class Scene3Backend : MonoBehaviour
                 "Failed to refresh order lists."
             );
         }
-        
+
 
         PrintManager.Instance.EndProcessingOrder(OrderID);
 
+        QueueManagerScript.RefreshQueuedOrders();
+
         Scene3ManagerScript.DisableInvisiblePanel();
-    }
-
-
-
-
-
-
-    //To check if the app is connected to the server or not =
-    public IEnumerator CheckServer(System.Action<bool> OnComplete)
-    {
-        using (UnityWebRequest request = UnityWebRequest.Get("http://localhost:3000/health"))
-        {
-            yield return request.SendWebRequest();
-
-            bool isOnline = request.result == UnityWebRequest.Result.Success;
-
-            Debug.Log(isOnline ? "Server is ONLINE" : "Server is OFFLINE");
-
-            OnComplete?.Invoke(isOnline);
-        }
     }
 }
 

@@ -137,6 +137,7 @@ public class Scene3Manager : MonoBehaviour
     }
 
 
+
     public void EnableQueuePage()
     {
         QueuePage.SetActive(true);
@@ -145,7 +146,9 @@ public class Scene3Manager : MonoBehaviour
     {
         QueuePage.SetActive(false);
     }
-    public bool CheckQueuePage_ActiveStatus()
+
+    //This function is used by the QueueManager script to check if the QueueManager script is active or not.
+    public bool CheckQueueManagerPage_ActiveStatus()
     {
         return QueuePage.activeSelf;
     }

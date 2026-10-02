@@ -1,6 +1,5 @@
+//namespaces =
 using System.Collections.Generic;
-using System.Diagnostics;
-using UnityEngine;
 
 
 
@@ -8,10 +7,11 @@ using UnityEngine;
 
 public class PrintQueue
 {
-
-
+    //This is a Queue of all Jobs queued in this Queue.
     public Queue<PrintJob> Jobs = new Queue<PrintJob>();
 
+
+    //This is a variable which keeps a track of total number of PrintJobs in this Queue.
     public int Count
     {
         get
@@ -24,12 +24,13 @@ public class PrintQueue
 
 
 
-
+    //To Enqueue a PrintJob.
     public void Enqueue(PrintJob Job)
     {
         Jobs.Enqueue(Job);
     }
 
+    //To Dequeue a PrintJob.
     public PrintJob Dequeue()
     {
         if (Jobs.Count == 0)
@@ -40,6 +41,7 @@ public class PrintQueue
         return Jobs.Dequeue();
     }
 
+    //To get the reference of the PrintJob in the front of the Queue.
     public PrintJob Peek()
     {
         if (Jobs.Count == 0)
@@ -50,11 +52,18 @@ public class PrintQueue
         return Jobs.Peek();
     }
 
+
+
+
+
+
+    //To check if the Queue has any PrintJobs or not.
     public bool HasJobs()
     {
         return Jobs.Count > 0;
     }
 
+    //to check if the Queue already contains a PrintJob or not.
     public bool ContainsOrder(int OrderID)
     {
         foreach (PrintJob Job in Jobs)
@@ -68,11 +77,13 @@ public class PrintQueue
         return false;
     }
 
-    public void Clear()
-    {
-        Jobs.Clear();
-    }
 
+
+
+    
+
+
+    //To display all PrintJobs in this Queue.
     public void DisplayQueueInfo()
     {
         foreach (PrintJob Job in Jobs)
@@ -85,10 +96,21 @@ public class PrintQueue
 
 
 
+
+
+
+
+    //To clear this Queue of all PrintJobs.
+    public void Clear()
+    {
+        Jobs.Clear();
+    }
+
+
+    //This only returns the Waiting PrintJobs, not the current PrintJob.
     public List<PrintJob> RemoveWaitingJobs()
     {
-        List<PrintJob> WaitingJobs =
-            new List<PrintJob>();
+        List<PrintJob> WaitingJobs = new List<PrintJob>();
 
 
         //--------------------------------------------------
@@ -108,8 +130,7 @@ public class PrintQueue
         // PrinterWorker is processing Jobs.Peek().
         //--------------------------------------------------
 
-        PrintJob CurrentJob =
-            Jobs.Dequeue();
+        PrintJob CurrentJob = Jobs.Dequeue();
 
 
         //--------------------------------------------------
@@ -134,10 +155,15 @@ public class PrintQueue
 
         return WaitingJobs;
     }
+
+
+    //This function is different than Clear() as it =
+    //a. Dequeues PrintJobs one - by - one.
+    //b. Returns reference of a list of each Dequeued PrintJob after Dequeuing them, to the function which calls RemoveAllJobs().
+
     public List<PrintJob> RemoveAllJobs()
     {
-        List<PrintJob> JobsToRemove =
-            new List<PrintJob>();
+        List<PrintJob> JobsToRemove = new List<PrintJob>();
 
 
         //--------------------------------------------------
@@ -156,7 +182,6 @@ public class PrintQueue
                 Jobs.Dequeue()
             );
         }
-
 
         return JobsToRemove;
     }

@@ -1,6 +1,8 @@
 using UnityEngine;
 using TMPro;
-using UnityEngine.SceneManagement;
+
+
+
 
 public class SetProfileInfo : MonoBehaviour
 {
@@ -84,59 +86,11 @@ public class SetProfileInfo : MonoBehaviour
         }
     }
 
-    //To go from ProfilePanel -> PasswordPanel
-    public void ClickedPreviousPage()
-    {
-        Scene2ManagerScript.DisableAllPanels();
-        Scene2ManagerScript.EnableSetPasswordPanel();
-    }
-    
-
-
-
-
-
-
-
-    //To get all printers which are or have been connected to a stationery computer in the past.
-    public void GetPrinters()
-    {
-        Scene2ManagerScript.EnableInvisiblePanel();
-
-        SelectPrintersScript.GetConnectedPrinters
-        (
-            Result =>
-            {
-                if(Result)
-                {
-                    Scene2ManagerScript.DisableAllPanels();
-                    Scene2ManagerScript.EnableSelectPrintersPanel();
-                }
-
-                //In case the app fails get printers =
-                else
-                {
-                    Scene2ManagerScript.DisableAllPanels();
-
-                    Scene2ManagerScript.EnableSelectPrintersPanel();
-
-                    Scene2ManagerScript.MessageText.text = "Your account has been successfuly created!\nbut an error occured when we tried to retrieve printers connected to your device. Restart the app or try again later.";
-                    Scene2ManagerScript.EnableMessagePanel();
-                }
-            }
-        );
-    }
-
-
-
-
-
-
 
     //Check functions to check the validity of all fiels in ProfileInfo panel.
     public bool CheckProfileInfo()
     {
-        if(!CheckNameLength())
+        if (!CheckNameLength())
         {
             Scene2ManagerScript.MessageText.text = "Name field can't be empty.";
 
@@ -187,7 +141,7 @@ public class SetProfileInfo : MonoBehaviour
     }
     public bool CheckUPINumberLength()
     {
-        if(UPINumberInput.text.Length <= 0)
+        if (UPINumberInput.text.Length <= 0)
         {
             Scene2ManagerScript.MessageText.text = "UPI number can't be empty.";
 
@@ -214,5 +168,53 @@ public class SetProfileInfo : MonoBehaviour
         {
             return true;
         }
+    }
+
+
+
+
+
+
+
+    //To go from ProfilePanel -> PasswordPanel
+    public void ClickedPreviousPage()
+    {
+        Scene2ManagerScript.DisableAllPanels();
+        Scene2ManagerScript.EnableSetPasswordPanel();
+    }
+    
+
+
+
+
+
+
+
+    //To get all printers which are or have been connected to a stationery computer in the past.
+    public void GetPrinters()
+    {
+        Scene2ManagerScript.EnableInvisiblePanel();
+
+        SelectPrintersScript.GetConnectedPrinters
+        (
+            Result =>
+            {
+                if(Result)
+                {
+                    Scene2ManagerScript.DisableAllPanels();
+                    Scene2ManagerScript.EnableSelectPrintersPanel();
+                }
+
+                //In case the app fails get printers =
+                else
+                {
+                    Scene2ManagerScript.DisableAllPanels();
+                    Scene2ManagerScript.EnableSelectPrintersPanel();
+
+                    Scene2ManagerScript.MessageText.text = "Your account has been successfuly created!\nBut an error occured when we tried to retrieve printers connected to your device. Restart the app or try again later.";
+                    Scene2ManagerScript.EnableMessagePanel();
+                }
+            }
+        );
     }
 }

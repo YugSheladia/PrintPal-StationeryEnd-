@@ -1,28 +1,48 @@
+//namespaces =
 using System;
 using System.Collections;
+using System.Threading.Tasks;
 using UnityEngine;
 
-// Owns one physical printer's queue and print loop. PrintManager creates
-// one of these per printer and dispatches jobs into them; they run fully
-// independently of each other, which is what lets N printers work in
+
+
+
+
+
+
+// Owns one physical printer's queue and print loop.
+// PrintManager creates a PrinterWorker object per printer and dispatches jobs into PrintWorker.
+// PrintWorkers run fully independently of each other, which is what lets N printers work in
 // parallel instead of a single global queue serializing everything.
+
 public class PrinterWorker
 {
+    //Reference to the main Printer object.
     public Printer Printer;
+
+    //This is the worker's Queue =
     public PrintQueue Queue = new PrintQueue();
 
+
+
+
+    //Reference to important Scripts =
     readonly PrintManager Manager;
     readonly Scene3Backend Scene3BackendScript;
 
+
+
+    //Bool which is used to figure if the Printer is currenlty printing or not.
     bool IsPrinting;
 
+
+
+    //Bool to figure out whether the printer is working or not.
     public bool WorkedLastTime = true;
 
 
 
-
-
-
+    //Constructor =
     public PrinterWorker(PrintManager Manager, Scene3Backend Scene3BackendScript, Printer Printer)
     {
         this.Manager = Manager;
@@ -34,19 +54,30 @@ public class PrinterWorker
 
 
 
+
+    //=====================================================================================
+    //Enqueue() -> StartNextJob() -> Couroutine_PrintJob() -> Coroutine_PrintDocuemnt()
+    //=====================================================================================
+
+    //This function is used to Enqueue a job in this PrintWorker's Queue.
     public void Enqueue(PrintJob Job)
     {
+        //Providing Job a reference to the Printer, which is going to print it.
         Job.Printer = Printer;
 
+        //Enqueing the Job.
         Queue.Enqueue(Job);
 
         Debug.Log($"Queued Order {Job.OrderID} on {Printer.Name}");
 
+        //If the printer isn't printing anything currently, we StartNextJob().
         if (!IsPrinting)
         {
             StartNextJob();
         }
     }
+
+    //To Start the next job.
     void StartNextJob()
     {
         //==================================================
@@ -104,7 +135,7 @@ public class PrinterWorker
         IsPrinting = true;
         Printer.IsBusy = true;
 
-
+        //This returns the Job which is in the front of the Queue.
         PrintJob Job =
             Queue.Peek();
 
@@ -120,6 +151,8 @@ public class PrinterWorker
             Coroutine_PrintJob(Job)
         );
     }
+
+    //StartNextJob() -> Coroutine_PrintJob().
     IEnumerator Coroutine_PrintJob(PrintJob Job)
     {
         //--------------------------------------------------
@@ -213,11 +246,12 @@ public class PrinterWorker
 
 
                 //--------------------------------------------------
-                // Remove the failed CURRENT job.
+                // Remove the failed CURRENT job from the worker.
                 //--------------------------------------------------
 
                 PrintJob RemovedJob =
                     Queue.Dequeue();
+
 
 
                 if (RemovedJob != Job)
@@ -368,6 +402,8 @@ public class PrinterWorker
 
         StartNextJob();
     }
+
+    //Coroutine_PrintJob() -> Coroutine_PrintDocument() for each document inside PrintJob.
     IEnumerator Coroutine_PrintDocument
     (
         PrintJob Job,
@@ -389,14 +425,30 @@ public class PrinterWorker
 
         //--------------------------------------------------
         // Submit exactly ONE request to Windows.
+        //
+        // This now runs on a background thread via
+        // WindowsPrinter.PrintAsync(), so a printer that
+        // hangs (e.g. an unreachable Bluetooth device) no
+        // longer blocks Unity's main thread. We just wait
+        // for the Task to finish, yielding every frame.
         //--------------------------------------------------
 
-        PrintResult Result =
-            WindowsPrinter.Print
+        Task<PrintResult> PrintTask =
+            WindowsPrinter.PrintAsync
             (
                 Document,
                 Printer
             );
+
+
+        yield return new WaitUntil
+        (
+            () => PrintTask.IsCompleted
+        );
+
+
+        PrintResult Result =
+            PrintTask.Result;
 
 
         //--------------------------------------------------
@@ -586,6 +638,17 @@ public class PrinterWorker
 
 
 
+
+
+
+
+
+
+
+    //This function is called when -
+    //a. A printer succesfully prints all documents of an order. ( i.e. by Coroutine_PrintJob() )
+    //OR
+    //b. When a stationery sets it as Operational through PrinterQueuePanel ( i.e. by PrintManager script -> JumpStartPrinter() ).
     public void SetPrinterAsWorking()
     {
         WorkedLastTime = true;
@@ -609,6 +672,11 @@ public class PrinterWorker
             StartNextJob();
         }
     }
+
+    //This function is called when -
+    //a. A printer is not able to prints any documents of an order. ( i.e. by Coroutine_PrintJob() )
+    //OR
+    //b. When a stationery sets a printer as Non Operational through PrinterQueuePanel ( i.e. by PrintManager script -> DisablePrinter() ).
     public void SetPrinterAsNotWorking()
     {
         //--------------------------------------------------
@@ -665,6 +733,8 @@ public class PrinterWorker
 
 
 
+
+    //This is called by PrintManager script -> JumpStartPrinter() incase the Printer had any Waiting orders.
     public void TryStartNextJob()
     {
         StartNextJob();

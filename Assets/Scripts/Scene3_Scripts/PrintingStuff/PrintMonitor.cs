@@ -308,11 +308,34 @@ public static class PrintMonitor
 
 
                 //--------------------------------------------------
-                // Job disappeared without completion evidence.
+                // Job disappeared WITHOUT any confirmed page/flag
+                // evidence of completion.
+                //
+                // IMPORTANT:
+                // For a lot of RAW-datatype jobs (which is what we
+                // submit), Windows never populates TotalPages /
+                // PagesPrinted at all, and the JOB_STATUS_PRINTED
+                // flag can be set and cleared between two polls on
+                // a fast local printer - we can easily never
+                // observe it.
+                //
+                // So "disappeared with zero evidence either way" is
+                // actually the NORMAL shape of a fast, successful
+                // print - not a failure. We only treat disappearance
+                // as a failure if we actually observed a real
+                // problem (SawErrorFlag) while the job existed.
                 //--------------------------------------------------
 
                 if (SawErrorFlag)
                 {
+                    Debug.LogWarning
+                    (
+                        $"[{Printer.Name}] JobId {JobId} " +
+                        "disappeared after an error/pause " +
+                        "condition was observed."
+                    );
+
+
                     CompleteOnce
                     (
                         false,
@@ -328,10 +351,19 @@ public static class PrintMonitor
                 }
                 else
                 {
+                    Debug.Log
+                    (
+                        $"[{Printer.Name}] JobId {JobId} " +
+                        "disappeared from the spooler with no " +
+                        "errors ever observed - treating as " +
+                        "completed."
+                    );
+
+
                     CompleteOnce
                     (
-                        false,
-                        "Print job disappeared from the Windows spooler before completion."
+                        true,
+                        "Finished"
                     );
                 }
 

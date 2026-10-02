@@ -1,6 +1,7 @@
 using System;
 using System.Diagnostics;
 using System.IO;
+using System.Threading.Tasks;
 using UnityEngine;
 
 
@@ -16,9 +17,38 @@ public static class WindowsPrinter
         "SumatraPDF.exe"
     );
 
+    // How long we'll wait for SumatraPDF to hand the job off before we
+    // give up and treat it as a failure. This is what replaces the
+    // indefinite Process.WaitForExit() that was freezing the app - a
+    // dead/unreachable printer now fails the job after this long
+    // instead of blocking forever.
+    private const int ProcessTimeoutMilliseconds = 30000;
 
 
-    public static PrintResult Print
+
+    // Entry point used by PrinterWorker. Runs the actual print call on a
+    // background thread via Task.Run, so the blocking Process.Start() /
+    // WaitForExit() never touches Unity's main thread. The caller
+    // (a coroutine) can yield on this Task without freezing anything.
+    public static Task<PrintResult> PrintAsync
+    (
+        PrintDocument Document,
+        Printer Printer
+    )
+    {
+        return Task.Run
+        (
+            () => Print(Document, Printer)
+        );
+    }
+
+
+
+    // Unchanged logic from before, EXCEPT:
+    // 1. This now only ever runs on a background thread (via PrintAsync).
+    // 2. Process.WaitForExit() now takes a timeout and kills the process
+    //    instead of waiting indefinitely.
+    private static PrintResult Print
     (
         PrintDocument Document,
         Printer Printer
@@ -28,29 +58,6 @@ public static class WindowsPrinter
 
         try
         {
-#if UNITY_EDITOR
-            UnityEngine.Debug.Log
-            (
-                "Sumatra Path : " + SumatraPath
-            );
-
-            UnityEngine.Debug.Log
-            (
-                "Exists       : " + File.Exists(SumatraPath)
-            );
-
-            UnityEngine.Debug.Log
-            (
-                "PDF Path     : " + Document.Print.LocalPDFPath
-            );
-
-            UnityEngine.Debug.Log
-            (
-                "PDF Exists   : " +
-                File.Exists(Document.Print.LocalPDFPath)
-            );
-#endif
-
             if (!File.Exists(SumatraPath))
             {
                 Result.Success = false;
@@ -84,19 +91,6 @@ public static class WindowsPrinter
                 );
 
 
-#if UNITY_EDITOR
-            UnityEngine.Debug.Log
-            (
-                "Arguments:"
-            );
-
-            UnityEngine.Debug.Log
-            (
-                Arguments
-            );
-#endif
-
-
             using (Process Process = new Process())
             {
                 Process.StartInfo.FileName =
@@ -120,23 +114,49 @@ public static class WindowsPrinter
 
                 //--------------------------------------------------
                 // Wait for Sumatra to finish handing the document
-                // to Windows.
+                // to Windows - but only up to the timeout.
+                //
+                // If the target printer is unreachable, Sumatra can
+                // hang indefinitely waiting on the OS print call.
+                // Without a timeout here, that used to block Unity's
+                // main thread forever. Now it just fails this job.
                 //--------------------------------------------------
 
-                Process.WaitForExit();
+                bool Exited =
+                    Process.WaitForExit
+                    (
+                        ProcessTimeoutMilliseconds
+                    );
+
+
+                if (!Exited)
+                {
+                    try
+                    {
+                        Process.Kill();
+                    }
+                    catch (Exception KillException)
+                    {
+                        UnityEngine.Debug.LogWarning
+                        (
+                            "Failed to kill stuck SumatraPDF process: "
+                            + KillException.Message
+                        );
+                    }
+
+                    Result.Success = false;
+
+                    Result.Message =
+                        $"SumatraPDF did not respond within " +
+                        $"{ProcessTimeoutMilliseconds / 1000}s. " +
+                        "The printer may be unreachable.";
+
+                    return Result;
+                }
 
 
                 int ExitCode =
                     Process.ExitCode;
-
-
-#if UNITY_EDITOR
-                UnityEngine.Debug.Log
-                (
-                    "Sumatra Exit Code: "
-                    + ExitCode
-                );
-#endif
 
 
                 //--------------------------------------------------
@@ -158,7 +178,8 @@ public static class WindowsPrinter
                 // non-zero even though Windows accepted the job.
                 //
                 // Therefore check the Windows spooler before
-                // declaring failure.
+                // declaring failure. (This call is safe here - we're
+                // already on a background thread.)
                 //--------------------------------------------------
 
                 string DocumentName =

@@ -86,7 +86,11 @@ public class SelectPrinters : MonoBehaviour
                                 || 
                                 printerInfo.status == "Printing",
 
-                            AutomaticPrinting = false
+                            AutomaticPrinting = false,
+
+                            //Page Capacity is 100 by default.
+                            PageCapacity = 100,
+                            PagesLeft = 100
                         };
 
                         CreatePrinterPanel(printer);
@@ -135,7 +139,6 @@ public class SelectPrinters : MonoBehaviour
         
 
 
-
         //Converting each PrinterPanel object -> Printer object =
         List<Printer> SelectedPrinters = new();
 
@@ -146,6 +149,7 @@ public class SelectPrinters : MonoBehaviour
                 SelectedPrinters.Add(Panel.Printer);
             }
         }
+
 
 
 

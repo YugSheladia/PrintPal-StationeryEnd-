@@ -155,6 +155,9 @@ public class Scene5Backend : MonoBehaviour
             printer.SupportsDoubleSidedPrinting = approvedPrinter.SupportsDoubleSidedPrinting;
             printer.SupportsColorPrinting = approvedPrinter.SupportsColorPrinting;
 
+            printer.PageCapacity = approvedPrinter.PageCapacity;
+            printer.PagesLeft = approvedPrinter.PagesLeft;
+
             printers.Add(printer);
         }
 

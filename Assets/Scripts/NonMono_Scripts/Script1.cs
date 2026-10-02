@@ -10,6 +10,9 @@ public static class Script1
     //It is false by default every time a stationery logs in.
     public static bool AutomaticPrinting = false;
 
+    //A bool which decides whether a Stationery is Closed / Open.
+    public static bool Stationery_IsOperational_bool = false;
+
 
 
 
@@ -32,6 +35,8 @@ public static class Script1
             PrintStationeryInfo();
 
             StationeryInfoObject = Info;
+
+            Stationery_IsOperational_bool = StationeryInfoObject.IsOperational;
 
             return;
         }
@@ -105,7 +110,7 @@ public static class Script1
     {
         foreach(Printer Printer in SelectedPrinters)
         {
-            Debug.Log("Printer = " + Printer.Name);
+            Printer.PrinterPrinterDetails();
         }
     }
 

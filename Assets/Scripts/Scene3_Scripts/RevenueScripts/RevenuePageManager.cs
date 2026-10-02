@@ -1,4 +1,3 @@
-using UnityEditor.Animations;
 using UnityEngine;
 using static Scene3Backend;
 
@@ -13,43 +12,7 @@ public class RevenuePageManager : MonoBehaviour
 
 
 
-
-
-
-    public void LoadRevenue(int StationeryID)
-    {
-        Scene3BackendScript.GetRevenueFromServer
-        (
-            StationeryID,
-            RevenueRows =>
-            {
-                if (RevenueRows == null)
-                {                    
-                    Scene3ManagerScript.DisableAllPanels();
-                    Scene3ManagerScript.EnableHomePagePanel();
-
-                    Scene3ManagerScript.EnableMessagePanel();
-
-                    return;
-                }
-
-                foreach (RevenueDetails Row in RevenueRows)
-                {
-                    Debug.Log
-                    (
-                        $"{Row.RevenueDate} | " +
-                        $"Revenue = {Row.Revenue} | " +
-                        $"Orders = {Row.TotalOrders}"
-                    );
-
-                    CreateRevenuePanel(Row);
-                }
-
-                Scene3ManagerScript.DisableInvisiblePanel();
-            }
-        );
-    }
-    private void CreateRevenuePanel(RevenueDetails Revenue)
+    public void CreateRevenuePanel(RevenueDetails Revenue)
     {
         GameObject RevenuePanelObject = Instantiate
         (

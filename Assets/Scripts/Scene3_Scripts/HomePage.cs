@@ -44,6 +44,15 @@ public class HomePage : MonoBehaviour
 
 
 
+    //The app reads the database and sets the StationeryIsOperational to the correct value.
+    bool StationeryIsOperational = false;
+
+    //These are the panels which indicate weather the Stationery is Operational or not.
+    [SerializeField] public GameObject Stationery_Operational;
+    [SerializeField] public GameObject Stationery_NonOperational;
+
+
+
 
 
     //==================================
@@ -77,6 +86,7 @@ public class HomePage : MonoBehaviour
     [SerializeField] public TMP_Text TotalPendingOrdersText;
     [SerializeField] public TMP_Text TotalPrintedOrdersText;
     [SerializeField] public TMP_Text TotalCollectedOrdersText;
+    [SerializeField] public TMP_Text TotalFailedOrdersText;
 
 
 
@@ -123,8 +133,8 @@ public class HomePage : MonoBehaviour
     //=============================
 
     //A toggle image to indicate whether Automatic Printing is On / Off.
-    [SerializeField] GameObject AutomaticPrinting_ToggleOn;
-    [SerializeField] GameObject AutomaticPrinting_ToggleOff;
+    [SerializeField] public GameObject AutomaticPrinting_ToggleOn;
+    [SerializeField] public GameObject AutomaticPrinting_ToggleOff;
 
 
 
@@ -162,16 +172,13 @@ public class HomePage : MonoBehaviour
 
 
 
-
-
-
     //Flow = 
     //Scene3Manager.Start() -> Scene3Manager.IntializeHomePagePanel() ->
     //StartHomePage() -> InitializeHomePage() -> AutomaticPrinting()
 
 
 
-    //StartHomePage() is called bu InitializeHomePagePanel() inside Scene3Manager.
+    //StartHomePage() is called by InitializeHomePagePanel() inside Scene3Manager.
     public void StartHomePage()
     {
         //Make sure that HomePagePanel is active -
@@ -181,6 +188,9 @@ public class HomePage : MonoBehaviour
 
         StationeryName.text = Script1.StationeryInfoObject.StationeryName;
         TotalConnectedPrinters.text = "Connected printers : " + Script1.SelectedPrinters.Count;
+
+        //Updating the Operationality of the Stationery.
+        StartCoroutine(SetStationeryOperationalTo(Script1.Stationery_IsOperational_bool));
 
         StartCoroutine(InitializeHomePage());
     }
@@ -232,82 +242,82 @@ public class HomePage : MonoBehaviour
 
 
 
-    //============================
-    //Control panel buttons =
-    //============================
 
-    //To go from HomePage -> ProfilePage.
-    public void ClickedProfileButton()
+
+
+    //==============================================
+    //Statioonery Operational button stuff =
+    //==============================================
+
+    //Called when a user clicks on Open Stationery button.
+    public void Clicked_Stationery_Open()
     {
-        //This request helps to check if the server is online and connected to the app or not. If yes, only then we move forward.
-        StartCoroutine(Scene3BackendScript.CheckServer((isOnline) =>
+        if(StationeryIsOperational == true)
         {
-            if (isOnline)
-            {
-                Debug.Log("Server is active");
+            Debug.Log("Stationery is already Open");
 
-                //Insert the true case here =
+            return;
+        }
 
-                if (Script1.AutomaticPrinting)
-                {
-                    Debug.Log("You cannot leave the Home Page while Automatic Printing is enabled or an order is being printed.");
-
-                    Scene3ManagerScript.MessageText.text = "You cannot leave the Home Page while Automatic Printing is enabled or an order is being processed.";
-                    Scene3ManagerScript.EnableMessagePanel();
-
-                    return;
-                }
-
-                SceneManager.LoadScene("Scene4_UpdateProfileInfo");
-            }
-            else
-            {
-                Debug.Log("Server is inactive");
-
-                Scene3ManagerScript.DisableAllPanels();
-
-                Scene3ManagerScript.MessageText.text = "Something went wrong, try again later.";
-                Scene3ManagerScript.EnableMessagePanel();
-            }
-        }));
+        StartCoroutine(SetStationeryOperationalTo(true));
     }
 
-    //To go from HomePage -> SettingsPage.
-    public void ClickedSettingsButton()
+    //Called when a user clicks on Close Stationery button.
+    public void Clicked_Stationery_Close()
     {
-        //This request helps to check if the server is online and connected to the app or not. If yes, only then we move forward.
-        StartCoroutine(Scene3BackendScript.CheckServer((isOnline) =>
+        if (StationeryIsOperational == false)
         {
-            if (isOnline)
-            {
-                Debug.Log("Server is active");
+            Debug.Log("Stationery is already Close");
 
-                //Insert the true case here =
+            return;
+        }
 
-                if (Script1.AutomaticPrinting)
-                {
-                    Debug.Log("You cannot leave the Home Page while Automatic Printing is enabled or an order is being processed.");
-
-                    Scene3ManagerScript.MessageText.text = "You cannot leave the Home Page while Automatic Printing is enabled or an order is being processed.";
-                    Scene3ManagerScript.EnableMessagePanel();
-
-                    return;
-                }
-
-                SceneManager.LoadScene("Scene5_Settings");
-            }
-            else
-            {
-                Debug.Log("Server is inactive");
-
-                Scene3ManagerScript.DisableAllPanels();
-
-                Scene3ManagerScript.MessageText.text = "Something went wrong, try again later.";
-                Scene3ManagerScript.EnableMessagePanel();
-            }
-        }));
+        StartCoroutine(SetStationeryOperationalTo(false));
     }
-    
+
+    //Calls the SetStationeryOperational() coroutine.
+    IEnumerator SetStationeryOperationalTo(bool isOperational)
+    {
+        if(StationeryIsOperational == isOperational)
+        {
+            Debug.Log("Stationery is already " + isOperational);
+            yield break;
+        }
+
+        Scene3ManagerScript.EnableInvisiblePanel();
+
+        bool Success = false;
+        yield return StartCoroutine(Scene3BackendScript.SetStationeryOperational(Script1.StationeryInfoObject.StationeryID, isOperational, Result => Success = Result));
+
+        if (Success)
+        {
+            Debug.Log("3");
+            StationeryIsOperational = isOperational;
+            Script1.Stationery_IsOperational_bool = isOperational;
+
+            Update_Stationery_IsOperational_UI();
+
+            Scene3ManagerScript.DisableInvisiblePanel();
+        }
+        else
+        {
+            Debug.Log("4");
+            Scene3ManagerScript.DisableAllPanels();
+
+            Scene3ManagerScript.MessageText.text = "Something went wrong, please try again later.";
+            Scene3ManagerScript.EnableMessagePanel();
+        }
+    }
+
+    //Called to Update Stationery Open / Close UI =
+    public void Update_Stationery_IsOperational_UI()
+    {
+        Stationery_Operational.SetActive(Script1.Stationery_IsOperational_bool);
+        Stationery_NonOperational.SetActive(!Script1.Stationery_IsOperational_bool);
+    }
+
+
+
 
 
 
@@ -370,10 +380,6 @@ public class HomePage : MonoBehaviour
     }
     public void ClickedCompletedOrdersButton()
     {
-        //PausePrinting();
-
-        Debug.Log("Clicked Completed Orders button.");
-
         StartCoroutine(ClickedCompletedOrdersButtonCoroutine());
     }
     IEnumerator ClickedCompletedOrdersButtonCoroutine()
@@ -421,7 +427,6 @@ public class HomePage : MonoBehaviour
     }
     public void ClickedCollectedOrdersButton()
     {
-        //PausePrinting();
         StartCoroutine(ClickedCollectedOrdersButtonCoroutine());
     }
     IEnumerator ClickedCollectedOrdersButtonCoroutine()
@@ -457,6 +462,53 @@ public class HomePage : MonoBehaviour
             Scene3ManagerScript.EnableHomePagePanel();
 
             Scene3ManagerScript.MessageText.text = "No Collected orders currently exist.";
+            Scene3ManagerScript.EnableMessagePanel();
+
+            yield break;
+        }
+
+        OrderStatusManagerScript.CreateOrderStatusPanels();
+
+        Scene3ManagerScript.DisableAllPanels();
+        Scene3ManagerScript.EnableOrdersPage();
+    }
+    public void ClickedFailedOrdersButton()
+    {
+        StartCoroutine(ClickedFailedOrdersButtonCoroutine());
+    }
+    IEnumerator ClickedFailedOrdersButtonCoroutine()
+    {
+        Scene3ManagerScript.EnableInvisiblePanel();
+
+        bool Success = false;
+
+        yield return StartCoroutine
+        (
+            Scene3BackendScript.GetFailedOrders
+            (
+                Script1.StationeryInfoObject.StationeryID,
+                Result => Success = Result
+            )
+        );
+
+        Scene3ManagerScript.DisableInvisiblePanel();
+
+        if (!Success)
+        {
+            Scene3ManagerScript.DisableAllPanels();
+
+            Scene3ManagerScript.MessageText.text = "Something went wrong, try again later.";
+            Scene3ManagerScript.EnableMessagePanel();
+
+            yield break;
+        }
+
+        if (Scene3BackendScript.ConfirmedOrders.Orders.Length <= 0)
+        {
+            Scene3ManagerScript.DisableAllPanels();
+            Scene3ManagerScript.EnableHomePagePanel();
+
+            Scene3ManagerScript.MessageText.text = "No Failed orders currently exist.";
             Scene3ManagerScript.EnableMessagePanel();
 
             yield break;
@@ -728,8 +780,7 @@ public class HomePage : MonoBehaviour
     {
         Scene3ManagerScript.EnableInvisiblePanel();
 
-        Scene3ManagerScript.EnableRevenuePage();
-        RevenuePageManagerScript.LoadRevenue(Script1.StationeryInfoObject.StationeryID);
+        Scene3BackendScript.LoadRevenue(Script1.StationeryInfoObject.StationeryID);
     }
 
 
@@ -751,7 +802,8 @@ public class HomePage : MonoBehaviour
             return;
         }
 
-
+        //To refresh the Queue.
+        Scene3ManagerScript.EnableQueuePage();
         QueueManagerScript.RefreshQueuedOrders();
 
         Scene3ManagerScript.DisableAllPanels();
@@ -766,105 +818,21 @@ public class HomePage : MonoBehaviour
 
 
 
-    //=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*
-    //Auatomatic Printing stuff =
-    //=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*
-
-    //These functions are used to manually start or stop automatic printing.
-    public void ClickedStopAutomaticPrinting()
-    {
-        Debug.Log("Clicked StopAutomaticPrinting() Button.");
-
-        //This request helps to check if the server is online and connected to the app or not. If yes, only then we move forward.
-        StartCoroutine(Scene3BackendScript.CheckServer((isOnline) =>
-        {
-            if (isOnline)
-            {
-                Debug.Log("Server is active");
-
-                //Insert the true case here =
-
-                //Disabling AutomaticPrinting.
-                Script1.SetAutomaticPrintingValue(false);
-
-                //Restarting HomePage.
-                StartHomePage();
-
-                //Visually indicating that AutomaticPrinting is disabled.
-                AutomaticPrinting_ToggleOn.SetActive(false);
-                AutomaticPrinting_ToggleOff.SetActive(true);
-
-                Scene3ManagerScript.MessageText.text = "Automatic Printing Disabled.";
-                Scene3ManagerScript.EnableMessagePanel();
-            }
-            else
-            {
-                Debug.Log("Server is inactive");
-
-                Scene3ManagerScript.DisableAllPanels();
-
-                Scene3ManagerScript.MessageText.text = "Something went wrong, try again later.";
-                Scene3ManagerScript.EnableMessagePanel();
-            }
-        }));
-    }
-    public void ClickedStartAutomaticPrinting()
-    {
-        //This request helps to check if the server is online and connected to the app or not. If yes, only then we move forward.
-        StartCoroutine(Scene3BackendScript.CheckServer((isOnline) =>
-        {
-            if (isOnline)
-            {
-                Debug.Log("Server is active");
-
-                //Insert the true case here =
-
-                Debug.Log("Clicked StartAutomaticPrinting() Button.");
-
-                //Enabling AutomaticPrinting.
-                Script1.SetAutomaticPrintingValue(true);
-
-                //Restarting HomePage.
-                StartHomePage();
-
-                //Visually indicating that AutomaticPrinting is enabled.
-                AutomaticPrinting_ToggleOff.SetActive(false);
-                AutomaticPrinting_ToggleOn.SetActive(true);
-
-                Scene3ManagerScript.MessageText.text = "Automatic Printing Enabled.";
-                Scene3ManagerScript.EnableMessagePanel();
-            }
-            else
-            {
-                Debug.Log("Server is inactive");
-
-                Scene3ManagerScript.DisableAllPanels();
-
-                Scene3ManagerScript.MessageText.text = "Something went wrong, try again later.";
-                Scene3ManagerScript.EnableMessagePanel();
-            }
-        }));
-    }
-
-
-
-
 
 
     //================================================
     //Pausing / Unpausing Automatic Printing
     //================================================
 
-    //This button is used by the user to indicate that the user has 'fixed some issue' and is trying to start the automatic printing process again.
-    public void ClickedExclamationButton()
-    {
-        Debug.Log("Clicked Exclamation Button.");
+    //PausePrinting =
+    //1. A user may disable AutomaticPrinting, but cannot pause it.
+    //2. Only the app itself has the ability to Pause AutomaticPrinting.
+    //3. It does so if it faces some major issues, which need to be fixed before moving ahead.
+    //4. A user may Unpause AutomaticPrinting, which is done by clicking the exclamation button.
+    
+    //5. The app will never speak in terms of Pause / Unpause AutomaticPrinting to the user in
+    //order to keep things simple and straight forward.
 
-        //Unpause the printing process, and kickstart it using AutomaticPrinting().
-        UnpausePrinting();
-    }
-
-    // ???
     public void PausePrinting()
     {
         if (PausePrintingBool)
@@ -890,7 +858,7 @@ public class HomePage : MonoBehaviour
         ExclamationButton.SetActive(true);
     }
     
-    //UnpausePrinting() is called when a user clicks on the exclamation mark in the control panel.
+    //UnpausePrinting() is called when a user clicks on the exclamation mark in the Control panel.
     public void UnpausePrinting()
     {
         if (!PausePrintingBool)

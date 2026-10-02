@@ -58,21 +58,6 @@ public class ViewPrinters : MonoBehaviour
 
 
 
-            //=====================================
-            //The below 2 lines of code didnt work
-            //=====================================
-
-            //To make it so the PrinterPanelObjects are instantiated starting from the top of the ScrollRect.
-            printerPanelObject.transform.SetAsFirstSibling();
-
-            //This is to make it so that the Scroll View is scrolled to the top.
-            Canvas.ForceUpdateCanvases();
-            scrollRect.verticalNormalizedPosition = 1f;
-
-
-
-
-
             PrinterPanel printerPanelScript =
                 printerPanelObject.GetComponent<PrinterPanel>();
 
@@ -85,6 +70,11 @@ public class ViewPrinters : MonoBehaviour
             //This is to deny users to change a printer's settings ( Enabling / Disabling Double Sided / Color ) through ViewPrinters page.
             printerPanelScript.DisableToggles();
         }
+
+
+
+        //Printing Info about all selected printers =
+        Script1.PrintAllPrinterDetails();
     }
 
 

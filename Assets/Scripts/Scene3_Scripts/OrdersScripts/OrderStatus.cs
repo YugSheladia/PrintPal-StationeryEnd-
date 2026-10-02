@@ -54,6 +54,7 @@ public class OrderStatus : MonoBehaviour
     [SerializeField] GameObject PendingPanel;
     [SerializeField] GameObject CompletedPanel;
     [SerializeField] GameObject CollectedPanel;
+    [SerializeField] GameObject FailedPanel;
 
 
 
@@ -77,7 +78,8 @@ public class OrderStatus : MonoBehaviour
     {
         Pending,
         Completed,
-        Collected
+        Collected,
+        Failed
     }
     OrderStatusEnum orderStatusEnum;
 
@@ -138,7 +140,7 @@ public class OrderStatus : MonoBehaviour
                 EnablePendingPanel();
 
                 StatusBoxText.text = "Pending";
-                StatusBoxColor.color = new Color32(246, 59, 57, 200);
+                StatusBoxColor.color = new Color32(192, 167, 46, 255);
                 
                 StatusTimeStampText.text = "Order Created at " + Order.CreatedAt;
                 
@@ -150,7 +152,7 @@ public class OrderStatus : MonoBehaviour
                 EnableCompletedPanel();
 
                 StatusBoxText.text = "Printed";
-                StatusBoxColor.color = new Color32(245, 207, 73, 230);
+                StatusBoxColor.color = new Color32(171, 238, 170, 255);
 
                 StatusTimeStampText.text = "Order Completed at " + Order.CompletedAt;
 
@@ -162,10 +164,22 @@ public class OrderStatus : MonoBehaviour
                 EnableCollectedPanel();
 
                 StatusBoxText.text = "Collected";
-                StatusBoxColor.color = new Color32(2, 141, 26, 220);
+                StatusBoxColor.color = new Color32(63, 120, 61, 255);
 
                 StatusTimeStampText.text = "Order Collected at " + Order.CollectedAt;
  
+                break;
+
+            case OrderStatusEnum.Failed:
+
+                DisableAllPanels();
+                EnableFailedPanel();
+
+                StatusBoxText.text = "Failed";
+                StatusBoxColor.color = new Color32(130, 19, 19, 255);
+
+                StatusTimeStampText.text = "Order Failed at " + Order.FailedAt;
+
                 break;
 
             default:
@@ -297,7 +311,7 @@ public class OrderStatus : MonoBehaviour
     {
         if (Order == null)
         {
-            Debug.Log("Order is absent inside CollectedOrderStatus script.");
+            Debug.Log("Order is absent inside OrderStatus script.");
             return;
         }
 
@@ -316,7 +330,7 @@ public class OrderStatus : MonoBehaviour
     {
         if (Order == null)
         {
-            Debug.Log("Order is absent inside CollectedOrderStatus script.");
+            Debug.Log("Order is absent inside OrderStatus script.");
             return;
         }
 
@@ -335,7 +349,7 @@ public class OrderStatus : MonoBehaviour
     {
         if (Order == null)
         {
-            Debug.Log("Order is absent inside RTCOrderStatus script.");
+            Debug.Log("Order is absent inside OrderStatus script.");
             return;
         }
 
@@ -349,6 +363,23 @@ public class OrderStatus : MonoBehaviour
         Scene3BackendScript.SetOrderAsCollected(Order.OrderID, this.gameObject);
 
         //Destroy(gameObject);
+    }
+    public void ClickedMarkAsFailed()
+    {
+        if (Order == null)
+        {
+            Debug.Log("Order is absent inside OrderStatus script.");
+            return;
+        }
+
+        Scene3ManagerScript.EnableInvisiblePanel();
+
+        if (archiveStatusEnum == ArchiveStatusEnum.Archived)
+        {
+            Scene3BackendScript.SetOrderAsUnarchived(Order.OrderID, this.gameObject);
+        }
+
+        Scene3BackendScript.SetOrderAsFailed(Order.OrderID, this.gameObject);
     }
     public void ClickedArchiveOrderButton()
     {
@@ -392,6 +423,7 @@ public class OrderStatus : MonoBehaviour
         DisablePendingPanel();
         DisableCompletedPanel();
         DisableCollectedPanel();
+        DisableFailedPanel();
     }
 
 
@@ -426,6 +458,14 @@ public class OrderStatus : MonoBehaviour
     public void DisableCollectedPanel()
     {
         CollectedPanel.SetActive(false);
+    }
+    public void EnableFailedPanel()
+    {
+        FailedPanel.SetActive(true);
+    }
+    public void DisableFailedPanel()
+    {
+        FailedPanel.SetActive(false);
     }
 
 
@@ -476,6 +516,10 @@ public class OrderStatus : MonoBehaviour
 
         //Scene3ManagerScript.EnableInvisiblePanel();
 
-        Scene3BackendScript.StartPrintJob(Order);
+        //Replacing this =
+        //Scene3BackendScript.StartPrintJob(Order);
+
+        //With this =
+        StartCoroutine(Scene3BackendScript.ProcessOrder(Order));
     }
 }

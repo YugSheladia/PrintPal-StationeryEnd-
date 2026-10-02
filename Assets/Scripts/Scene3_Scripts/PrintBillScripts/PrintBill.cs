@@ -1,10 +1,13 @@
-//Script7
-
+//namespaces =
 using TMPro;
 using UnityEngine;
 
+
+
+
 public class PrintBill : MonoBehaviour
 {
+    //Bill UI =
     [SerializeField] public TMP_Text PrintNumberText;
     [SerializeField] TMP_Text PDFNameText;
 
@@ -22,20 +25,32 @@ public class PrintBill : MonoBehaviour
     [SerializeField] TMP_Text CollationText;
     [SerializeField] TMP_Text MarginText;
 
+
+
+
+    //Reference to PrintDetails object
     PrintDetails PrintDetailsObject;
 
+
+
+    //Random variables =
     float UnitPrice;
     public int EffectiveSheets;
     public float TotalPrice;
 
 
 
+
+
+    //Function used for obtaining reference to PrintDetails object from OrderStatus script.
     public void SetBillDetailsInBillScript(PrintDetails PrintDetailsObject)
     {
         this.PrintDetailsObject = PrintDetailsObject;
 
         SetBillDetailsInUI();
     }
+
+    //Updating UI according to PrintDetails object.
     private void SetBillDetailsInUI()
     {
         PrintNumberText.text = "#" + (PrintDetailsObject.PrintNumber + 1);

@@ -92,7 +92,11 @@ public class UpdatePrinters : MonoBehaviour
 
                             //In the beginning, it is assumed that the printer supports neither double sided printing, not color printing.
                             SupportsDoubleSidedPrinting = false,
-                            SupportsColorPrinting = false
+                            SupportsColorPrinting = false,
+
+                            //Page Capacity is 100 by default.
+                            PageCapacity = 100,
+                            PagesLeft = 100
                         };
 
                         CreatePrinterPanel(printer);
