@@ -332,10 +332,18 @@ public class Scene2Backend : MonoBehaviour
             Printer printer = new Printer();
 
             printer.Name = approvedPrinter.PrinterName;
+            printer.StationeryPrinterID = approvedPrinter.StationeryPrinterID;
+
+            //IsSelected = true as the printer as already been selected in the past, and hence it came in the list of Approved printers in the first place.
             printer.IsSelected = true;
 
+            //IsOnline = true as this status is not decided by the server, but instead by the printer's actual activity.
             printer.IsOnline = true;
+
+            //IsBusy = false as this status is not decided byt the server, but instead by the printer's actual activity.
             printer.IsBusy = false;
+
+            //This status isn't used yet, and hence it kept false by default.
             printer.AutomaticPrinting = false;
 
             printer.SupportsDoubleSidedPrinting = approvedPrinter.SupportsDoubleSidedPrinting;
@@ -530,8 +538,9 @@ public class Scene2Backend : MonoBehaviour
     public class PrinterInfo
     {
         public string name;
-        public string status;
-        public bool isDefault;
+        
+        //public string status;
+        //public bool isDefault;
     }
 
     [System.Serializable]

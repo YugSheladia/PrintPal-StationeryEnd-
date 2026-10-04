@@ -148,8 +148,13 @@ public class Scene5Backend : MonoBehaviour
             printer.Name = approvedPrinter.PrinterName;
             printer.IsSelected = true;
 
+            //IsOnline = true as this status is not decided by the server, but instead by the printer's actual activity.
             printer.IsOnline = true;
+
+            //IsBusy = false as this status is not decided byt the server, but instead by the printer's actual activity.
             printer.IsBusy = false;
+
+            //This status isn't used yet, and hence it kept false by default.
             printer.AutomaticPrinting = false;
 
             printer.SupportsDoubleSidedPrinting = approvedPrinter.SupportsDoubleSidedPrinting;
@@ -257,145 +262,4 @@ public class Scene5Backend : MonoBehaviour
 
         OnComplete?.Invoke(true);
     }
-
-
-
-
-
-    //==============================================================
-    //Feature of Enabling / Disabling Automatic Printing has been transferred from Settings -> HomePage
-    //Regardless, the below lines of code made Automatic Printing a preference, and connected it to the database, which is a legcay feature now, so this is retired. 
-    //==============================================================
-    /*
-    [System.Serializable]
-    public class AutomaticPrintingRequest
-    {
-        public int StationeryID;
-
-        public bool AutomaticPrinting;
-    }
-
-    [System.Serializable]
-    public class AutomaticPrintingResponse
-    {
-        public bool Success;
-
-        public string Message;
-    }
-
-
-    public IEnumerator SetAutomaticPrinting
-    (
-        int StationeryID,
-        bool AutomaticPrinting,
-        System.Action<bool> OnComplete
-    )
-    {
-        AutomaticPrintingRequest RequestObject = new AutomaticPrintingRequest();
-
-        RequestObject.StationeryID = StationeryID;
-        RequestObject.AutomaticPrinting = AutomaticPrinting;
-
-        string Json = JsonUtility.ToJson(RequestObject);
-
-        UnityWebRequest Request = new UnityWebRequest
-        (
-            "http://localhost:3000/stationery/automaticPrinting",
-            "POST"
-        );
-
-        byte[] Body = System.Text.Encoding.UTF8.GetBytes(Json);
-
-        Request.uploadHandler = new UploadHandlerRaw(Body);
-
-        Request.downloadHandler = new DownloadHandlerBuffer();
-
-        Request.SetRequestHeader
-        (
-            "Content-Type",
-            "application/json"
-        );
-
-        yield return Request.SendWebRequest();
-
-        if (Request.result != UnityWebRequest.Result.Success)
-        {
-            Debug.LogError(Request.error);
-
-            OnComplete?.Invoke(false);
-
-            yield break;
-        }
-
-        AutomaticPrintingResponse Response = JsonUtility.FromJson<AutomaticPrintingResponse>
-        (
-            Request.downloadHandler.text
-        );
-
-        if (!Response.Success)
-        {
-            Debug.LogError(Response.Message);
-
-            OnComplete?.Invoke(false);
-
-            yield break;
-        }
-
-        Debug.Log("Automatic printing updated.");
-
-        OnComplete?.Invoke(true);
-    }
-    */
-
-    /*
-    [System.Serializable]
-    public class GetAutomaticPrintingResponse
-    {
-        public bool Success;
-
-        public bool AutomaticPrinting;
-
-        public string Message;
-    }
-    public IEnumerator GetAutomaticPrinting
-    (
-        int StationeryID,
-        System.Action<bool?> OnComplete
-    )
-    {
-        UnityWebRequest Request = UnityWebRequest.Get
-        (
-            "http://localhost:3000/stationery/automaticPrinting/" +
-            StationeryID
-        );
-
-        yield return Request.SendWebRequest();
-
-        if (Request.result != UnityWebRequest.Result.Success)
-        {
-            Debug.LogError(Request.error);
-
-            OnComplete?.Invoke(null);
-
-            yield break;
-        }
-
-        GetAutomaticPrintingResponse Response =
-            JsonUtility.FromJson<GetAutomaticPrintingResponse>
-            (
-                Request.downloadHandler.text
-            );
-
-        if (Response == null || !Response.Success)
-        {
-            Debug.LogError(Response?.Message);
-
-            OnComplete?.Invoke(null);
-
-            yield break;
-        }
-
-        OnComplete?.Invoke(Response.AutomaticPrinting);
-    }
-    */
 }

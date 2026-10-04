@@ -11,13 +11,25 @@ public class Printer
     // Display name from Windows
     public string Name;
 
-    // Used to identify the printer uniquely
-    public string PrinterID;
+
+
+
+
+    // The row ID of this printer in the stationery's database.
+    // This is the numeric ID used for server calls like
+    // /stationery/printer/pages-used/{id} and
+    // /stationery/printer/pages-left/{id} - kept separate from
+    // PrinterID above since that one is a Windows-side identifier
+    // and may just be the printer's Name.
+    public int StationeryPrinterID;
+
+
+
+
 
     // User selection
     public bool IsSelected;
 
-    // Runtime state
     public bool IsOnline;
     public bool IsBusy;
 
@@ -39,9 +51,10 @@ public class Printer
     public void PrinterPrinterDetails()
     {
         Debug.Log("Name = " + Name);
-        Debug.Log("PrinterID = " + PrinterID);
+        Debug.Log("StationeryPrinterID = " + StationeryPrinterID);
 
         Debug.Log("IsSelected = " + IsSelected);
+        
         Debug.Log("IsOnline = " + IsOnline);
         Debug.Log("IsBusy = " + IsBusy);
 
@@ -52,5 +65,16 @@ public class Printer
 
         Debug.Log("PageCapacity = " + PageCapacity);
         Debug.Log("PagesLeft = " + PagesLeft);
+    }
+
+
+
+
+    //To refil PagesLeft, i.e. PagesLeft = Page
+    public void RefillPagesTo_PageCapacity()
+    {
+        PagesLeft = PageCapacity;
+
+        Debug.Log("Pages in Printer : " + Name + " have been refilled.");
     }
 }

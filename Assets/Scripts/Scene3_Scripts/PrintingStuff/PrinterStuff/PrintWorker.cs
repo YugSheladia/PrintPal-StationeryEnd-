@@ -624,6 +624,25 @@ public class PrinterWorker
 
 
         //--------------------------------------------------
+        // Report pages used - ONLY on a confirmed success.
+        //--------------------------------------------------
+
+        if (Success)
+        {
+            int PagesUsed =
+                Document.Print.EffectiveSheets *
+                Document.Print.Copies;
+
+            Scene3BackendScript.PagesUsedUpdationProcess
+            (
+                Printer.StationeryPrinterID,
+                PagesUsed,
+                this
+            );
+        }
+        
+
+        //--------------------------------------------------
         // Current physical print request is finished.
         //--------------------------------------------------
 
@@ -636,6 +655,31 @@ public class PrinterWorker
 
 
 
+
+
+
+
+
+
+
+
+
+    //===================================================================================================================
+    //Called by Scene3Backend's script -> PagesUsedUpdationProccess_Coroutine() to locally update the PagesLeft of a
+    //stationery once the PagesUsedUpdationProcess() has been completed successfully.
+    //===================================================================================================================
+
+    //===========================================================================================================================
+    //flow =
+    //Coroutine_PrintDocument() -> Scene3BackendScript.PagesLeftUpdationProcess() -> PagesLeftUpdationProcess_Coroutine() ->
+    //UpdatePagesUsed() + GetPagesLeft() + UpdatePagesLeft_Locally()
+    //===========================================================================================================================
+    public void UpdatePagesLeft_Locally(int PagesLeft)
+    {
+        Printer.PagesLeft = PagesLeft;
+
+        Manager.QueueManagerScript.RefreshQueuedOrders();
+    }
 
 
 

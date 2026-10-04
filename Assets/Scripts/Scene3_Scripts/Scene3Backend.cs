@@ -432,7 +432,7 @@ public class Scene3Backend : MonoBehaviour
             yield return null;
         }
 
-        Debug.Log("Downloading Pending Orders...");
+        //Debug.Log("Downloading Pending Orders...");
 
 
 
@@ -469,7 +469,7 @@ public class Scene3Backend : MonoBehaviour
         }
 
         #if UNITY_EDITOR
-        Debug.Log(request.downloadHandler.text);
+        //Debug.Log(request.downloadHandler.text);
         #endif
 
 
@@ -500,10 +500,10 @@ public class Scene3Backend : MonoBehaviour
         ConfirmedOrders.Orders =
             Response.Orders ?? new OrderSummary[0];
 
-        Debug.Log
-        (
-            $"Downloaded {ConfirmedOrders.Orders.Length} Pending Orders."
-        );
+        //Debug.Log
+        //(
+        //    $"Downloaded {ConfirmedOrders.Orders.Length} Pending Orders."
+        //);
 
         bool PrintsSuccess = false;
 
@@ -520,7 +520,7 @@ public class Scene3Backend : MonoBehaviour
             yield break;
         }
 
-        Debug.Log("Finished Downloading Pending Orders.");
+        //Debug.Log("Finished Downloading Pending Orders.");
         IsBusy = false;
 
         OnComplete(true);
@@ -947,7 +947,7 @@ public class Scene3Backend : MonoBehaviour
     //Therefore, GetOrders() -> GetPrints() -> GetPrintSettings() -> GetPrintBills().
     IEnumerator GetPrints(System.Action<bool> OnComplete)
     {
-        Debug.Log("Downloading Prints...");
+        //Debug.Log("Downloading Prints...");
 
         List<PrintSummary> AllPrints = new();
 
@@ -1016,13 +1016,13 @@ public class Scene3Backend : MonoBehaviour
             yield break;
         }
 
-        Debug.Log("Finished Downloading Prints.");
+        //Debug.Log("Finished Downloading Prints.");
 
         OnComplete(true);
     }
     IEnumerator GetPrintSettings(System.Action<bool> OnComplete)
     {
-        Debug.Log("Downloading Print Settings...");
+        //Debug.Log("Downloading Print Settings...");
 
         List<PrintSettingsSummary> AllPrintSettings = new();
 
@@ -1088,13 +1088,13 @@ public class Scene3Backend : MonoBehaviour
             yield break;
         }
 
-        Debug.Log("Finished Downloading Print Settings.");
+       //Debug.Log("Finished Downloading Print Settings.");
 
         OnComplete(true);
     }
     IEnumerator GetPrintBills(System.Action<bool> OnComplete)
     {
-        Debug.Log("Downloading Print Bills...");
+        //Debug.Log("Downloading Print Bills...");
 
         List<PrintBillsSummary> AllPrintBills = new();
 
@@ -1149,7 +1149,7 @@ public class Scene3Backend : MonoBehaviour
 
         BuildPrintDetails();
 
-        Debug.Log("Finished Downloading Everything.");
+        //Debug.Log("Finished Downloading Everything.");
 
         OnComplete(true);
     }
@@ -1169,7 +1169,7 @@ public class Scene3Backend : MonoBehaviour
     public Dictionary<int, List<PrintSummary>> PrintsDictionary = new();
     void BuildPrintDetails()
     {
-        Debug.Log("Building Print Details...");
+        //Debug.Log("Building Print Details...");
 
         SettingsDictionary.Clear();
         BillsDictionary.Clear();
@@ -1279,7 +1279,7 @@ public class Scene3Backend : MonoBehaviour
             }
         }
 
-        Debug.Log("Finished Building Print Details.");
+        //Debug.Log("Finished Building Print Details.");
     }
 
 
@@ -2178,7 +2178,7 @@ public class Scene3Backend : MonoBehaviour
         }
 
 #if UNITY_EDITOR
-        Debug.Log(request.downloadHandler.text);
+        //Debug.Log(request.downloadHandler.text);
 #endif
 
         EarningsResponse Response =
@@ -2203,11 +2203,11 @@ public class Scene3Backend : MonoBehaviour
             yield break;
         }
 
-        Debug.Log
-        (
-            "Today's Revenue: "
-            + Response.Amount
-        );
+        //Debug.Log
+        //(
+        //   "Today's Revenue: "
+        //    + Response.Amount
+        //);
 
         HomePageScript.RevenueToday.text =
             Response.Amount.ToString("F2");
@@ -2586,7 +2586,7 @@ public class Scene3Backend : MonoBehaviour
 
     IEnumerator Coroutine_CheckForNewOrders()
     {
-        Debug.Log("Inside Coroutine_CheckForNewOrders()");
+        //Debug.Log("Inside Coroutine_CheckForNewOrders()");
 
         IsPollingOrders = true;
 
@@ -2654,7 +2654,7 @@ public class Scene3Backend : MonoBehaviour
         IsRefreshingHomePage = true;
 
 
-        Debug.Log("Coroutine_RefreshUI()");
+        //Debug.Log("Coroutine_RefreshUI()");
         HomePageScript.CurrentDate.text = DateTime.Now.ToString("dd-MM-yyyy");
 
 
@@ -2714,7 +2714,6 @@ public class Scene3Backend : MonoBehaviour
         HomePageScript.UpdateNumberOfConnectedPrinters();
 
 
-
         IsRefreshingHomePage = false;
     }
     void RefreshFailed()
@@ -2724,6 +2723,7 @@ public class Scene3Backend : MonoBehaviour
         Scene3ManagerScript.MessageText.text = "Something went wrong, try again later.";
         Scene3ManagerScript.EnableMessagePanel();
     }
+
 
 
 
@@ -3248,11 +3248,6 @@ public class Scene3Backend : MonoBehaviour
 
 
 
-
-
-
-
-
     //This function is called by PrintWorker script when an Order is succesfully printed.
     public IEnumerator CompletePrintedOrder(int OrderID)
     {
@@ -3370,6 +3365,270 @@ public class Scene3Backend : MonoBehaviour
         QueueManagerScript.RefreshQueuedOrders();
 
         Scene3ManagerScript.DisableInvisiblePanel();
+    }
+
+
+
+
+
+
+
+
+
+
+
+
+
+    
+
+    //===========================================================================================================================
+    //flow =
+    //PrintWorker.Coroutine_PrintDocument() -> PagesLeftUpdationProcess() -> PagesLeftUpdationProcess_Coroutine() ->
+    //UpdatePagesUsed() + GetPagesLeft() + PrintWorker.UpdatePagesLeft_Locally()
+    //===========================================================================================================================
+
+
+    [System.Serializable]
+    public class PagesUsedRequest
+    {
+        public int PagesUsed;
+    }
+
+    [System.Serializable]
+    public class PagesLeftResponse
+    {
+        public bool Success;
+        public int PagesLeft;
+        public string Message;
+    }
+
+
+    //=======================================================================================
+    //UpdatePageLeft() -> UpdatePagesLeftCoroutine() -> UpdatePagesUsed() + GetPagesLeft().
+    //
+    // NOTE: Worker is no longer stored on a shared field here. With multiple printers
+    // running in parallel (see PrintManager.Workers), two printers finishing around the
+    // same time would overwrite each other's Worker reference before either coroutine
+    // got to Worker.UpdatePagesLeft_Locally(), silently applying the wrong printer's
+    // pages-left update to the wrong worker. Threading Worker through as a parameter
+    // instead means each in-flight call keeps its own reference, regardless of how many
+    // printers complete concurrently.
+    //=======================================================================================
+    public void PagesUsedUpdationProcess(int StationeryPrinterID, int PagesUsed, PrinterWorker Worker)
+    {
+        StartCoroutine
+        (
+            PagesUsedUpdationProcess_Coroutine
+            (
+                StationeryPrinterID,
+                PagesUsed,
+                Worker
+            )
+        );
+    }
+
+    IEnumerator PagesUsedUpdationProcess_Coroutine
+    (
+        int StationeryPrinterID,
+        int PagesUsed,
+        PrinterWorker Worker
+    )
+    {
+        bool Success = false;
+
+        yield return StartCoroutine(UpdatePagesUsed(StationeryPrinterID, PagesUsed, Result => Success = Result));
+
+        if (!Success)
+        {
+            Scene3ManagerScript.DisableAllPanels();
+
+            Scene3ManagerScript.MessageText.text = "Pages could not be updated.";
+            Scene3ManagerScript.EnableMessagePanel();
+
+            yield break;
+        }
+
+        int PagesLeft = -1;
+
+        yield return StartCoroutine(GetPagesLeft(StationeryPrinterID, Result => PagesLeft = Result));
+
+        if (PagesLeft == -1)
+        {
+            Scene3ManagerScript.DisableAllPanels();
+
+            Scene3ManagerScript.MessageText.text = "Pages were updated, but their value could not be retrieved.";
+            Scene3ManagerScript.EnableMessagePanel();
+
+            yield break;
+        }
+
+        Worker.UpdatePagesLeft_Locally(PagesLeft);
+    }
+
+
+    //======================================================
+    // Update Pages Used
+    //======================================================
+
+    public IEnumerator UpdatePagesUsed
+    (
+        int StationeryPrinterID,
+        int PagesUsed,
+        System.Action<bool> OnComplete
+    )
+    {
+        string json = JsonUtility.ToJson(new PagesUsedRequest
+        {
+            PagesUsed = PagesUsed
+        });
+
+        using (UnityWebRequest request = new UnityWebRequest(
+            "http://localhost:3000/stationery/printer/pages-used/" + StationeryPrinterID,
+            "PUT"))
+        {
+            byte[] body = System.Text.Encoding.UTF8.GetBytes(json);
+
+            request.uploadHandler = new UploadHandlerRaw(body);
+            request.downloadHandler = new DownloadHandlerBuffer();
+
+            request.SetRequestHeader(
+                "Content-Type",
+                "application/json"
+            );
+
+            yield return request.SendWebRequest();
+
+            if (request.result == UnityWebRequest.Result.Success)
+            {
+                Debug.Log("Pages used updated successfully.");
+
+                OnComplete?.Invoke(true);
+            }
+            else
+            {
+                Debug.LogError("Failed to update pages used.");
+                Debug.LogError(request.error);
+                Debug.LogError(request.downloadHandler.text);
+
+                OnComplete?.Invoke(false);
+            }
+        }
+    }
+
+
+    //======================================================
+    // Get Pages Left
+    //======================================================
+
+    public IEnumerator GetPagesLeft
+    (
+        int StationeryPrinterID,
+        System.Action<int> OnComplete
+    )
+    {
+        using (UnityWebRequest request = UnityWebRequest.Get(
+            "http://localhost:3000/stationery/printer/pages-left/" + StationeryPrinterID))
+        {
+            yield return request.SendWebRequest();
+
+            if (request.result == UnityWebRequest.Result.Success)
+            {
+                PagesLeftResponse response =
+                    JsonUtility.FromJson<PagesLeftResponse>(
+                        request.downloadHandler.text
+                    );
+
+                if (response.Success)
+                {
+                    Debug.Log("Pages left: " + response.PagesLeft);
+
+                    OnComplete?.Invoke(response.PagesLeft);
+                }
+                else
+                {
+                    Debug.LogError("Failed to get pages left.");
+                    Debug.LogError(response.Message);
+
+                    OnComplete?.Invoke(-1);
+                }
+            }
+            else
+            {
+                Debug.LogError("Failed to get pages left.");
+                Debug.LogError(request.error);
+                Debug.LogError(request.downloadHandler.text);
+
+                OnComplete?.Invoke(-1);
+            }
+        }
+    }
+
+
+
+
+
+
+
+
+    ///=======================================
+    //Refil Pages of a specific Printer.
+    //========================================
+
+
+    [System.Serializable]
+    public class RefillPrinterResponse
+    {
+        public bool Success;
+        public string Message;
+    }
+
+
+
+
+    // Refill Printer Pages coroutine =
+    public IEnumerator RefillPrinterPages
+    (
+        int StationeryPrinterID,
+        System.Action<bool> OnComplete
+    )
+    {
+        using (UnityWebRequest request = UnityWebRequest.Put(
+            "http://localhost:3000/stationery/printer/refill/" + StationeryPrinterID,
+            ""))
+        {
+            request.downloadHandler = new DownloadHandlerBuffer();
+
+            yield return request.SendWebRequest();
+
+            if (request.result == UnityWebRequest.Result.Success)
+            {
+                RefillPrinterResponse response =
+                    JsonUtility.FromJson<RefillPrinterResponse>(
+                        request.downloadHandler.text
+                    );
+
+                if (response.Success)
+                {
+                    Debug.Log("Printer pages refilled successfully.");
+
+                    OnComplete?.Invoke(true);
+                }
+                else
+                {
+                    Debug.LogError(response.Message);
+
+                    OnComplete?.Invoke(false);
+                }
+            }
+            else
+            {
+                Debug.LogError("Failed to refill printer pages.");
+                Debug.LogError(request.error);
+                Debug.LogError(request.downloadHandler.text);
+
+                OnComplete?.Invoke(false);
+            }
+        }
     }
 }
 

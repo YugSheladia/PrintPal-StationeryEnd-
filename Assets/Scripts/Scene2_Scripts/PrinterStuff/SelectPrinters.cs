@@ -69,8 +69,8 @@ public class SelectPrinters : MonoBehaviour
                     foreach (PrinterInfo printerInfo in printers)
                     {
                         Debug.Log($"Name    : {printerInfo.name}");
-                        Debug.Log($"Status  : {printerInfo.status}");
-                        Debug.Log($"Default : {printerInfo.isDefault}");
+                        //Debug.Log($"Status  : {printerInfo.status}");
+                        //Debug.Log($"Default : {printerInfo.isDefault}");
                         Debug.Log("------------------------------");
 
                         Printer printer = new Printer()
@@ -79,13 +79,13 @@ public class SelectPrinters : MonoBehaviour
 
                             IsSelected = false,
 
+                            //IsOnline = true as this status is not decided by the server, but instead by the printer's actual activity.
                             IsOnline = true,
 
-                            IsBusy =
-                                printerInfo.status == "Busy"
-                                || 
-                                printerInfo.status == "Printing",
+                            //IsBusy = false as this status is not decided byt the server, but instead by the printer's actual activity.
+                            IsBusy = false,
 
+                            //This status isn't used yet, and hence it kept false by default.
                             AutomaticPrinting = false,
 
                             //Page Capacity is 100 by default.

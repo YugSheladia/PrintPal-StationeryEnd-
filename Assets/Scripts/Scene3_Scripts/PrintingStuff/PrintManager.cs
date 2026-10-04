@@ -1,6 +1,5 @@
 //namespaces =
 using System.Collections.Generic;
-using Unity.Jobs;
 using UnityEngine;
 
 
@@ -10,10 +9,10 @@ using UnityEngine;
 public class PrintManager : MonoBehaviour
 {
     //Script references
-    [SerializeField] Scene3Manager  Scene3ManagerScript;
-    [SerializeField] Scene3Backend  Scene3BackendScript;
-    [SerializeField] HomePage       HomePageScript;
-    [SerializeField] QueueManager   QueueManagerScript;
+    [SerializeField]        Scene3Manager  Scene3ManagerScript;
+    [SerializeField]        Scene3Backend  Scene3BackendScript;
+    [SerializeField]        HomePage       HomePageScript;
+    [SerializeField] public QueueManager   QueueManagerScript;
 
 
 
@@ -161,17 +160,11 @@ public class PrintManager : MonoBehaviour
                 continue;
             }
 
-            string Key = ExistingWorker.Printer.PrinterID;
-
-            if (string.IsNullOrEmpty(Key))
-            {
-                Key = ExistingWorker.Printer.Name;
-            }
+            string Key = ExistingWorker.Printer.Name;
 
             if (!string.IsNullOrEmpty(Key))
             {
-                PreviousWorkingStates[Key] =
-                    ExistingWorker.WorkedLastTime;
+                PreviousWorkingStates[Key] = ExistingWorker.WorkedLastTime;
             }
         }
 
@@ -194,16 +187,6 @@ public class PrintManager : MonoBehaviour
 
 
             //--------------------------------------------------
-            // The server may only provide Name.
-            //--------------------------------------------------
-
-            if (string.IsNullOrEmpty(P.PrinterID))
-            {
-                P.PrinterID = P.Name;
-            }
-
-
-            //--------------------------------------------------
             // Create worker.
             //--------------------------------------------------
 
@@ -216,19 +199,14 @@ public class PrintManager : MonoBehaviour
                 );
 
 
+
             //--------------------------------------------------
             // Restore previous manual/failure state.
             //
             // New printers default to working.
             //--------------------------------------------------
 
-            string Key = P.PrinterID;
-
-            if (string.IsNullOrEmpty(Key))
-            {
-                Key = P.Name;
-            }
-
+            string Key = P.Name;
 
             if
             (
@@ -240,11 +218,9 @@ public class PrintManager : MonoBehaviour
                 )
             )
             {
-                Worker.WorkedLastTime =
-                    PreviousState;
+                Worker.WorkedLastTime = PreviousState;
 
-                Worker.Printer.IsOnline =
-                    PreviousState;
+                Worker.Printer.IsOnline = PreviousState;
             }
             else
             {
@@ -795,7 +771,7 @@ public class PrintManager : MonoBehaviour
 
         Job.AttemptedPrinterIDs.Add
         (
-            FailedWorker.Printer.PrinterID
+            FailedWorker.Printer.Name
         );
 
         Job.RetryCount++;
@@ -971,7 +947,7 @@ public class PrintManager : MonoBehaviour
             (
                 Job.AttemptedPrinterIDs.Contains
                 (
-                    Candidate.Printer.PrinterID
+                    Candidate.Printer.Name
                 )
             )
             {

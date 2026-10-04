@@ -13,7 +13,16 @@ using TMPro;
 public class PrinterQueuePanel : MonoBehaviour
 {
     //Script references =
+    Scene3Backend Scene3BackendScript;
     PrintManager PrintManagerScript;
+
+
+    //Printer Number ( to display in PrinterQueuePanel )
+    int PrinterNumber;
+
+
+    //Reference to Worker, i.e. printer, whose queue is represented by this specific PrinterQueue panel.
+    public PrinterWorker Worker;
 
 
     //This is the prefab used to instantiate a QueuedOrder object inside a PrinterQueue panel.
@@ -25,16 +34,13 @@ public class PrinterQueuePanel : MonoBehaviour
 
     //UI stuff =
     [SerializeField] public TMP_Text PrinterName;
-    [SerializeField] public TMP_Text PrinterNumber;
+    [SerializeField] public TMP_Text PrinterNumberText;
 
 
     //Seperate panels to indicate weather the printer is operational or not.
     [SerializeField] public GameObject Operational;
     [SerializeField] public GameObject NonOperational;
 
-
-    //Reference to Worker, i.e. printer, whose queue is represented by this specific PrinterQueue panel.
-    PrinterWorker Worker;
 
 
     //Panels to indicate if the printer supports DoubleSided, Color, etc.
@@ -48,10 +54,13 @@ public class PrinterQueuePanel : MonoBehaviour
 
 
 
-
     //Page Capacity stuff =
     [SerializeField] private TMP_Text PagesRemaining;
 
+    [SerializeField] public GameObject PagesLeftIndicator_Caution;
+    [SerializeField] public GameObject PagesLeftIndicator_Low;
+    [SerializeField] public GameObject PagesLeftIndicator_Medium;
+    [SerializeField] public GameObject PagesLeftIndicator_High;
 
 
 
@@ -60,13 +69,24 @@ public class PrinterQueuePanel : MonoBehaviour
 
 
 
-
-
-    //This function provides PrinterQueuePanel script a reference of PrintManager script.
-    public void SetPrintManagerScript(PrintManager PrintManagerScript)
+    //This function provides PrinterQueuePanel script a reference to the required scripts.
+    public void SetRequiredScripts(Scene3Backend Scene3BackendScript, PrintManager PrintManagerScript)
     {
+        this.Scene3BackendScript = Scene3BackendScript;
         this.PrintManagerScript = PrintManagerScript;
     }
+
+
+    //This function sets the PrintWorker as well as PrintNumber in the PrinterQueuePanel script itself.
+    public void SetPrintWorker(PrinterWorker Worker, int PrinterNumber)
+    {
+        this.Worker         = Worker;
+        this.PrinterNumber  = PrinterNumber;
+    }
+
+
+
+
 
 
 
@@ -94,7 +114,7 @@ public class PrinterQueuePanel : MonoBehaviour
     }
 
     //QueueManager script -> CreatePrinterQueuePanel() -> UpdateUI()
-    public void UpdateUI(PrinterWorker Worker, int WorkerNumber)
+    public void UpdateUI()
     {
         //This is to mark the printer as Operational / Non Operational.
         if (Worker.WorkedLastTime)
@@ -107,8 +127,8 @@ public class PrinterQueuePanel : MonoBehaviour
         }
 
 
-        PrinterName.text = Worker.Printer.Name;
-        PrinterNumber.text = WorkerNumber.ToString();
+        PrinterName.text        = Worker.Printer.Name;
+        PrinterNumberText.text  = PrinterNumber.ToString();
 
 
         //This tags the Printer with the type of print it supports.
@@ -148,6 +168,10 @@ public class PrinterQueuePanel : MonoBehaviour
 
 
 
+
+
+
+
     //This function is called when a user clicks on 'Activate' button.
     public void ClickedJumpStartButton()
     {
@@ -163,6 +187,9 @@ public class PrinterQueuePanel : MonoBehaviour
 
         PrinterIs_NonOperational();
     }
+
+
+
 
 
 
@@ -185,5 +212,99 @@ public class PrinterQueuePanel : MonoBehaviour
     {
         Operational.SetActive(false);
         NonOperational.SetActive(true);
+    }
+
+
+
+
+
+
+
+
+
+    //======================
+    //PagesLeft stuff 
+    //======================
+
+    //====================================================================================
+    //These functions are used to refill the pages of a printer to it's max capacity.
+    //i.e. Printer.PagesLeft = Printer.PageCapacity.
+    //====================================================================================
+    public void ClickedRefilPagesButton()
+    {
+        RefilPages();
+    }
+
+    private void RefilPages()
+    {
+        StartCoroutine
+        (
+            Scene3BackendScript.RefillPrinterPages
+            (
+                Worker.Printer.StationeryPrinterID,
+                Success =>
+                {
+                    if (Success)
+                    {
+                        Debug.Log("Printer refilled.");
+
+                        Worker.Printer.RefillPagesTo_PageCapacity();
+
+                        UpdateUI();
+                    }
+                    else
+                    {
+                        Debug.LogWarning("Failed to refill printer.");
+                    }
+                }
+            )
+        );
+    }
+
+
+
+
+
+
+    public void UpdatePagesLeftIndicator()
+    {
+        int PagesLeft_InPercentage = (Worker.Printer.PagesLeft / Worker.Printer.PageCapacity) * 100;
+
+        DisableAll_PagesLeftIndicatorPanels();
+        
+        if (PagesLeft_InPercentage < 10)
+        {
+            PagesLeftIndicator_Caution.SetActive(true);
+            return;
+        }
+        
+        if (PagesLeft_InPercentage < 33)
+        {
+            PagesLeftIndicator_Low.SetActive(true);
+            return;
+        }
+        
+        if (PagesLeft_InPercentage < 66)
+        {
+            PagesLeftIndicator_Medium.SetActive(true);
+            return;
+        }
+
+        PagesLeftIndicator_High.SetActive(true);
+    }
+
+
+
+
+
+
+
+    //Disable All PagesLeft_Indicator panels
+    public void DisableAll_PagesLeftIndicatorPanels()
+    {
+        PagesLeftIndicator_Caution. SetActive(false);
+        PagesLeftIndicator_Low.     SetActive(false);
+        PagesLeftIndicator_Medium.  SetActive(false);
+        PagesLeftIndicator_High.    SetActive(false);
     }
 }

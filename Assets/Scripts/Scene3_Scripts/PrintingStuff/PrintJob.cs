@@ -178,7 +178,6 @@ public class PrintJob
         if (Printer != null)
         {
             UnityEngine.Debug.Log("Printer name                 = " + Printer.Name);
-            UnityEngine.Debug.Log("Printer ID                   = " + Printer.PrinterID);
             UnityEngine.Debug.Log("Printer IsSelected           = " + Printer.IsSelected);
             UnityEngine.Debug.Log("Printer IsOnline             = " + Printer.IsOnline);
             UnityEngine.Debug.Log("Printer IsBusy               = " + Printer.IsBusy);

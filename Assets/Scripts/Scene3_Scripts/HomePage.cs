@@ -1,7 +1,6 @@
 //namespaces =
 using System.Collections;
 using UnityEngine;
-using UnityEngine.SceneManagement;
 using TMPro;
 
 
@@ -214,6 +213,9 @@ public class HomePage : MonoBehaviour
     {
         Debug.Log("AutomaticPrinting()");
 
+        //here, we depend on Sciprt1's AutomaticPrinting bool because it is set to false by default.
+        //We want to make sure that the AutomaticPrinting bool is disabled by default every time a user logs in.
+
         // Only start polling if Automatic Printing is enabled
         if (Script1.GetAutomaticPrintingValue() && !PausePrintingBool)
         {
@@ -291,7 +293,6 @@ public class HomePage : MonoBehaviour
 
         if (Success)
         {
-            Debug.Log("3");
             StationeryIsOperational = isOperational;
             Script1.Stationery_IsOperational_bool = isOperational;
 
@@ -301,7 +302,6 @@ public class HomePage : MonoBehaviour
         }
         else
         {
-            Debug.Log("4");
             Scene3ManagerScript.DisableAllPanels();
 
             Scene3ManagerScript.MessageText.text = "Something went wrong, please try again later.";
@@ -809,8 +809,6 @@ public class HomePage : MonoBehaviour
         Scene3ManagerScript.DisableAllPanels();
         Scene3ManagerScript.EnableQueuePage();
     }
-
-
 
 
 
