@@ -15,6 +15,7 @@ public class PrinterQueuePanel : MonoBehaviour
     //Script references =
     Scene3Backend Scene3BackendScript;
     PrintManager PrintManagerScript;
+    QueueManager QueueManagerScript;
 
 
     //Printer Number ( to display in PrinterQueuePanel )
@@ -70,9 +71,10 @@ public class PrinterQueuePanel : MonoBehaviour
 
 
     //This function provides PrinterQueuePanel script a reference to the required scripts.
-    public void SetRequiredScripts(Scene3Backend Scene3BackendScript, PrintManager PrintManagerScript)
+    public void SetRequiredScripts(Scene3Backend Scene3BackendScript, QueueManager QueueManagerScript, PrintManager PrintManagerScript)
     {
         this.Scene3BackendScript = Scene3BackendScript;
+        this.QueueManagerScript = QueueManagerScript;
         this.PrintManagerScript = PrintManagerScript;
     }
 
@@ -162,8 +164,48 @@ public class PrinterQueuePanel : MonoBehaviour
                                 Worker.Printer.PagesLeft.ToString() + 
                                 " / " + 
                                 Worker.Printer.PageCapacity.ToString();
+
+
+
+        //UpdateUI is called by ClickedRefillPages() -> RefillPages().
+        //Hence we are updating the PagesLeftIndicator as well.
+        Update_PagesLeftIndicator();
     }
 
+
+    //UpdateUI() -> Update_PagesLeftIndicator().
+    //This updates the PagesLeft indicator to Caution, Low, Medium, or High depending upon the PagesLeft / PageCapacity * 100.
+    public void Update_PagesLeftIndicator()
+    {
+        float PagesLeft = Worker.Printer.PagesLeft;
+        float PageCapacity = Worker.Printer.PageCapacity;
+
+        float PagesLeft_Percentage = (PagesLeft / PageCapacity) * 100;
+
+        Debug.Log("PagesLeft    = " + PagesLeft);
+        Debug.Log("PageCapacity = " + PageCapacity);
+        Debug.Log("PagesLeftPercentage = " + PagesLeft_Percentage);
+
+        DisableAll_PagesLeftIndicatorPanels();
+
+        if (PagesLeft_Percentage < 10)
+        {
+            PagesLeftIndicator_Caution.SetActive(true);
+            return;
+        }
+        if (PagesLeft_Percentage < 33)
+        {
+            PagesLeftIndicator_Low.SetActive(true);
+            return;
+        }
+        if (PagesLeft_Percentage < 66)
+        {
+            PagesLeftIndicator_Medium.SetActive(true);
+            return;
+        }
+
+        PagesLeftIndicator_High.SetActive(true);
+    }
 
 
 
@@ -266,32 +308,7 @@ public class PrinterQueuePanel : MonoBehaviour
 
 
 
-    public void UpdatePagesLeftIndicator()
-    {
-        int PagesLeft_InPercentage = (Worker.Printer.PagesLeft / Worker.Printer.PageCapacity) * 100;
-
-        DisableAll_PagesLeftIndicatorPanels();
-        
-        if (PagesLeft_InPercentage < 10)
-        {
-            PagesLeftIndicator_Caution.SetActive(true);
-            return;
-        }
-        
-        if (PagesLeft_InPercentage < 33)
-        {
-            PagesLeftIndicator_Low.SetActive(true);
-            return;
-        }
-        
-        if (PagesLeft_InPercentage < 66)
-        {
-            PagesLeftIndicator_Medium.SetActive(true);
-            return;
-        }
-
-        PagesLeftIndicator_High.SetActive(true);
-    }
+  
 
 
 

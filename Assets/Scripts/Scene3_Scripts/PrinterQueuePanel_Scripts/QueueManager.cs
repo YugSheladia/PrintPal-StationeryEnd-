@@ -82,52 +82,14 @@ public class QueueManager : MonoBehaviour
 
         PrinterQueuePanel_List.Add(PrinterQueuePanelScript);
 
-        PrinterQueuePanelScript.SetRequiredScripts(Scene3BackendScript, PrintManagerScript);
+        PrinterQueuePanelScript.SetRequiredScripts(Scene3BackendScript, this, PrintManagerScript);
         PrinterQueuePanelScript.SetPrintWorker(Worker, PrinterNumber);
-
-        PrinterQueuePanelScript.UpdateUI();
 
         //This is to create the QueuedOrder panels inside each PrinterQueue panel.
         PrinterQueuePanelScript.CreateQueuedOrders(Worker);
 
-        Update_PagesLeftIndicator(PrinterQueuePanelScript);
+        PrinterQueuePanelScript.UpdateUI();
     }
-
-
-    private void Update_PagesLeftIndicator(PrinterQueuePanel PrinterQueuePanelScript)
-    {
-        float PagesLeft = PrinterQueuePanelScript.Worker.Printer.PagesLeft;
-        float PageCapacity = PrinterQueuePanelScript.Worker.Printer.PageCapacity;
-
-        float PagesLeft_Percentage = (PagesLeft / PageCapacity) * 100;
-
-        Debug.Log("PagesLeft    = " + PagesLeft);
-        Debug.Log("PageCapacity = " + PageCapacity);
-        Debug.Log("PagesLeftPercentage = " + PagesLeft_Percentage);
-
-        PrinterQueuePanelScript.DisableAll_PagesLeftIndicatorPanels();
-
-        if (PagesLeft_Percentage < 10)
-        {
-            PrinterQueuePanelScript.PagesLeftIndicator_Caution.SetActive(true);
-            return;
-        }
-        if (PagesLeft_Percentage < 33)
-        {
-            PrinterQueuePanelScript.PagesLeftIndicator_Low.SetActive(true);
-            return;
-        }
-        if (PagesLeft_Percentage < 66)
-        {
-            PrinterQueuePanelScript.PagesLeftIndicator_Medium.SetActive(true);
-            return;
-        }
-
-        PrinterQueuePanelScript.PagesLeftIndicator_High.SetActive(true);
-    }
-
-
-
 
 
 
