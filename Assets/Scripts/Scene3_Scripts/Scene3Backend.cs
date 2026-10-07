@@ -3416,6 +3416,7 @@ public class Scene3Backend : MonoBehaviour
     //=======================================================================================
     public void PagesUsedUpdationProcess(int StationeryPrinterID, int PagesUsed, PrinterWorker Worker)
     {
+        Debug.Log("3");
         StartCoroutine
         (
             PagesUsedUpdationProcess_Coroutine
@@ -3435,11 +3436,14 @@ public class Scene3Backend : MonoBehaviour
     )
     {
         bool Success = false;
+        Debug.Log("4");
 
         yield return StartCoroutine(UpdatePagesUsed(StationeryPrinterID, PagesUsed, Result => Success = Result));
+        Debug.Log("5");
 
         if (!Success)
         {
+            Debug.Log("6");
             Scene3ManagerScript.DisableAllPanels();
 
             Scene3ManagerScript.MessageText.text = "Pages could not be updated.";
@@ -3448,12 +3452,15 @@ public class Scene3Backend : MonoBehaviour
             yield break;
         }
 
+        Debug.Log("7");
         int PagesLeft = -1;
 
+        Debug.Log("8");
         yield return StartCoroutine(GetPagesLeft(StationeryPrinterID, Result => PagesLeft = Result));
 
         if (PagesLeft == -1)
         {
+            Debug.Log("9");
             Scene3ManagerScript.DisableAllPanels();
 
             Scene3ManagerScript.MessageText.text = "Pages were updated, but their value could not be retrieved.";
@@ -3462,6 +3469,7 @@ public class Scene3Backend : MonoBehaviour
             yield break;
         }
 
+        Debug.Log("10");
         Worker.UpdatePagesLeft_Locally(PagesLeft);
     }
 
@@ -3482,30 +3490,38 @@ public class Scene3Backend : MonoBehaviour
             PagesUsed = PagesUsed
         });
 
+        Debug.Log("11");
         using (UnityWebRequest request = new UnityWebRequest(
             "http://localhost:3000/stationery/printer/pages-used/" + StationeryPrinterID,
             "PUT"))
         {
+            Debug.Log("12, StationeryPrinterID = " + StationeryPrinterID);
             byte[] body = System.Text.Encoding.UTF8.GetBytes(json);
 
+            Debug.Log("13");
             request.uploadHandler = new UploadHandlerRaw(body);
             request.downloadHandler = new DownloadHandlerBuffer();
 
+            Debug.Log("14");
             request.SetRequestHeader(
                 "Content-Type",
                 "application/json"
             );
 
+            Debug.Log("15");
             yield return request.SendWebRequest();
 
+            Debug.Log("16");
             if (request.result == UnityWebRequest.Result.Success)
             {
+                Debug.Log("17");
                 Debug.Log("Pages used updated successfully.");
 
                 OnComplete?.Invoke(true);
             }
             else
             {
+                Debug.Log("18");
                 Debug.LogError("Failed to update pages used.");
                 Debug.LogError(request.error);
                 Debug.LogError(request.downloadHandler.text);
@@ -3529,10 +3545,16 @@ public class Scene3Backend : MonoBehaviour
         using (UnityWebRequest request = UnityWebRequest.Get(
             "http://localhost:3000/stationery/printer/pages-left/" + StationeryPrinterID))
         {
+            Debug.Log("19");
+
             yield return request.SendWebRequest();
+
+            Debug.Log("20");
 
             if (request.result == UnityWebRequest.Result.Success)
             {
+                Debug.Log("21");
+
                 PagesLeftResponse response =
                     JsonUtility.FromJson<PagesLeftResponse>(
                         request.downloadHandler.text
@@ -3540,12 +3562,16 @@ public class Scene3Backend : MonoBehaviour
 
                 if (response.Success)
                 {
+                    Debug.Log("22");
+
                     Debug.Log("Pages left: " + response.PagesLeft);
 
                     OnComplete?.Invoke(response.PagesLeft);
                 }
                 else
                 {
+                    Debug.Log("23");
+
                     Debug.LogError("Failed to get pages left.");
                     Debug.LogError(response.Message);
 
@@ -3554,6 +3580,8 @@ public class Scene3Backend : MonoBehaviour
             }
             else
             {
+                Debug.Log("24");
+
                 Debug.LogError("Failed to get pages left.");
                 Debug.LogError(request.error);
                 Debug.LogError(request.downloadHandler.text);

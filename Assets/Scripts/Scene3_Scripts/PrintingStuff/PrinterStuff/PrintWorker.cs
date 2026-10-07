@@ -629,10 +629,12 @@ public class PrinterWorker
 
         if (Success)
         {
+            Debug.Log("Starting = 1");
             int PagesUsed =
                 Document.Print.EffectiveSheets *
                 Document.Print.Copies;
 
+            Debug.Log("2");
             Scene3BackendScript.PagesUsedUpdationProcess
             (
                 Printer.StationeryPrinterID,

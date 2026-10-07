@@ -1,4 +1,5 @@
 //namespaces =
+using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -40,7 +41,11 @@ public class UpdatePrinters : MonoBehaviour
 
 
 
-    //This function is called by ClickedUpdatePrinters -> GetPrinters().
+    //=================================================================================================
+    //flow =
+    //ClickedUpdatePrinters() -> GetPrinters() -> GetConnectedPrinters() -> CreatePrinterPanel().
+    //=================================================================================================
+
     public void GetConnectedPrinters(System.Action<bool> OnComplete)
     {
         //Deleting aldready exisitng Printer panels inside PrinterPanelsParnet to cleanup before producing them again.
@@ -77,7 +82,6 @@ public class UpdatePrinters : MonoBehaviour
                         {
                             Name = printerInfo.name,
 
-
                             //In the beginning, all printers are assumed to be 'not selected'.
                             IsSelected = false,
 
@@ -108,7 +112,7 @@ public class UpdatePrinters : MonoBehaviour
         );
     }
 
-    //This function is called by GetConnectedPrinters(), and is used to create Printer panels in UpdatePrinters page.
+    //This function is used to create Printer panels in UpdatePrinters page.
     void CreatePrinterPanel(Printer printer)
     {
         GameObject panelObject = Instantiate
@@ -132,6 +136,11 @@ public class UpdatePrinters : MonoBehaviour
 
 
 
+
+
+
+
+    //ClickProceed() -> SaveApprovedPrinters() -> GetPrinterInfo_AfterSavingIt()
     //This is used to save printer preference & settings in backend's database.
     public void ClickedProceed()
     {
@@ -139,6 +148,10 @@ public class UpdatePrinters : MonoBehaviour
         Scene5ManagerScript.EnableInvisiblePanel();
 
 
+
+
+
+        //This creates a new Printer object for each selected PrinterPanel.
         List<Printer> SelectedPrinters = new();
 
         foreach (PrinterPanel Panel in PrinterList)
@@ -150,36 +163,59 @@ public class UpdatePrinters : MonoBehaviour
         }
 
 
-        //Saving printer preference & settings inside database.
+
+
+
+        //Saving printer preference & settings inside the database.
         Scene5BackendScript.SaveApprovedPrinters
         (
             SelectedPrinters,
             Success =>
             {
-                Scene5ManagerScript.DisableInvisiblePanel();
-
                 if (!Success)
                 {
                     Scene5ManagerScript.DisableInvisiblePanel();
 
-                    Scene5ManagerScript.MessageText.text = "Failed to save approved printers.";
+                    Scene5ManagerScript.MessageText.text = "Failed to save approved printers. Restart the app and try again.";
                     Scene5ManagerScript.EnableMessagePanel();
 
                     return;
                 }
 
-                //Saving printer preference inside Script1.
-                Script1.SetPrinters(SelectedPrinters);
-
-                Script1.PrintAllPrinterDetails();
-
-                Scene5ManagerScript.DisableInvisiblePanel();
-
-                Scene5ManagerScript.MessageText.text = "Printer selection has been updated.";
-                Scene5ManagerScript.EnableMessagePanel();
+                //Calling this function to get the StationeryPrinterID of the new saved printers.
+                StartCoroutine(GetPrinterInfo_AfterSavingIt());
             }
         );
     }
+
+    //It is important to call this Coroutine as we need all printer's StationeryPrinterID after we upate the printer list in Scene5.
+    IEnumerator GetPrinterInfo_AfterSavingIt()
+    {
+        bool Success = false;
+
+        yield return StartCoroutine(Scene5BackendScript.GetApprovedPrintersFromServer(Script1.StationeryInfoObject.StationeryID, Result => Success = Result));
+
+        if (!Success)
+        {
+            Scene5ManagerScript.DisableInvisiblePanel();
+
+            Scene5ManagerScript.MessageText.text = "Couldn't get Printer Info after saving it.";
+            Scene5ManagerScript.EnableMessagePanel();
+
+            yield break;
+        }
+
+        Script1.PrintAllPrinterDetails();
+
+        Scene5ManagerScript.DisableInvisiblePanel();
+
+        Scene5ManagerScript.MessageText.text = "Printer selection has been succesfully updated.";
+        Scene5ManagerScript.EnableMessagePanel();
+    }
+
+
+
+
 
 
 

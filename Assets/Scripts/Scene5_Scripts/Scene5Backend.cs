@@ -146,6 +146,8 @@ public class Scene5Backend : MonoBehaviour
             Printer printer = new Printer();
 
             printer.Name = approvedPrinter.PrinterName;
+            printer.StationeryPrinterID = approvedPrinter.StationeryPrinterID;
+
             printer.IsSelected = true;
 
             //IsOnline = true as this status is not decided by the server, but instead by the printer's actual activity.

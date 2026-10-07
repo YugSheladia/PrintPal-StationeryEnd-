@@ -259,10 +259,10 @@ public class PrintManager : MonoBehaviour
 
     //This function is used to create a PrintJob.
 
-    //==============================================================================================================================
+    //=============================================================================================================================================
     //A user clicks on 'Print' button in OrderStatus panel ->
-    //OrderStatus.ClickedPrintButton() -> Scene3Backend.ProcessOrder() -> ValidateOrder() + DownloadPDFs() + CreatePrintJob().
-    //==============================================================================================================================
+    //OrderStatus.ClickedPrintButton() -> Scene3Backend.ProcessOrder() -> ValidateOrder() + DownloadPDFs() + CreatePrintJob() + QueuePrintJob().
+    //=============================================================================================================================================
 
     public PrintJob CreatePrintJob(OrderSummary Order)
     {
@@ -378,6 +378,17 @@ public class PrintManager : MonoBehaviour
         bool NeedsColor = OrderNeedsColor(Job);
         bool NeedsDuplex = OrderNeedsDuplex(Job);
 
+        int TotalSheetsNeededToPrint = 0;
+
+        foreach (PrintDocument Document in Job.Documents)
+        {
+            TotalSheetsNeededToPrint += (Document.Print.EffectiveSheets * Document.Print.Copies);
+
+            Debug.Log("TotalSheetsNeededTPrint = " + TotalSheetsNeededToPrint);
+        }
+
+        Debug.Log("Final TotalSheetsNeededTPrint = " + TotalSheetsNeededToPrint);
+
         for (int i = 0; i < Workers.Count; i++)
         {
             int Index = (NextWorkerIndex + i) % Workers.Count;
@@ -387,13 +398,19 @@ public class PrintManager : MonoBehaviour
             if (Candidate == null)
                 continue;
 
+            //To make sure the printer work the last time it was given a job.
             if (!Candidate.WorkedLastTime)
                 continue;
-
+            
+            //To make sure that if the Order has a print which required Duplex / Color support, the printer has it.
             if (NeedsColor && !Candidate.Printer.SupportsColorPrinting)
                 continue;
 
             if (NeedsDuplex && !Candidate.Printer.SupportsDoubleSidedPrinting)
+                continue;
+
+            //To make sure that the printer has enough PagesLeft in the tray to print all documents in the order.
+            if (Candidate.Printer.PagesLeft < TotalSheetsNeededToPrint)
                 continue;
 
             Debug.Log
@@ -412,9 +429,8 @@ public class PrintManager : MonoBehaviour
         );
 
         Scene3ManagerScript.MessageText.text =
-            "No compatible printer is available for this order.\n" +
-            "Check printer capabilities in Settings.\n" +
-            "This usually happens when no selected printer supports Double Sided Printing, Color Printing, or both";
+            "Order of ID = " + Job.OrderID + " could not be printed."  +
+            " This usually happens when no selected printer supports Duplex / Color Printing, or has insufficient number of pages left in tray.";
 
         Scene3ManagerScript.EnableMessagePanel();
 
@@ -644,6 +660,19 @@ public class PrintManager : MonoBehaviour
         bool NeedsDuplex = OrderNeedsDuplex(Job);
 
 
+        //This is to check how many pages are needed to print all documents in this printjob.
+        int TotalSheetsNeededToPrint = 0;
+
+        foreach (PrintDocument Document in Job.Documents)
+        {
+            TotalSheetsNeededToPrint += (Document.Print.EffectiveSheets * Document.Print.Copies);
+
+            Debug.Log("TotalSheetsNeededTPrint = " + TotalSheetsNeededToPrint);
+        }
+
+        Debug.Log("Final TotalSheetsNeededTPrint = " + TotalSheetsNeededToPrint);
+
+
         //--------------------------------------------------
         // Search all workers starting from the current
         // round-robin position.
@@ -669,6 +698,10 @@ public class PrintManager : MonoBehaviour
             if (NeedsDuplex && !Candidate.Printer.SupportsDoubleSidedPrinting)
                 continue;
 
+            //To make sure that the printer has enough PagesLeft in the tray to print all documents in the order.
+            if (Candidate.Printer.PagesLeft < TotalSheetsNeededToPrint)
+                continue;
+
             Debug.Log
             (
                 $"Compatible printer selected = {Candidate.Printer.Name}"
@@ -680,25 +713,22 @@ public class PrintManager : MonoBehaviour
         }
 
 
-
-
         //--------------------------------------------------
-        // Every printer is currently unavailable.
+        // No compatible printer found.
         //--------------------------------------------------
 
         Debug.LogWarning
         (
-            "No workers with WorkedLastTime = true are available."
+            "Order of ID = \" + Job.OrderID + \" could not be printed. " +
+            "This usually happens when no selected printer supports Duplex / Color Printing, or has insufficient number of pages left in tray."
         );
-
-        HomePageScript.PausePrinting();
 
         //Just to make sure that when no Printer is working and when the PrintingProcess is paused, all Queues are empty.
         ClearAllPrinterQueues();
 
         Scene3ManagerScript.MessageText.text =
-            "No working printers available. " +
-            "Make sure all connected printers are working, and that they are reactivated through Queue button on homepage.";
+            "Order of ID = " + Job.OrderID + " could not be printed." +
+            " This usually happens when no selected printer supports Duplex / Color Printing, or has insufficient number of pages left in tray.";
 
         Scene3ManagerScript.EnableMessagePanel();
 
@@ -795,10 +825,10 @@ public class PrintManager : MonoBehaviour
 
         if (NextWorker == null)
         {
-            Debug.LogWarning
+            Debug.Log
             (
-                $"Order {Job.OrderID} failed on every " +
-                $"available printer. Last error: {Reason}"
+                "Order of ID = " + Job.OrderID + " could not be printed." +
+                "This usually happens when no selected printer supports Duplex / Color Printing, or has insufficient number of pages left in tray."
             );
 
 
@@ -969,6 +999,39 @@ public class PrintManager : MonoBehaviour
 
                 continue;
             }
+
+
+
+
+
+            bool NeedsColor = OrderNeedsColor(Job);
+            bool NeedsDuplex = OrderNeedsDuplex(Job);
+
+            int TotalSheetsNeededToPrint = 0;
+
+            foreach (PrintDocument Document in Job.Documents)
+            {
+                TotalSheetsNeededToPrint += (Document.Print.EffectiveSheets * Document.Print.Copies);
+
+                Debug.Log("TotalSheetsNeededTPrint = " + TotalSheetsNeededToPrint);
+            }
+
+
+
+
+
+            //To make sure that if the Order has a print which required Duplex / Color support, the printer has it.
+            if (NeedsColor && !Candidate.Printer.SupportsColorPrinting)
+                continue;
+
+            if (NeedsDuplex && !Candidate.Printer.SupportsDoubleSidedPrinting)
+                continue;
+
+            //To make sure that the printer has enough PagesLeft in the tray to print all documents in the order.
+            if (Candidate.Printer.PagesLeft < TotalSheetsNeededToPrint)
+                continue;
+
+
 
 
             //--------------------------------------------------

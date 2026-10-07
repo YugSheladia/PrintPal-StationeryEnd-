@@ -84,7 +84,7 @@ public class Settings : MonoBehaviour
         GetPrinters();
     }
 
-    //Called by ClickedUpdatePrinters().
+    //ClickedUpdatePrinters() -> GetPrinters() -> UpdatePrintersScript.GetConnectedPrinters()
     public void GetPrinters()
     {
         //This retrieves all the printers which have been stored in the computer's history.
