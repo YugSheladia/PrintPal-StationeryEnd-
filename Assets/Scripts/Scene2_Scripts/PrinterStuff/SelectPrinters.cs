@@ -1,4 +1,5 @@
 //namespaces = 
+using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.SceneManagement;
@@ -69,8 +70,6 @@ public class SelectPrinters : MonoBehaviour
                     foreach (PrinterInfo printerInfo in printers)
                     {
                         Debug.Log($"Name    : {printerInfo.name}");
-                        //Debug.Log($"Status  : {printerInfo.status}");
-                        //Debug.Log($"Default : {printerInfo.isDefault}");
                         Debug.Log("------------------------------");
 
                         Printer printer = new Printer()
@@ -84,6 +83,13 @@ public class SelectPrinters : MonoBehaviour
 
                             //IsBusy = false as this status is not decided byt the server, but instead by the printer's actual activity.
                             IsBusy = false,
+
+
+                            //new =
+                            SupportsColorPrinting = printerInfo.supportsColorPrinting,
+                            SupportsDoubleSidedPrinting = printerInfo.supportsDoubleSidedPrinting,
+
+                            PPM = printerInfo.PPM,
 
                             //This status isn't used yet, and hence it kept false by default.
                             AutomaticPrinting = false,
@@ -119,6 +125,7 @@ public class SelectPrinters : MonoBehaviour
 
         PrinterPanel panel = panelObject.GetComponent<PrinterPanel>();
 
+        panel.SetRequiredScripts(Scene2ManagerScript);
         panel.SetPrinter(printer);
 
         PrinterList.Add(panel);
@@ -139,6 +146,7 @@ public class SelectPrinters : MonoBehaviour
         
 
 
+
         //Converting each PrinterPanel object -> Printer object =
         List<Printer> SelectedPrinters = new();
 
@@ -153,29 +161,52 @@ public class SelectPrinters : MonoBehaviour
 
 
 
+
         //Printer preference saving process =
         Scene2BackendScript.SaveApprovedPrinters
         (
             SelectedPrinters,
             Success =>
             {
-                Scene2ManagerScript.DisableInvisiblePanel();
-
                 if (!Success)
                 {
-                    Scene2ManagerScript.MessageText.text = "Failed to save approved printers\nRestart the app and try again later.";
+                    Scene2ManagerScript.DisableInvisiblePanel();
 
+                    Scene2ManagerScript.MessageText.text = "Failed to save approved printers\nRestart the app and try again later.";
                     Scene2ManagerScript.EnableMessagePanel();
 
                     return;
                 }
 
-                Script1.SetPrinters(SelectedPrinters);
-
-                Script1.PrintAllPrinterDetails();
-
-                SceneManager.LoadScene("Scene3_HomePage");
+                //Calling this function to get the StationeryPrinterID of the new saved printers.
+                StartCoroutine(GetPrinterInfo_AfterSavingIt());
             }
         );
+    }
+
+
+    //It is important to call this Coroutine as we need all printer's StationeryPrinterID after we upate the printer list in Scene5.
+    IEnumerator GetPrinterInfo_AfterSavingIt()
+    {
+        bool Success = false;
+
+        yield return StartCoroutine(Scene2BackendScript.GetApprovedPrintersFromServer(Script1.StationeryInfoObject.StationeryID, Result => Success = Result));
+
+        if (!Success)
+        {
+            Scene2ManagerScript.DisableInvisiblePanel();
+
+            Scene2ManagerScript.MessageText.text = "Couldn't get Printer Info after saving it.";
+            Scene2ManagerScript.EnableMessagePanel();
+
+            yield break;
+        }
+
+        Script1.PrintAllPrinterDetails();
+
+        Scene2ManagerScript.MessageText.text = "Printer selection has been succesfully updated.";
+        Scene2ManagerScript.EnableMessagePanel();
+
+        SceneManager.LoadScene("Scene3_HomePage");
     }
 }

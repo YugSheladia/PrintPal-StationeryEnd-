@@ -1,5 +1,6 @@
 //namespaces =
 using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 
 
@@ -375,19 +376,13 @@ public class PrintManager : MonoBehaviour
             return null;
         }
 
+
+
+
+
         bool NeedsColor = OrderNeedsColor(Job);
         bool NeedsDuplex = OrderNeedsDuplex(Job);
 
-        int TotalSheetsNeededToPrint = 0;
-
-        foreach (PrintDocument Document in Job.Documents)
-        {
-            TotalSheetsNeededToPrint += (Document.Print.EffectiveSheets * Document.Print.Copies);
-
-            Debug.Log("TotalSheetsNeededTPrint = " + TotalSheetsNeededToPrint);
-        }
-
-        Debug.Log("Final TotalSheetsNeededTPrint = " + TotalSheetsNeededToPrint);
 
         for (int i = 0; i < Workers.Count; i++)
         {
@@ -410,7 +405,7 @@ public class PrintManager : MonoBehaviour
                 continue;
 
             //To make sure that the printer has enough PagesLeft in the tray to print all documents in the order.
-            if (Candidate.Printer.PagesLeft < TotalSheetsNeededToPrint)
+            if (!CheckIf_PrinterHas_SufficientPagesFor_PrintJob(Candidate, Job))
                 continue;
 
             Debug.Log
@@ -660,19 +655,6 @@ public class PrintManager : MonoBehaviour
         bool NeedsDuplex = OrderNeedsDuplex(Job);
 
 
-        //This is to check how many pages are needed to print all documents in this printjob.
-        int TotalSheetsNeededToPrint = 0;
-
-        foreach (PrintDocument Document in Job.Documents)
-        {
-            TotalSheetsNeededToPrint += (Document.Print.EffectiveSheets * Document.Print.Copies);
-
-            Debug.Log("TotalSheetsNeededTPrint = " + TotalSheetsNeededToPrint);
-        }
-
-        Debug.Log("Final TotalSheetsNeededTPrint = " + TotalSheetsNeededToPrint);
-
-
         //--------------------------------------------------
         // Search all workers starting from the current
         // round-robin position.
@@ -699,7 +681,7 @@ public class PrintManager : MonoBehaviour
                 continue;
 
             //To make sure that the printer has enough PagesLeft in the tray to print all documents in the order.
-            if (Candidate.Printer.PagesLeft < TotalSheetsNeededToPrint)
+            if (!CheckIf_PrinterHas_SufficientPagesFor_PrintJob(Candidate, Job))
                 continue;
 
             Debug.Log
@@ -1007,14 +989,6 @@ public class PrintManager : MonoBehaviour
             bool NeedsColor = OrderNeedsColor(Job);
             bool NeedsDuplex = OrderNeedsDuplex(Job);
 
-            int TotalSheetsNeededToPrint = 0;
-
-            foreach (PrintDocument Document in Job.Documents)
-            {
-                TotalSheetsNeededToPrint += (Document.Print.EffectiveSheets * Document.Print.Copies);
-
-                Debug.Log("TotalSheetsNeededTPrint = " + TotalSheetsNeededToPrint);
-            }
 
 
 
@@ -1028,7 +1002,7 @@ public class PrintManager : MonoBehaviour
                 continue;
 
             //To make sure that the printer has enough PagesLeft in the tray to print all documents in the order.
-            if (Candidate.Printer.PagesLeft < TotalSheetsNeededToPrint)
+            if (!CheckIf_PrinterHas_SufficientPagesFor_PrintJob(Candidate, Job))
                 continue;
 
 
@@ -1047,6 +1021,36 @@ public class PrintManager : MonoBehaviour
 
 
 
+
+
+
+
+
+
+
+    //Check if Worker -> Printer has enough pages for the PrintJob.
+    public bool CheckIf_PrinterHas_SufficientPagesFor_PrintJob(PrinterWorker Candidate, PrintJob Job)
+    {
+        int TotalSheetsNeededToPrint = 0;
+
+        foreach (PrintDocument Document in Job.Documents)
+        {
+            TotalSheetsNeededToPrint += (Document.Print.EffectiveSheets * Document.Print.Copies);
+
+            Debug.Log("TotalSheetsNeededTPrint = " + TotalSheetsNeededToPrint);
+        }
+
+        Debug.Log("Final TotalSheetsNeededTPrint = " + TotalSheetsNeededToPrint);
+
+        //To make sure that the printer has enough PagesLeft in the tray to print all documents in the order.
+        if (Candidate.Printer.PagesLeft < TotalSheetsNeededToPrint)
+        {
+            Debug.Log("Printer " + Candidate.Printer.Name + " has insufficient pages for Order of ID " + Job.OrderID);
+            return false;
+        }
+
+        return true;    
+    }
 
 
 

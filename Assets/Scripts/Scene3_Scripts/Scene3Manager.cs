@@ -38,7 +38,7 @@ public class Scene3Manager : MonoBehaviour
 
     private void Start()
     {
-        Debug.Log("Scene3Manager.Start()");
+        //Debug.Log("Scene3Manager.Start()");
 
         DisableAllPanels();
         InitializeHomePagePanel();
@@ -55,7 +55,7 @@ public class Scene3Manager : MonoBehaviour
     //Enabling & disabling panels =
     public void DisableAllPanels()
     {
-        Debug.Log("Scene3Manager.DisabledAllPanels()");
+        //Debug.Log("Scene3Manager.DisabledAllPanels()");
 
         DisableInvisiblePanel();
 
@@ -96,7 +96,7 @@ public class Scene3Manager : MonoBehaviour
     //InitializeHomePagePanel() = Enables HomePage panel + HomePageScript.StartHomePage().
     public void InitializeHomePagePanel()
     {
-        Debug.Log("InitializeHomePagePanel()");
+        //Debug.Log("InitializeHomePagePanel()");
 
         HomePagePanel.SetActive(true);
         HomePageScript.StartHomePage();
@@ -105,13 +105,13 @@ public class Scene3Manager : MonoBehaviour
     //EnableHomePagePanel() = Enables HomePage panel.
     public void EnableHomePagePanel()
     {
-        Debug.Log("EnableHomePagePanel()");
+        //Debug.Log("EnableHomePagePanel()");
 
         HomePagePanel.SetActive(true);
     }
     public void DisableHomePagePanel()
     {
-        Debug.Log("Scene3Manager.DisabledHomePagePanel()");
+        //Debug.Log("Scene3Manager.DisabledHomePagePanel()");
         HomePagePanel.SetActive(false);
     }
 

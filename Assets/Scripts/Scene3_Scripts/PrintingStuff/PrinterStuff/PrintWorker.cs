@@ -680,6 +680,8 @@ public class PrinterWorker
     {
         Printer.PagesLeft = PagesLeft;
 
+        Printer.Update_PagesLeftIndicator();
+
         Manager.QueueManagerScript.RefreshQueuedOrders();
     }
 

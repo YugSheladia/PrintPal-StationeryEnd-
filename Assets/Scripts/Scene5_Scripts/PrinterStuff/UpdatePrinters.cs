@@ -94,9 +94,12 @@ public class UpdatePrinters : MonoBehaviour
                             //This is unused.
                             AutomaticPrinting = false,
 
-                            //In the beginning, it is assumed that the printer supports neither double sided printing, not color printing.
-                            SupportsDoubleSidedPrinting = false,
-                            SupportsColorPrinting = false,
+
+                            SupportsDoubleSidedPrinting = printerInfo.supportsDoubleSidedPrinting,
+                            SupportsColorPrinting       = printerInfo.supportsColorPrinting,
+
+                            PPM = printerInfo.PPM,
+
 
                             //Page Capacity is 100 by default.
                             PageCapacity = 100,

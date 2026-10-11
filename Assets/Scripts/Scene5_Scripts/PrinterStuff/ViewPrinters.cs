@@ -52,17 +52,11 @@ public class ViewPrinters : MonoBehaviour
 
         foreach (Printer printer in Script1.SelectedPrinters)
         {
-            GameObject printerPanelObject =
-                Instantiate(PrinterPanelPrefab, PrinterListParent.transform);
-
-
-
-
-            PrinterPanel printerPanelScript =
-                printerPanelObject.GetComponent<PrinterPanel>();
-
+            GameObject printerPanelObject = Instantiate(PrinterPanelPrefab, PrinterListParent.transform);
+            PrinterPanel printerPanelScript = printerPanelObject.GetComponent<PrinterPanel>();
 
             printerPanelScript.SetPrinter(printer);
+
 
             //This is to set active the tick mark / cross mark, indicating whether they support Color / Double sided printing or not.
             printerPanelScript.EnableViewPrinterPanel_Stuff();

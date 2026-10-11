@@ -1,9 +1,8 @@
 //namespaces =
 using System.Collections;
-using UnityEngine;
 using TMPro;
-
-
+using UnityEngine;
+using static Scene3Backend;
 
 
 
@@ -43,6 +42,8 @@ public class HomePage : MonoBehaviour
 
 
 
+
+
     //The app reads the database and sets the StationeryIsOperational to the correct value.
     bool StationeryIsOperational = false;
 
@@ -54,14 +55,17 @@ public class HomePage : MonoBehaviour
 
 
 
+
+
+
     //==================================
     //'Search by' UI elements =
     //==================================
 
     //Dropdown reference.
-    [SerializeField] TMP_Dropdown   IDSwitchDropdown;
-    
-    [SerializeField] TMP_Text       SearchByText;
+    [SerializeField] TMP_Dropdown IDSwitchDropdown;
+
+    [SerializeField] TMP_Text SearchByText;
     [SerializeField] TMP_InputField SearchInputfield;
 
     //An enum to decide whether to search an order through OrderID or through UserID.
@@ -72,6 +76,9 @@ public class HomePage : MonoBehaviour
     }
 
     IDToSearchBy IDToSearchByEnum = IDToSearchBy.SearchByOrderID;
+
+
+
 
 
 
@@ -96,7 +103,8 @@ public class HomePage : MonoBehaviour
     [SerializeField] public TMP_Text CurrentDate;
     [SerializeField] public TMP_Text RevenueToday;
 
-    
+
+
 
 
 
@@ -156,12 +164,17 @@ public class HomePage : MonoBehaviour
     [SerializeField] public GameObject ExclamationButton;
 
 
-    
-
-    
 
 
- 
+
+
+
+
+
+
+    //Exclamation mark on Queue button if any printer is in Caution.
+    [SerializeField] GameObject Exclamation_ForPagesLeft;
+
 
 
 
@@ -183,7 +196,7 @@ public class HomePage : MonoBehaviour
         //Make sure that HomePagePanel is active -
         Scene3ManagerScript.EnableHomePagePanel();
 
-        Debug.Log("HomePage.StartHomePage()");
+        //Debug.Log("HomePage.StartHomePage()");
 
         StationeryName.text = Script1.StationeryInfoObject.StationeryName;
         TotalConnectedPrinters.text = "Connected printers : " + Script1.SelectedPrinters.Count;
@@ -197,7 +210,7 @@ public class HomePage : MonoBehaviour
     //InitializeHomePage() is called by StartHomePage(), and is different than the InitializseHomePagePanel() in Scene3Manager.
     IEnumerator InitializeHomePage()
     {
-        Debug.Log("InitializeHomePage()");
+        //Debug.Log("InitializeHomePage()");
 
         // Initial refresh
         yield return StartCoroutine
@@ -254,7 +267,7 @@ public class HomePage : MonoBehaviour
     //Called when a user clicks on Open Stationery button.
     public void Clicked_Stationery_Open()
     {
-        if(StationeryIsOperational == true)
+        if (StationeryIsOperational == true)
         {
             Debug.Log("Stationery is already Open");
 
@@ -280,7 +293,7 @@ public class HomePage : MonoBehaviour
     //Calls the SetStationeryOperational() coroutine.
     IEnumerator SetStationeryOperationalTo(bool isOperational)
     {
-        if(StationeryIsOperational == isOperational)
+        if (StationeryIsOperational == isOperational)
         {
             Debug.Log("Stationery is already " + isOperational);
             yield break;
@@ -572,7 +585,7 @@ public class HomePage : MonoBehaviour
 
 
 
-    
+
 
 
 
@@ -666,7 +679,7 @@ public class HomePage : MonoBehaviour
         //This is a case where no Order / User of chosen ID was found.
         if (Scene3BackendScript.ConfirmedOrders.Orders.Length <= 0)
         {
-            if(IDToSearchByEnum == IDToSearchBy.SearchByOrderID)
+            if (IDToSearchByEnum == IDToSearchBy.SearchByOrderID)
             {
                 Scene3ManagerScript.MessageText.text = "No order of such OrderID found.";
                 Scene3ManagerScript.EnableMessagePanel();
@@ -743,6 +756,26 @@ public class HomePage : MonoBehaviour
         }
     }
 
+    //This function checks if any printer has less than 10% of PagesLeft in the tray, if yes, it shows 
+    //an exclamation mark in the Queue button.
+    public void Check_PrintersFor_PagesLeft()
+    {
+        foreach (PrinterWorker Worker in PrintManagerScript.Workers)
+        {
+            //Refreshing PagesLeft_Indicator of the printer after every refresh.
+            Worker.Printer.Update_PagesLeftIndicator();
+
+            if (Worker.Printer.PagesLeft_IndicatorEnum == Printer.PagesLeft_Indicator.Caution)
+            {
+                Exclamation_ForPagesLeft.SetActive(true);
+
+                return;
+            }
+        }
+
+        Exclamation_ForPagesLeft.SetActive(false);
+    }
+
 
 
 
@@ -752,7 +785,7 @@ public class HomePage : MonoBehaviour
     public void ClickedPrintersStatusDropdown()
     {
         Debug.Log("Clicked Printers Status Dropdown Button");
-        if(PrinterStatusPanelActive)
+        if (PrinterStatusPanelActive)
         {
             PrinterStatusPanelActive = false;
 
@@ -827,7 +860,7 @@ public class HomePage : MonoBehaviour
     //2. Only the app itself has the ability to Pause AutomaticPrinting.
     //3. It does so if it faces some major issues, which need to be fixed before moving ahead.
     //4. A user may Unpause AutomaticPrinting, which is done by clicking the exclamation button.
-    
+
     //5. The app will never speak in terms of Pause / Unpause AutomaticPrinting to the user in
     //order to keep things simple and straight forward.
 
@@ -855,7 +888,7 @@ public class HomePage : MonoBehaviour
         LoadingIcon.SetActive(false);
         ExclamationButton.SetActive(true);
     }
-    
+
     //UnpausePrinting() is called when a user clicks on the exclamation mark in the Control panel.
     public void UnpausePrinting()
     {

@@ -95,7 +95,7 @@ public class Scene2Backend : MonoBehaviour
 
         string ServerResponse = request.downloadHandler.text;
 
-        Debug.Log("Raw server response #1 = \n" + ServerResponse);
+        //Debug.Log("Raw server response #1 = \n" + ServerResponse);
 
         LoginInfoVerificationResponse ResponseObject =
             JsonUtility.FromJson<LoginInfoVerificationResponse>(ServerResponse);
@@ -207,14 +207,14 @@ public class Scene2Backend : MonoBehaviour
         {
             string ServerResponseJSON = request.downloadHandler.text;
 
-            Debug.Log("Raw Server response #2 = \n" + ServerResponseJSON); 
+            //Debug.Log("Raw Server response #2 = \n" + ServerResponseJSON); 
 
             StationeryInfoWrapper StationeryInfoWrapperObject =
                 JsonUtility.FromJson<StationeryInfoWrapper>(ServerResponseJSON);
 
             if (StationeryInfoWrapperObject.Success)
             {
-                Debug.Log("Stationery info received");
+                //Debug.Log("Stationery info received");
 
                 Script1.SetStationeryInfo
                 (
@@ -258,6 +258,8 @@ public class Scene2Backend : MonoBehaviour
         public bool SupportsDoubleSidedPrinting;
         public bool SupportsColorPrinting;
 
+        public int PPM;
+
         public int PageCapacity;
         public int PagesLeft;
     }
@@ -270,7 +272,7 @@ public class Scene2Backend : MonoBehaviour
         public ApprovedPrinter[] Printers;
     }
 
-    IEnumerator GetApprovedPrintersFromServer
+    public IEnumerator GetApprovedPrintersFromServer
     (
         int StationeryID,
         System.Action<bool> OnComplete
@@ -293,11 +295,11 @@ public class Scene2Backend : MonoBehaviour
             yield break;
         }
 
-        Debug.Log
-        (
-            "Raw Printer Response =\n" +
-            request.downloadHandler.text
-        );
+        //Debug.Log
+        //(
+        //    "Raw Printer Response =\n" +
+        //    request.downloadHandler.text
+        //);
 
         GetApprovedPrintersResponse response =
             JsonUtility.FromJson<GetApprovedPrintersResponse>
@@ -349,8 +351,12 @@ public class Scene2Backend : MonoBehaviour
             printer.SupportsDoubleSidedPrinting = approvedPrinter.SupportsDoubleSidedPrinting;
             printer.SupportsColorPrinting = approvedPrinter.SupportsColorPrinting;
 
+            printer.PPM = approvedPrinter.PPM;
+
             printer.PageCapacity = approvedPrinter.PageCapacity;
             printer.PagesLeft = approvedPrinter.PagesLeft;
+
+
 
             printers.Add(printer);
         }
@@ -538,9 +544,17 @@ public class Scene2Backend : MonoBehaviour
     public class PrinterInfo
     {
         public string name;
-        
-        //public string status;
-        //public bool isDefault;
+
+        //Stuff not to be used by us ( for now ).
+        public string status;
+        public bool isDefault;
+
+        public string driverName;
+        public string portName;
+
+        public int PPM;
+        public bool supportsColorPrinting;
+        public bool supportsDoubleSidedPrinting;
     }
 
     [System.Serializable]
@@ -551,28 +565,28 @@ public class Scene2Backend : MonoBehaviour
         public PrinterInfo[] printers;
     }
 
-    public IEnumerator GetPrinters(System.Action<PrinterInfo[]> OnComplete)
+    public IEnumerator GetPrinters
+    (
+        System.Action<PrinterInfo[]> OnComplete
+    )
     {
-        using (UnityWebRequest Request = UnityWebRequest.Get("http://localhost:3000/printers"))
+        using (UnityWebRequest Request = UnityWebRequest.Get("http://localhost:3000/printers2"))
         {
             yield return Request.SendWebRequest();
 
             if (Request.result != UnityWebRequest.Result.Success)
             {
-                Debug.LogError
-                (
-                    "Failed to get printers: " +
-                    Request.error
+                Debug.LogError(
+                    "Failed to get printers: " + Request.error
                 );
 
                 OnComplete?.Invoke(null);
-
                 yield break;
             }
 
             string ResponseText = Request.downloadHandler.text;
 
-            Debug.Log("Raw = " +  ResponseText);
+            Debug.Log("Raw Printers2 response = " + ResponseText);
 
             PrintersResponse Response =
                 JsonUtility.FromJson<PrintersResponse>(ResponseText);
@@ -580,33 +594,29 @@ public class Scene2Backend : MonoBehaviour
             if (Response == null)
             {
                 Debug.LogError("Printer response is null.");
-
                 OnComplete?.Invoke(null);
-
                 yield break;
             }
 
             if (!Response.success)
             {
                 Debug.LogError(Response.message);
-
                 OnComplete?.Invoke(null);
-
                 yield break;
             }
 
             if (Response.printers == null)
             {
                 Debug.LogError("Printers array is null.");
-
                 OnComplete?.Invoke(null);
-
                 yield break;
             }
 
             OnComplete?.Invoke(Response.printers);
         }
     }
+
+
 
 
 

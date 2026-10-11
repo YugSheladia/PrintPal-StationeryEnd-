@@ -70,12 +70,12 @@ public static class Script1
             return;
         }
 
-        Debug.Log("StationeryName       = " + StationeryInfoObject.StationeryName       +
-                  "\nStationerLocation  = " + StationeryInfoObject.StationeryLocation   +
-                  "\nStationeryID       = " + StationeryInfoObject.StationeryID         +
-                  "\nUPI Number         = " + StationeryInfoObject.UPINumber            +
-                  "\nPhone Number       = " + StationeryInfoObject.PhoneNumber          +
-                  "\nEmail              = " + StationeryInfoObject.Email);  
+        //Debug.Log("StationeryName         = " + StationeryInfoObject.StationeryName       +
+       //           "\nStationerLocation    = " + StationeryInfoObject.StationeryLocation   +
+       //         "\nStationeryID           = " + StationeryInfoObject.StationeryID         +
+       //         "\nUPI Number             = " + StationeryInfoObject.UPINumber            +
+       //         "\nPhone Number           = " + StationeryInfoObject.PhoneNumber          +
+       //         "\nEmail                  = " + StationeryInfoObject.Email);  
     }
 
 
@@ -110,7 +110,7 @@ public static class Script1
     {
         foreach(Printer Printer in SelectedPrinters)
         {
-            Printer.PrinterPrinterDetails();
+            Printer.PrintPrinterDetails();
         }
     }
 

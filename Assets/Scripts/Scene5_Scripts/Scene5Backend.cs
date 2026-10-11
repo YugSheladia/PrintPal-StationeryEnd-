@@ -30,7 +30,7 @@ public class Scene5Backend : MonoBehaviour
     //To get all printers connected to the PC using a server request.
     public IEnumerator GetPrinters(System.Action<Scene2Backend.PrinterInfo[]> OnComplete)
     {
-        using (UnityWebRequest Request = UnityWebRequest.Get("http://localhost:3000/printers"))
+        using (UnityWebRequest Request = UnityWebRequest.Get("http://localhost:3000/printers2"))
         {
             yield return Request.SendWebRequest();
 
@@ -117,11 +117,11 @@ public class Scene5Backend : MonoBehaviour
             yield break;
         }
 
-        Debug.Log
-        (
-            "Raw Printer Response =\n" +
-            request.downloadHandler.text
-        );
+        //Debug.Log
+        //(
+        //    "Raw Printer Response =\n" +
+        //    request.downloadHandler.text
+        //);
 
         Scene2Backend.GetApprovedPrintersResponse response =
             JsonUtility.FromJson<Scene2Backend.GetApprovedPrintersResponse>
@@ -161,6 +161,8 @@ public class Scene5Backend : MonoBehaviour
 
             printer.SupportsDoubleSidedPrinting = approvedPrinter.SupportsDoubleSidedPrinting;
             printer.SupportsColorPrinting = approvedPrinter.SupportsColorPrinting;
+
+            printer.PPM = approvedPrinter.PPM;
 
             printer.PageCapacity = approvedPrinter.PageCapacity;
             printer.PagesLeft = approvedPrinter.PagesLeft;

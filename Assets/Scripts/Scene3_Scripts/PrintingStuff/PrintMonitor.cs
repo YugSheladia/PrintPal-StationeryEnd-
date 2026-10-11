@@ -88,9 +88,22 @@ public static class PrintMonitor
         // Find the job in the Windows spooler.
         //--------------------------------------------------
 
-        float FindTimeout = 10f;
+        //--------------------------------------------------
+        // This monitor is only started AFTER the print
+        // process (SumatraPDF) has exited successfully, so
+        // the job has already been handed to the spooler.
+        // On a fast local printer with RAW jobs it can be
+        // printed and removed before our first poll. So a
+        // short grace period is enough; if the job is still
+        // not visible, it already finished.
+        //
+        // Real elapsed time is used (not a loop counter),
+        // because each FindJob call itself takes time.
+        //--------------------------------------------------
+
+        float FindTimeout = 3f;
         float FindPollInterval = 0.1f;
-        float FindTimer = 0f;
+        float FindStartTime = Time.realtimeSinceStartup;
 
         Win32Structures.JOB_INFO_1? FoundJob = null;
 
@@ -107,28 +120,25 @@ public static class PrintMonitor
 
             if (FoundJob == null)
             {
-                FindTimer +=
-                    FindPollInterval;
-
-
                 if
                 (
-                    FindTimer >=
+                    Time.realtimeSinceStartup - FindStartTime >=
                     FindTimeout
                 )
                 {
-                    Debug.LogWarning
+                    Debug.Log
                     (
                         $"[{Printer.Name}] Print job " +
-                        $"'{DocumentName}' never appeared " +
-                        "in the Windows spooler."
+                        $"'{DocumentName}' was not found in the " +
+                        "Windows spooler after submission - it " +
+                        "already finished. Treating as completed."
                     );
 
 
                     CompleteOnce
                     (
-                        false,
-                        "Print job never appeared in the Windows spooler."
+                        true,
+                        "Finished"
                     );
 
 

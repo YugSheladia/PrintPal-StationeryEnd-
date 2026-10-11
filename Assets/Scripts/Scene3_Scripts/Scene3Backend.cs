@@ -3,6 +3,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.IO;
+using System.Runtime.InteropServices;
 using System.Text;
 using TMPro;
 using UnityEngine;
@@ -400,7 +401,7 @@ public class Scene3Backend : MonoBehaviour
 
             if (request.result == UnityWebRequest.Result.Success)
             {
-                Debug.Log("Operational status updated.");
+                //Debug.Log("Operational status updated.");
 
                 OnComplete?.Invoke(true);
             }
@@ -2713,6 +2714,10 @@ public class Scene3Backend : MonoBehaviour
         //To inform users if 0 printers are conntected.
         HomePageScript.UpdateNumberOfConnectedPrinters();
 
+        //This function checks if there exists any printer with less than 10% of PagesLeft out of PageCapacity in the tray.
+        //If yes, it SetsActive an exclamation mark over the Queue button on HomePage.
+        HomePageScript.Check_PrintersFor_PagesLeft();
+
 
         IsRefreshingHomePage = false;
     }
@@ -3416,7 +3421,6 @@ public class Scene3Backend : MonoBehaviour
     //=======================================================================================
     public void PagesUsedUpdationProcess(int StationeryPrinterID, int PagesUsed, PrinterWorker Worker)
     {
-        Debug.Log("3");
         StartCoroutine
         (
             PagesUsedUpdationProcess_Coroutine
@@ -3436,14 +3440,11 @@ public class Scene3Backend : MonoBehaviour
     )
     {
         bool Success = false;
-        Debug.Log("4");
 
         yield return StartCoroutine(UpdatePagesUsed(StationeryPrinterID, PagesUsed, Result => Success = Result));
-        Debug.Log("5");
 
         if (!Success)
         {
-            Debug.Log("6");
             Scene3ManagerScript.DisableAllPanels();
 
             Scene3ManagerScript.MessageText.text = "Pages could not be updated.";
@@ -3452,15 +3453,13 @@ public class Scene3Backend : MonoBehaviour
             yield break;
         }
 
-        Debug.Log("7");
         int PagesLeft = -1;
 
-        Debug.Log("8");
+
         yield return StartCoroutine(GetPagesLeft(StationeryPrinterID, Result => PagesLeft = Result));
 
         if (PagesLeft == -1)
         {
-            Debug.Log("9");
             Scene3ManagerScript.DisableAllPanels();
 
             Scene3ManagerScript.MessageText.text = "Pages were updated, but their value could not be retrieved.";
@@ -3469,7 +3468,7 @@ public class Scene3Backend : MonoBehaviour
             yield break;
         }
 
-        Debug.Log("10");
+
         Worker.UpdatePagesLeft_Locally(PagesLeft);
     }
 
@@ -3490,38 +3489,37 @@ public class Scene3Backend : MonoBehaviour
             PagesUsed = PagesUsed
         });
 
-        Debug.Log("11");
+
         using (UnityWebRequest request = new UnityWebRequest(
             "http://localhost:3000/stationery/printer/pages-used/" + StationeryPrinterID,
             "PUT"))
         {
-            Debug.Log("12, StationeryPrinterID = " + StationeryPrinterID);
+            //Debug.Log("StationeryPrinterID = " + StationeryPrinterID);
             byte[] body = System.Text.Encoding.UTF8.GetBytes(json);
 
-            Debug.Log("13");
+
+
             request.uploadHandler = new UploadHandlerRaw(body);
             request.downloadHandler = new DownloadHandlerBuffer();
 
-            Debug.Log("14");
+
             request.SetRequestHeader(
                 "Content-Type",
                 "application/json"
             );
 
-            Debug.Log("15");
+
             yield return request.SendWebRequest();
 
-            Debug.Log("16");
+
             if (request.result == UnityWebRequest.Result.Success)
             {
-                Debug.Log("17");
                 Debug.Log("Pages used updated successfully.");
 
                 OnComplete?.Invoke(true);
             }
             else
             {
-                Debug.Log("18");
                 Debug.LogError("Failed to update pages used.");
                 Debug.LogError(request.error);
                 Debug.LogError(request.downloadHandler.text);
@@ -3545,15 +3543,12 @@ public class Scene3Backend : MonoBehaviour
         using (UnityWebRequest request = UnityWebRequest.Get(
             "http://localhost:3000/stationery/printer/pages-left/" + StationeryPrinterID))
         {
-            Debug.Log("19");
 
             yield return request.SendWebRequest();
 
-            Debug.Log("20");
 
             if (request.result == UnityWebRequest.Result.Success)
             {
-                Debug.Log("21");
 
                 PagesLeftResponse response =
                     JsonUtility.FromJson<PagesLeftResponse>(
@@ -3562,15 +3557,12 @@ public class Scene3Backend : MonoBehaviour
 
                 if (response.Success)
                 {
-                    Debug.Log("22");
-
                     Debug.Log("Pages left: " + response.PagesLeft);
 
                     OnComplete?.Invoke(response.PagesLeft);
                 }
                 else
                 {
-                    Debug.Log("23");
 
                     Debug.LogError("Failed to get pages left.");
                     Debug.LogError(response.Message);
@@ -3580,8 +3572,6 @@ public class Scene3Backend : MonoBehaviour
             }
             else
             {
-                Debug.Log("24");
-
                 Debug.LogError("Failed to get pages left.");
                 Debug.LogError(request.error);
                 Debug.LogError(request.downloadHandler.text);
@@ -3656,6 +3646,169 @@ public class Scene3Backend : MonoBehaviour
 
                 OnComplete?.Invoke(false);
             }
+        }
+    }
+
+
+
+
+
+
+
+
+    //Temp =
+
+    [System.Serializable]
+    public class PrinterCapabilitiesResponse
+    {
+        public bool Success;
+        public string Message;
+        public PrinterCapabilityInfo[] Printers;
+    }
+
+    [System.Serializable]
+    public class PrinterCapabilityInfo
+    {
+        public string Name;
+        public string DriverName;
+        public string PortName;
+        public int AveragePagesPerMinute;
+
+        public bool SupportsColorPrinting;
+        public bool SupportsDoubleSidedPrinting;
+    }
+
+    public IEnumerator GetPrinterCapabilities
+    (
+        System.Action<PrinterCapabilitiesResponse> OnComplete
+    )
+    {
+        using (UnityWebRequest request = UnityWebRequest.Get
+        (
+            "http://localhost:3000/printers/capabilities"
+        ))
+        {
+            request.downloadHandler = new DownloadHandlerBuffer();
+
+            yield return request.SendWebRequest();
+
+            if (request.result != UnityWebRequest.Result.Success)
+            {
+                Debug.LogError("Request failed: " + request.error);
+                Debug.LogError(request.downloadHandler.text);
+
+                OnComplete?.Invoke(null);
+                yield break;
+            }
+
+            PrinterCapabilitiesResponse response =
+                JsonUtility.FromJson<PrinterCapabilitiesResponse>
+                (
+                    request.downloadHandler.text
+                );
+
+            if (response == null || 
+                !response.Success ||
+                response.Printers == null)
+            {
+                Debug.LogError("Invalid printer response.");
+                OnComplete?.Invoke(null);
+                yield break;
+            }
+
+            foreach (PrinterCapabilityInfo printer in response.Printers)
+            {
+                printer.AveragePagesPerMinute =
+                    WindowsPrinterCapabilities.GetPPM(
+                        printer.Name, printer.PortName
+                    );
+
+                printer.SupportsColorPrinting =
+                    WindowsPrinterCapabilities.SupportsColor(
+                        printer.Name, printer.PortName
+                    );
+
+                printer.SupportsDoubleSidedPrinting =
+                    WindowsPrinterCapabilities.SupportsDuplex(
+                        printer.Name, printer.PortName
+                    );
+            }
+
+            OnComplete?.Invoke(response);
+        }
+    }
+
+    public static class WindowsPrinterCapabilities
+    {
+        private const int DC_DUPLEX = 7;
+        private const int DC_COLORDEVICE = 32;
+        private const int DC_PRINTRATEPPM = 31;
+
+        [DllImport("winspool.drv", CharSet = CharSet.Unicode,
+            SetLastError = true)]
+        private static extern int DeviceCapabilities(
+            string pDevice,
+            string pPort,
+            short fwCapability,
+            IntPtr pOutput,
+            IntPtr pDevMode
+        );
+
+        public static int GetPPM(string printerName, string portName)
+        {
+            #if UNITY_STANDALONE_WIN || UNITY_EDITOR_WIN
+            try
+            {
+                return DeviceCapabilities(
+                    printerName, portName,
+                    DC_PRINTRATEPPM, IntPtr.Zero, IntPtr.Zero
+                );
+            }
+            catch (Exception)
+            {
+                return 0;
+            }
+        #else
+        return 0;
+        #endif
+        }
+
+        public static bool SupportsDuplex(string printerName, string portName)
+        {
+            #if UNITY_STANDALONE_WIN || UNITY_EDITOR_WIN
+            try
+            {
+                return DeviceCapabilities(
+                    printerName, portName,
+                    DC_DUPLEX, IntPtr.Zero, IntPtr.Zero
+                ) == 1;
+            }
+            catch (Exception)
+            {
+                return false;
+            }
+        #else
+        return false;
+        #endif
+        }
+
+        public static bool SupportsColor(string printerName, string portName)
+        {
+            #if UNITY_STANDALONE_WIN || UNITY_EDITOR_WIN
+            try
+            {
+                return DeviceCapabilities(
+                    printerName, portName,
+                    DC_COLORDEVICE, IntPtr.Zero, IntPtr.Zero
+                ) == 1;
+            }
+            catch (Exception)
+            {
+                return false;
+            }
+        #else
+        return false;
+        #endif
         }
     }
 }

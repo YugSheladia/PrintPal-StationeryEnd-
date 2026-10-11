@@ -1,6 +1,7 @@
 //namespaces =
-using UnityEngine;
 using TMPro;
+using UnityEngine;
+using static Printer;
 
 
 
@@ -118,6 +119,14 @@ public class PrinterQueuePanel : MonoBehaviour
     //QueueManager script -> CreatePrinterQueuePanel() -> UpdateUI()
     public void UpdateUI()
     {
+        PrinterName.text = Worker.Printer.Name;
+        PrinterNumberText.text = PrinterNumber.ToString();
+
+
+
+
+
+
         //This is to mark the printer as Operational / Non Operational.
         if (Worker.WorkedLastTime)
         {
@@ -129,8 +138,8 @@ public class PrinterQueuePanel : MonoBehaviour
         }
 
 
-        PrinterName.text        = Worker.Printer.Name;
-        PrinterNumberText.text  = PrinterNumber.ToString();
+        
+
 
 
         //This tags the Printer with the type of print it supports.
@@ -157,6 +166,12 @@ public class PrinterQueuePanel : MonoBehaviour
             }
         }
 
+
+
+
+
+
+
         //Have to call this function after posting total pages available, to make sure there is synchronicity.
 
         //This function displays the total page capacity of a printer tray, as well as the pages currently left ( both approx ).
@@ -164,6 +179,8 @@ public class PrinterQueuePanel : MonoBehaviour
                                 Worker.Printer.PagesLeft.ToString() + 
                                 " / " + 
                                 Worker.Printer.PageCapacity.ToString();
+
+
 
 
 
@@ -177,28 +194,28 @@ public class PrinterQueuePanel : MonoBehaviour
     //This updates the PagesLeft indicator to Caution, Low, Medium, or High depending upon the PagesLeft / PageCapacity * 100.
     public void Update_PagesLeftIndicator()
     {
-        float PagesLeft = Worker.Printer.PagesLeft;
-        float PageCapacity = Worker.Printer.PageCapacity;
+        //Calling Update_PagesLeftIndicator again ( after calling it in PrintWorker.UpdatePagesLocally ).
+        //This is because UpdatePagesLocally is called only after printing a docuemnt, but when a user just logs in, we need to update the PagesLeftIndicator.
+        Worker.Printer.Update_PagesLeftIndicator();
 
-        float PagesLeft_Percentage = (PagesLeft / PageCapacity) * 100;
 
-        Debug.Log("PagesLeft    = " + PagesLeft);
-        Debug.Log("PageCapacity = " + PageCapacity);
-        Debug.Log("PagesLeftPercentage = " + PagesLeft_Percentage);
-
+        //This disables all indicator panels to start fresh.
         DisableAll_PagesLeftIndicatorPanels();
 
-        if (PagesLeft_Percentage < 10)
+        Debug.Log("Current Mode = " + Worker.Printer.PagesLeft_IndicatorEnum);
+
+        //This checks the current PagesLeft_Indicator of the printer, and activates the appropriate PagesLeft_Indicator panel.
+        if (Worker.Printer.PagesLeft_IndicatorEnum == PagesLeft_Indicator.Caution)
         {
             PagesLeftIndicator_Caution.SetActive(true);
             return;
         }
-        if (PagesLeft_Percentage < 33)
+        if (Worker.Printer.PagesLeft_IndicatorEnum == PagesLeft_Indicator.Low)
         {
             PagesLeftIndicator_Low.SetActive(true);
             return;
         }
-        if (PagesLeft_Percentage < 66)
+        if (Worker.Printer.PagesLeft_IndicatorEnum == PagesLeft_Indicator.Medium)
         {
             PagesLeftIndicator_Medium.SetActive(true);
             return;
