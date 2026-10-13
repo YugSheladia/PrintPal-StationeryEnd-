@@ -310,12 +310,18 @@ public class PrinterWorker
             // Document successfully completed.
             //--------------------------------------------------
 
+            //GPT, was thinking of adding the artificial delay here ( using a printer's PPM ).
+
             Document.Status =
                 PrintDocumentStatus.Completed;
 
             Document.StatusMessage =
                 "Completed";
 
+            Debug.Log("=================================");
+            Debug.Log("=================================");
+            Debug.Log("=================================");
+            Debug.Log("=================================");
 
             Debug.Log
             (
@@ -424,16 +430,18 @@ public class PrinterWorker
 
 
         //--------------------------------------------------
-        // Submit exactly ONE request to Windows.
-        //
-        // This now runs on a background thread via
-        // WindowsPrinter.PrintAsync(), so a printer that
-        // hangs (e.g. an unreachable Bluetooth device) no
-        // longer blocks Unity's main thread. We just wait
-        // for the Task to finish, yielding every frame.
+        // Start timing before submitting the print request.
         //--------------------------------------------------
 
-        Task<PrintResult> PrintTask =
+        float PrintStartTime =
+            Time.realtimeSinceStartup;
+
+
+        //--------------------------------------------------
+        // Submit exactly ONE request to Windows.
+        //--------------------------------------------------
+
+        var PrintTask =
             WindowsPrinter.PrintAsync
             (
                 Document,
@@ -447,13 +455,35 @@ public class PrinterWorker
         );
 
 
-        PrintResult Result =
-            PrintTask.Result;
-
-
         //--------------------------------------------------
         // Sumatra / Windows submission failed.
         //--------------------------------------------------
+
+        if (PrintTask.IsFaulted || PrintTask.IsCanceled)
+        {
+            string ErrorMessage =
+                PrintTask.Exception != null
+                    ? PrintTask.Exception.GetBaseException().Message
+                    : "Print submission was cancelled.";
+
+            Debug.LogError
+            (
+                $"[{Printer.Name}] {ErrorMessage}"
+            );
+
+            OnComplete
+            (
+                false,
+                ErrorMessage
+            );
+
+            yield break;
+        }
+
+
+        PrintResult Result =
+            PrintTask.Result;
+
 
         if (!Result.Success)
         {
@@ -461,7 +491,6 @@ public class PrinterWorker
             (
                 Result.Message
             );
-
 
             if (Result.Exception != null)
             {
@@ -471,13 +500,11 @@ public class PrinterWorker
                 );
             }
 
-
             OnComplete
             (
                 false,
                 Result.Message
             );
-
 
             yield break;
         }
@@ -501,7 +528,7 @@ public class PrinterWorker
 
 
         //--------------------------------------------------
-        // These values are populated ONLY by PrintMonitor.
+        // Values populated by PrintMonitor.
         //--------------------------------------------------
 
         bool Success = false;
@@ -618,34 +645,98 @@ public class PrinterWorker
                 "Print monitor ended without reporting completion."
             );
 
-
             yield break;
         }
 
 
         //--------------------------------------------------
-        // Report pages used - ONLY on a confirmed success.
+        // Report pages used ONLY after confirmed success.
         //--------------------------------------------------
 
         if (Success)
         {
-            Debug.Log("Starting = 1");
             int PagesUsed =
                 Document.Print.EffectiveSheets *
                 Document.Print.Copies;
 
-            Debug.Log("2");
+
             Scene3BackendScript.PagesUsedUpdationProcess
             (
                 Printer.StationeryPrinterID,
                 PagesUsed,
                 this
             );
+
+
+            //--------------------------------------------------
+            // Estimate total printing time using printer PPM.
+            //--------------------------------------------------
+
+            int PPM = Printer.PPM;
+
+            // Use a fallback if the printer's PPM is unavailable.
+            if (PPM <= 0)
+            {
+                PPM = 10;
+            }
+
+
+            float EstimatedPrintingTime =
+                (PagesUsed / (float)PPM) * 60f;
+
+
+            // Add the requested artificial 10-second delay.
+            EstimatedPrintingTime += 10f;
+
+
+            //--------------------------------------------------
+            // Wait only for the remaining estimated time.
+            // This avoids counting time already spent printing.
+            //--------------------------------------------------
+
+            float ElapsedTime =
+                Time.realtimeSinceStartup - PrintStartTime;
+
+            float RemainingTime =
+                EstimatedPrintingTime - ElapsedTime;
+
+
+            if (RemainingTime > 0f)
+            {
+                Debug.Log
+                (
+                    $"[{Printer.Name}] PrintID " +
+                    $"{Document.Print.PrintID}: " +
+                    $"Estimated total = " +
+                    $"{EstimatedPrintingTime:F1}s, " +
+                    $"elapsed = {ElapsedTime:F1}s, " +
+                    $"waiting another {RemainingTime:F1}s."
+                );
+
+
+                Document.StatusMessage =
+                    "Finishing print...";
+
+
+                yield return new WaitForSeconds
+                (
+                    RemainingTime
+                );
+            }
+            else
+            {
+                Debug.Log
+                (
+                    $"[{Printer.Name}] PrintID " +
+                    $"{Document.Print.PrintID}: " +
+                    "Estimated printing time has already elapsed."
+                );
+            }
         }
-        
+
 
         //--------------------------------------------------
-        // Current physical print request is finished.
+        // Report the final result to Coroutine_PrintJob.
         //--------------------------------------------------
 
         OnComplete
