@@ -1,4 +1,5 @@
 //namespaces =
+using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
 using static Printer;
@@ -32,6 +33,13 @@ public class PrinterQueuePanel : MonoBehaviour
 
     //This is the parent of all QueuedOrder objects in a PrinterQueue panel.
     [SerializeField] public GameObject QueuedOrdersParent;
+
+
+    //This is the list of QueuedOrders of this specific Printer.
+    public static List<QueuedOrder> QueuedOrders_List = new();
+
+
+
 
 
     //UI stuff =
@@ -100,6 +108,8 @@ public class PrinterQueuePanel : MonoBehaviour
     {
         this.Worker = Worker;
 
+        QueuedOrders_List.Clear();
+
         //For each Job the workers has in it's queue, a QueueOrder object is instantiated.
         foreach(PrintJob Job in Worker.Queue.Jobs)
         {
@@ -112,6 +122,8 @@ public class PrinterQueuePanel : MonoBehaviour
     {
         GameObject QueuedOrder = Instantiate(QueuedOrderPrefab, QueuedOrdersParent.transform);
         QueuedOrder QueuedOrderScript = QueuedOrder.GetComponent<QueuedOrder>();
+
+        QueuedOrders_List.Add(QueuedOrderScript);
 
         QueuedOrderScript.OrderID.text = "OrderID: " + Job.OrderID;
     }

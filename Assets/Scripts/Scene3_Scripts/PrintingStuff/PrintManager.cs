@@ -1,6 +1,5 @@
 //namespaces =
 using System.Collections.Generic;
-using System.Linq;
 using UnityEngine;
 
 
@@ -55,12 +54,14 @@ public class PrintManager : MonoBehaviour
     //To add the said Order in ProcessingOrders HashSet.
     public void BeginProcessingOrder(int OrderID)
     {
+        Debug.Log("Starting the processing of Order ID = " + OrderID);
         ProcessingOrders.Add(OrderID);
     }
 
     //To remove the said Order from ProcessingOrders HashSet.
     public void EndProcessingOrder(int OrderID)
     {
+        Debug.Log("Ended the processing of Order ID = " + OrderID);
         ProcessingOrders.Remove(OrderID);
     }
 
@@ -102,6 +103,19 @@ public class PrintManager : MonoBehaviour
     }
 
 
+
+
+
+    //To check if the HashSet has any orders in it currently.
+    public bool Is_ProcessingOrders_HashSet_Empty()
+    {
+        if(ProcessingOrders.Count <= 0)
+        {
+            return true;
+        }
+
+        return false;
+    }
 
 
 
@@ -1149,6 +1163,25 @@ public class PrintManager : MonoBehaviour
         return true;
     }
 
+
+
+
+
+
+
+    //This function returns true if all printer queues are empty, else it returns false.
+    public bool CheckIf_AllPrinterQueues_AreEmpty()
+    {
+        foreach(PrinterWorker Worker in Workers)
+        {
+            if(Worker.Queue.HasJobs())
+            {
+                return false; 
+            }
+        }
+
+        return true;
+    }
 
 
 

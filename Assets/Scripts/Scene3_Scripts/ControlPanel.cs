@@ -14,6 +14,8 @@ public class ControlPanel : MonoBehaviour
     [SerializeField] Scene3Manager Scene3ManagerScript;
     [SerializeField] Scene3Backend Scene3BackendScript;
 
+    [SerializeField] PrintManager PrintManagerScript;
+
     [SerializeField] HomePage HomePageScript;
 
 
@@ -37,13 +39,25 @@ public class ControlPanel : MonoBehaviour
             {
                 Debug.Log("Server is active");
 
-                //Insert the true case here =
-
+                //Check here if Automatic Printing is enabled.
                 if (Script1.AutomaticPrinting)
                 {
-                    Debug.Log("You cannot leave the Home Page while Automatic Printing is enabled or an order is being printed.");
+                    Debug.Log("You cannot leave the Home Page while Automatic Printing is enabled.");
 
-                    Scene3ManagerScript.MessageText.text = "You cannot leave the Home Page while Automatic Printing is enabled or an order is being processed.";
+                    Scene3ManagerScript.MessageText.text = "You cannot leave the Home Page while Automatic Printing is enabled.";
+                    Scene3ManagerScript.EnableMessagePanel();
+
+                    return;
+                }
+
+                //Check here if any orders are being processed or are currently in a queue.
+                if (!PrintManager.Instance.CheckIf_AllPrinterQueues_AreEmpty()
+                    &&
+                    !PrintManager.Instance.Is_ProcessingOrders_HashSet_Empty())
+                {
+                    Debug.Log("You cannot leave the Home Page while an order is being processed.");
+
+                    Scene3ManagerScript.MessageText.text = "You cannot leave the Home Page while an order is being processed.";
                     Scene3ManagerScript.EnableMessagePanel();
 
                     return;
@@ -74,13 +88,25 @@ public class ControlPanel : MonoBehaviour
             {
                 Debug.Log("Server is active");
 
-                //Insert the true case here =
-
+                //Check here if Automatic Printing is enabled.
                 if (Script1.AutomaticPrinting)
                 {
-                    Debug.Log("You cannot leave the Home Page while Automatic Printing is enabled or an order is being processed.");
+                    Debug.Log("You cannot leave the Home Page while Automatic Printing is enabled.");
 
-                    Scene3ManagerScript.MessageText.text = "You cannot leave the Home Page while Automatic Printing is enabled or an order is being processed.";
+                    Scene3ManagerScript.MessageText.text = "You cannot leave the Home Page while Automatic Printing is enabled.";
+                    Scene3ManagerScript.EnableMessagePanel();
+
+                    return;
+                }
+
+                //Check here if any orders are being processed or are currently in a queue.
+                if (!PrintManager.Instance.CheckIf_AllPrinterQueues_AreEmpty()
+                    &&
+                    !PrintManager.Instance.Is_ProcessingOrders_HashSet_Empty())
+                {
+                    Debug.Log("You cannot leave the Home Page while an order is being processed.");
+
+                    Scene3ManagerScript.MessageText.text = "You cannot leave the Home Page while an order is being processed.";
                     Scene3ManagerScript.EnableMessagePanel();
 
                     return;

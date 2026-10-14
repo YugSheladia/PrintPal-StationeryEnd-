@@ -100,9 +100,6 @@ public class QueueManager : MonoBehaviour
 
 
 
-
-
-
     //This function is used to go from QueueManager page -> HomePage.
     private void ClickedPreviousPageButton()
     {
