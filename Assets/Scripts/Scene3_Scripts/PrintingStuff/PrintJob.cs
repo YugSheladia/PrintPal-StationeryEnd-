@@ -15,6 +15,12 @@ public class PrintJob
     //Order's ID =
     public int OrderID;
 
+    //User's ID =
+    public int UserID;
+
+    //Username =
+    public string Username;
+
     //Name of the Printer, jiske Queue mai PrintJob exists.
     public Printer Printer;
 

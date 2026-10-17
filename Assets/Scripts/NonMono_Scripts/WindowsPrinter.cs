@@ -239,4 +239,114 @@ public static class WindowsPrinter
             return Result;
         }
     }
+
+
+
+
+
+
+
+    //New
+    public static Task<PrintResult> PrintHeaderAsync
+    (
+        string HeaderPDFPath,
+        Printer Printer
+    )
+    {
+        return Task.Run(() =>
+        {
+            PrintResult Result = new PrintResult();
+
+            try
+            {
+                if (!File.Exists(SumatraPath))
+                {
+                    Result.Success = false;
+                    Result.Message = "SumatraPDF.exe not found.";
+                    return Result;
+                }
+
+                if (!File.Exists(HeaderPDFPath))
+                {
+                    Result.Success = false;
+                    Result.Message = "Header PDF file not found.";
+                    return Result;
+                }
+
+                string Arguments =
+                    "-silent " +
+                    $"-print-to \"{Printer.Name}\" " +
+                    $"-print-settings \"monochrome\" " +
+                    $"\"{HeaderPDFPath}\"";
+
+                using (Process Process = new Process())
+                {
+                    Process.StartInfo.FileName = SumatraPath;
+                    Process.StartInfo.Arguments = Arguments;
+                    Process.StartInfo.UseShellExecute = false;
+                    Process.StartInfo.CreateNoWindow = true;
+                    Process.StartInfo.WindowStyle =
+                        ProcessWindowStyle.Hidden;
+
+                    Process.Start();
+
+                    bool Exited = Process.WaitForExit(
+                        ProcessTimeoutMilliseconds);
+
+                    if (!Exited)
+                    {
+                        try { Process.Kill(); }
+                        catch { }
+
+                        Result.Success = false;
+                        Result.Message =
+                            "Header printing timed out.";
+
+                        return Result;
+                    }
+
+                    if (Process.ExitCode == 0)
+                    {
+                        Result.Success = true;
+                        Result.Message =
+                            "Header submitted successfully.";
+
+                        return Result;
+                    }
+
+                    string DocumentName =
+                        Path.GetFileName(HeaderPDFPath);
+
+                    Win32Structures.JOB_INFO_1? Job =
+                        Win32PrintSpooler.FindJob(
+                            Printer.Name,
+                            DocumentName);
+
+                    if (Job.HasValue)
+                    {
+                        Result.Success = true;
+                        Result.Message =
+                            "Header accepted by Windows spooler.";
+
+                        return Result;
+                    }
+
+                    Result.Success = false;
+                    Result.Message =
+                        $"Header printing failed. Sumatra exit code: " +
+                        $"{Process.ExitCode}";
+
+                    return Result;
+                }
+            }
+            catch (Exception Exception)
+            {
+                Result.Success = false;
+                Result.Message = Exception.Message;
+                Result.Exception = Exception;
+
+                return Result;
+            }
+        });
+    }
 }

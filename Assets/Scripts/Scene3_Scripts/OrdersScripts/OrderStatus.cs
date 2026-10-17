@@ -37,7 +37,6 @@ public class OrderStatus : MonoBehaviour
     //=================
 
     //Name of the Customer.
-    public string UsernameString;
     [SerializeField] TMP_Text Username;
 
     //Time at which the order was recieved.
@@ -124,6 +123,8 @@ public class OrderStatus : MonoBehaviour
     public void SetOrder(OrderSummary Order)
     {
         this.Order = Order;
+
+        UpdateUI();
     }
     public void UpdateUI()
     {
@@ -211,10 +212,10 @@ public class OrderStatus : MonoBehaviour
 
 
         //Other vital information =
-        Username.text = UsernameString;
+        Username.text = Order.Username;
 
-        OrderIDText.text                = Order.OrderID.ToString();
-        OrderOTP.text                   = Order.OrderOTP.ToString();
+        OrderIDText.text    = Order.OrderID.ToString();
+        OrderOTP.text       = Order.OrderOTP.ToString();
     }
 
 

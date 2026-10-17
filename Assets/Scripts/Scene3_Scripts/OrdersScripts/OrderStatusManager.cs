@@ -64,12 +64,11 @@ public class OrderStatusManager : MonoBehaviour
 
         OrderStatus OrderStatusScript = OrderStatusObject.GetComponent<OrderStatus>();
 
+
+
         OrderStatusScript.SetRequiredScripts(Scene3ManagerScript, Scene3BackendScript, this);
 
         OrderStatusScript.SetOrder(Order);
-
-        //To set the name of the customer to whom the order belongs to.
-        Scene3BackendScript.GetUsernameFromServer(Order.UserID, OrderStatusScript);
     }
 
 

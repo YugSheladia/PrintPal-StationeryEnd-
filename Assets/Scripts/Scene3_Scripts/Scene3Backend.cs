@@ -23,7 +23,10 @@ using UnityEngine.Networking;
 public class OrderSummary
 {
     public int OrderID;
+
     public int UserID;
+    public string Username;
+
     public int StationeryID;
 
     public int OrderOTP;
@@ -1278,6 +1281,9 @@ public class Scene3Backend : MonoBehaviour
                 Details.PrintOrderDetails();
                 #endif
             }
+
+            Debug.Log("GetUsername()");
+            GetUsername(Order);
         }
 
         //Debug.Log("Finished Building Print Details.");
@@ -1308,13 +1314,13 @@ public class Scene3Backend : MonoBehaviour
         public string Message;
         public UserInfo User;
     }
-    public void GetUsernameFromServer(int UserID, OrderStatus OrderStatusScript)
+    public void GetUsernameFromServer(OrderSummary Order)
     {
-        StartCoroutine(GetUsername(UserID, OrderStatusScript));
+        StartCoroutine(GetUsername(Order));
     }
-    public IEnumerator GetUsername(int UserID, OrderStatus OrderStatusScript)
+    public IEnumerator GetUsername(OrderSummary Order)
     {
-        UnityWebRequest request = UnityWebRequest.Get("http://localhost:3000/user/" + UserID);
+        UnityWebRequest request = UnityWebRequest.Get("http://localhost:3000/user/" + Order.UserID);
 
         yield return request.SendWebRequest();
 
@@ -1327,10 +1333,9 @@ public class Scene3Backend : MonoBehaviour
 
             if (response.Success)
             {
-                //Debug.Log("Username: " + response.User.Username);
+                Debug.Log("Username: " + response.User.Username);
 
-                OrderStatusScript.UsernameString = response.User.Name;
-                OrderStatusScript.UpdateUI();
+                Order.Username = response.User.Username;
             }
             else
             {

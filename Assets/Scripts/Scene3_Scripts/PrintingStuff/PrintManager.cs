@@ -283,7 +283,9 @@ public class PrintManager : MonoBehaviour
     {
         PrintJob Job = new PrintJob();
 
-        Job.OrderID = Order.OrderID;
+        Job.OrderID     = Order.OrderID;
+        Job.UserID      = Order.UserID;
+        Job.Username    = Order.Username;
 
         Job.Status = PrintJobStatus.Waiting;
         Job.StatusMessage = "Waiting...";
@@ -315,6 +317,7 @@ public class PrintManager : MonoBehaviour
 
             Job.Documents.Add(Document);
         }
+
 
 
 
