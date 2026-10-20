@@ -314,6 +314,8 @@ public class Scene3Backend : MonoBehaviour
     [SerializeField] HomePage HomePageScript;
     [SerializeField] Scene3Manager Scene3ManagerScript;
 
+    [SerializeField] OrderStatusManager OrderStatusManagerScript;
+
     [SerializeField] PrintManager PrintManagerScript;
 
     [SerializeField] RevenuePageManager RevenuePageManagerScript;
@@ -501,8 +503,7 @@ public class Scene3Backend : MonoBehaviour
             yield break;
         }
 
-        ConfirmedOrders.Orders =
-            Response.Orders ?? new OrderSummary[0];
+        ConfirmedOrders.Orders = Response.Orders ?? new OrderSummary[0];
 
         //Debug.Log
         //(
@@ -948,7 +949,7 @@ public class Scene3Backend : MonoBehaviour
     //To get Prints, PrintBills, and PrintSettings of Orders of a specific status
     //( Called by functions above -> GetPendingOrders(), GetCompletedOrders(), GetCollectedOrders(), GetArchivedOrders() ).
 
-    //Therefore, GetOrders() -> GetPrints() -> GetPrintSettings() -> GetPrintBills().
+    //Therefore, GetOrders() -> GetPrints() -> GetPrintSettings() -> GetPrintBills() -> BuildPrintDetails().
     IEnumerator GetPrints(System.Action<bool> OnComplete)
     {
         //Debug.Log("Downloading Prints...");
@@ -1282,8 +1283,8 @@ public class Scene3Backend : MonoBehaviour
                 #endif
             }
 
-            Debug.Log("GetUsername()");
-            GetUsername(Order);
+            //Debug.Log("GetUsername()");
+            //GetUsernameFromServer(Order);
         }
 
         //Debug.Log("Finished Building Print Details.");
@@ -1333,9 +1334,9 @@ public class Scene3Backend : MonoBehaviour
 
             if (response.Success)
             {
-                Debug.Log("Username: " + response.User.Username);
+                Order.Username = response.User.Name;
 
-                Order.Username = response.User.Username;
+                Debug.Log("Name of user : " + Order.Username);
             }
             else
             {
@@ -1366,15 +1367,33 @@ public class Scene3Backend : MonoBehaviour
 
 
 
-
+    //=============================
     //To set Order's status.
+    //=============================
+
+
+
     [System.Serializable]
     public class OrderIDRequest
     {
         public int OrderID;
     }
+
+
+
+    //This bool is switched to true when such a coroutine is called which starts a transacion in the database,
+    //and is switched to false only when the transaction has been completed.
+    
+    public bool CheckFor_OngoingTransaction = false;
+
+
+
+
+
     public void SetOrderAsPending(int OrderID, GameObject Panel)
     {
+        CheckFor_OngoingTransaction = true;
+
         StartCoroutine
         (
             SetOrderAsPending
@@ -1390,6 +1409,8 @@ public class Scene3Backend : MonoBehaviour
     }
     public void SetOrderAsCompleted(int OrderID, GameObject Panel)
     {
+        CheckFor_OngoingTransaction = true;
+
         StartCoroutine
         (
             SetOrderAsCompleted
@@ -1405,6 +1426,8 @@ public class Scene3Backend : MonoBehaviour
     }
     public void SetOrderAsCollected(int OrderID, GameObject Panel)
     {
+        CheckFor_OngoingTransaction = true;
+
         StartCoroutine
         (
             SetOrderAsCollected
@@ -1420,6 +1443,8 @@ public class Scene3Backend : MonoBehaviour
     }
     public void SetOrderAsFailed(int OrderID, GameObject Panel)
     {
+        CheckFor_OngoingTransaction = true;
+
         StartCoroutine
         (
             SetOrderAsFailed
@@ -1435,6 +1460,8 @@ public class Scene3Backend : MonoBehaviour
     }
     public void SetOrderAsUnarchived(int OrderID, GameObject Panel)
     {
+        CheckFor_OngoingTransaction = true;
+
         StartCoroutine
         (
             SetOrderAsUnarchived
@@ -1448,8 +1475,15 @@ public class Scene3Backend : MonoBehaviour
             )
         );
     }
+
+
+
+
+
     void HandleStandaloneStatusChange(bool Success, GameObject Panel)
     {
+        CheckFor_OngoingTransaction = false;
+
         Scene3ManagerScript.DisableInvisiblePanel();
 
         if (!Success)
@@ -1457,22 +1491,26 @@ public class Scene3Backend : MonoBehaviour
             Scene3ManagerScript.DisableAllPanels();
             Scene3ManagerScript.EnableHomePagePanel();
 
-            Scene3ManagerScript.MessageText.text = "Something went wrong, try again later.";
-            Scene3ManagerScript.EnableMessagePanel();
+            Scene3ManagerScript.MessageText.text =
+                "Something went wrong, try again later.";
 
+            Scene3ManagerScript.EnableMessagePanel();
             return;
         }
 
-        //This if statement is added because in some ocassions, we may call the "SetOrderAs...()" functions without the need to destroy the panel.
-        if(Panel)
+        if (Panel)
         {
+            OrderStatusManagerScript.Remove_OrderStatusPanel
+            (
+                Panel.GetComponent<OrderStatus>()
+            );
+
             Destroy(Panel);
         }
-        else
-        {
-            Debug.Log("No Panel to destroy.");
-        }
     }
+
+
+
 
 
 
@@ -1697,8 +1735,11 @@ public class Scene3Backend : MonoBehaviour
 
 
 
+
     public void SetOrderAsArchived(int OrderID, GameObject Panel)
     {
+        CheckFor_OngoingTransaction = true;
+
         StartCoroutine(Coroutine_SetOrderAsArchived(OrderID, Panel));
     }
     IEnumerator Coroutine_SetOrderAsArchived(int OrderID, GameObject Panel)
@@ -1744,6 +1785,8 @@ public class Scene3Backend : MonoBehaviour
             Scene3ManagerScript.MessageText.text = "Something went wrong, try again later.";
             Scene3ManagerScript.EnableMessagePanel();
         }
+
+        CheckFor_OngoingTransaction = false;
     }
 
 
@@ -3495,9 +3538,11 @@ public class Scene3Backend : MonoBehaviour
         });
 
 
-        using (UnityWebRequest request = new UnityWebRequest(
+        using (UnityWebRequest request = new UnityWebRequest
+        (
             "http://localhost:3000/stationery/printer/pages-used/" + StationeryPrinterID,
-            "PUT"))
+            "PUT")
+        )
         {
             //Debug.Log("StationeryPrinterID = " + StationeryPrinterID);
             byte[] body = System.Text.Encoding.UTF8.GetBytes(json);
@@ -3508,7 +3553,8 @@ public class Scene3Backend : MonoBehaviour
             request.downloadHandler = new DownloadHandlerBuffer();
 
 
-            request.SetRequestHeader(
+            request.SetRequestHeader
+            (
                 "Content-Type",
                 "application/json"
             );

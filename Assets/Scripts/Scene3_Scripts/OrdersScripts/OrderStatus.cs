@@ -63,8 +63,28 @@ public class OrderStatus : MonoBehaviour
     [SerializeField] TMP_Text StatusBoxText;
 
 
+
+    //This is the bool which we update when a user Selects / Unselects an order in OrderStatusManager.
+    public bool IsSelected = false;
+
+    //These are the images to display weather an order is currently selected or not.
+    [SerializeField] GameObject Selected_Panel;
+    [SerializeField] GameObject Unselected_Panel;
+
+
+
+
+
+
     //This is a reference to the OrderStatusInfo object itself, which contains everything mentioned above.
     GameObject OrderStatusInfoObject;
+
+
+
+
+
+
+
 
 
 
@@ -214,6 +234,9 @@ public class OrderStatus : MonoBehaviour
         //Other vital information =
         Username.text = Order.Username;
 
+        Debug.Log("==============");
+        Debug.Log("Username = " + Order.Username);
+
         OrderIDText.text    = Order.OrderID.ToString();
         OrderOTP.text       = Order.OrderOTP.ToString();
     }
@@ -318,16 +341,21 @@ public class OrderStatus : MonoBehaviour
 
         Scene3ManagerScript.EnableInvisiblePanel();
 
+        if (IsSelected)
+        {
+            //This is to unselect an order automatically when it is manually marked as Pending / Printed... etc.
+            Clicked_SelectOrder();
+        }
+
+        //This is to unarchive an order ( in a rare occurence where it is archived ).
         if (archiveStatusEnum == ArchiveStatusEnum.Archived)
         {
             Scene3BackendScript.SetOrderAsUnarchived(Order.OrderID, this.gameObject);
         }
 
         Scene3BackendScript.SetOrderAsPending(Order.OrderID, this.gameObject);
-
-        //Destroy(gameObject);
     }
-    public void ClickedMarkAsCompleted()
+    public void ClickedMarkAsPrinted()
     {
         if (Order == null)
         {
@@ -337,14 +365,18 @@ public class OrderStatus : MonoBehaviour
 
         Scene3ManagerScript.EnableInvisiblePanel();
 
+        if (IsSelected)
+        {
+            //This is to unselect an order automatically when it is manually marked as Pending / Printed... etc.
+            Clicked_SelectOrder();
+        }
+
         if (archiveStatusEnum == ArchiveStatusEnum.Archived)
         {
             Scene3BackendScript.SetOrderAsUnarchived(Order.OrderID, this.gameObject);
         }
 
         Scene3BackendScript.SetOrderAsCompleted(Order.OrderID, this.gameObject);
-
-        //Destroy(gameObject);
     }
     public void ClickedMarkAsCollected()
     {
@@ -356,14 +388,18 @@ public class OrderStatus : MonoBehaviour
 
         Scene3ManagerScript.EnableInvisiblePanel();
 
+        if (IsSelected)
+        {
+            //This is to unselect an order automatically when it is manually marked as Pending / Printed... etc.
+            Clicked_SelectOrder();
+        }
+
         if (archiveStatusEnum == ArchiveStatusEnum.Archived)
         {
             Scene3BackendScript.SetOrderAsUnarchived(Order.OrderID, this.gameObject);
         }
 
         Scene3BackendScript.SetOrderAsCollected(Order.OrderID, this.gameObject);
-
-        //Destroy(gameObject);
     }
     public void ClickedMarkAsFailed()
     {
@@ -374,6 +410,12 @@ public class OrderStatus : MonoBehaviour
         }
 
         Scene3ManagerScript.EnableInvisiblePanel();
+
+        if (IsSelected)
+        {
+            //This is to unselect an order automatically when it is manually marked as Pending / Printed... etc.
+            Clicked_SelectOrder();
+        }
 
         if (archiveStatusEnum == ArchiveStatusEnum.Archived)
         {
@@ -392,9 +434,13 @@ public class OrderStatus : MonoBehaviour
 
         Scene3ManagerScript.EnableInvisiblePanel();
 
-        Scene3BackendScript.SetOrderAsArchived(Order.OrderID, this.gameObject);
+        if (IsSelected)
+        {
+            //This is to unselect an order automatically when it is manually marked as Pending / Printed... etc.
+            Clicked_SelectOrder();
+        }
 
-        //Destroy(gameObject);
+        Scene3BackendScript.SetOrderAsArchived(Order.OrderID, this.gameObject);
     }
     public void ClickedUnarchiveOrderButton()
     {
@@ -406,10 +452,18 @@ public class OrderStatus : MonoBehaviour
 
         Scene3ManagerScript.EnableInvisiblePanel();
 
-        Scene3BackendScript.SetOrderAsUnarchived(Order.OrderID, this.gameObject);
+        if (IsSelected)
+        {
+            //This is to unselect an order automatically when it is manually marked as Pending / Printed... etc.
+            Clicked_SelectOrder();
+        }
 
-        //Destroy(gameObject);
+        Scene3BackendScript.SetOrderAsUnarchived(Order.OrderID, this.gameObject);
     }
+
+
+
+
 
 
 
@@ -474,6 +528,8 @@ public class OrderStatus : MonoBehaviour
 
 
 
+
+
     //This button is used to open PDFs of all prints of an order.
     public void ClickedOpenButton()
     {
@@ -522,5 +578,33 @@ public class OrderStatus : MonoBehaviour
 
         //With this =
         StartCoroutine(Scene3BackendScript.ProcessOrder(Order));
+    }
+
+
+
+
+    //This is the function to call when a user Selects / Unselects an order.
+    public void Clicked_SelectOrder()
+    {
+        //Changing the IsSelected bool.
+        IsSelected = !IsSelected;
+
+        if (IsSelected)
+        {
+            Debug.Log("Order ID " + Order.OrderID + " Selected");
+
+            Selected_Panel.SetActive(true);
+            Unselected_Panel.SetActive(false);
+        }
+        else
+        {
+            Debug.Log("Order ID " + Order.OrderID + " Unselected");
+
+            Unselected_Panel.SetActive(true);
+            Selected_Panel.SetActive(false);
+        }
+
+        //Updating total number of selected orders in OrderStatusManager script.
+        OrderStatusManagerScript.UpdateUI();
     }
 }

@@ -386,6 +386,9 @@ public class HomePage : MonoBehaviour
             yield break;
         }
 
+        //This helps in knowing which type of OrderPanels are being instantiated in OrderStatusManager.
+        OrderStatusManagerScript.CurrentStatus = OrderStatusManager.CurrentStatus_OfAllOrders.Pending;
+
         OrderStatusManagerScript.CreateOrderStatusPanels();
 
         Scene3ManagerScript.DisableAllPanels();
@@ -432,6 +435,9 @@ public class HomePage : MonoBehaviour
 
             yield break;
         }
+
+        //This helps in knowing which type of OrderPanels are being instantiated in OrderStatusManager.
+        OrderStatusManagerScript.CurrentStatus = OrderStatusManager.CurrentStatus_OfAllOrders.Printed;
 
         OrderStatusManagerScript.CreateOrderStatusPanels();
 
@@ -480,6 +486,9 @@ public class HomePage : MonoBehaviour
             yield break;
         }
 
+        //This helps in knowing which type of OrderPanels are being instantiated in OrderStatusManager.
+        OrderStatusManagerScript.CurrentStatus = OrderStatusManager.CurrentStatus_OfAllOrders.Collected;
+
         OrderStatusManagerScript.CreateOrderStatusPanels();
 
         Scene3ManagerScript.DisableAllPanels();
@@ -526,6 +535,9 @@ public class HomePage : MonoBehaviour
 
             yield break;
         }
+
+        //This helps in knowing which type of OrderPanels are being instantiated in OrderStatusManager.
+        OrderStatusManagerScript.CurrentStatus = OrderStatusManager.CurrentStatus_OfAllOrders.Failed;
 
         OrderStatusManagerScript.CreateOrderStatusPanels();
 
@@ -574,6 +586,9 @@ public class HomePage : MonoBehaviour
 
             yield break;
         }
+
+        //This helps in knowing which type of OrderPanels are being instantiated in OrderStatusManager.
+        OrderStatusManagerScript.CurrentStatus = OrderStatusManager.CurrentStatus_OfAllOrders.Archived;
 
         OrderStatusManagerScript.CreateOrderStatusPanels();
 

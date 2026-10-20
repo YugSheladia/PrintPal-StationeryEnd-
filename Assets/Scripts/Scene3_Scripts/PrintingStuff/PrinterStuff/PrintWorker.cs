@@ -436,6 +436,9 @@ public class PrinterWorker
             $"{Document.Print.PrintID}"
         );
 
+
+
+        
         //--------------------------------------------------
         // STEP 1: Generate the document header.
         //--------------------------------------------------
@@ -446,6 +449,7 @@ public class PrinterWorker
 
         bool HeaderGenerated = false;
 
+        
         yield return Manager.StartCoroutine
         (
             Coroutine_GenerateHeader
@@ -475,7 +479,7 @@ public class PrinterWorker
 
             yield break;
         }
-
+        
 
 
 
@@ -777,6 +781,7 @@ public class PrinterWorker
         Action<bool, string, PrintFailureType> OnComplete
     )
     {
+        
         //--------------------------------------------------
         // STEP 1: Submit the header before the original PDF.
         //--------------------------------------------------
@@ -845,6 +850,7 @@ public class PrinterWorker
             $"[{Printer.Name}] Header submitted for PrintID " +
             $"{Document.Print.PrintID}."
         );
+        
 
         //--------------------------------------------------
         // STEP 2: Submit exactly one request for the original PDF.
