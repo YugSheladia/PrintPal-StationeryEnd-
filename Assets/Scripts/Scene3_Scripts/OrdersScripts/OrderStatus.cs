@@ -10,9 +10,9 @@ using UnityEngine.UI;
 public class OrderStatus : MonoBehaviour
 {
     //Script references =
-    Scene3Manager           Scene3ManagerScript;
-    Scene3Backend           Scene3BackendScript;
-    OrderStatusManager      OrderStatusManagerScript;
+    Scene3Manager Scene3ManagerScript;
+    Scene3Backend Scene3BackendScript;
+    OrderStatusManager OrderStatusManagerScript;
 
 
 
@@ -153,7 +153,7 @@ public class OrderStatus : MonoBehaviour
 
 
         //Changing OrderStatus panel on the basis of it's status =
-        switch(orderStatusEnum)
+        switch (orderStatusEnum)
         {
             case OrderStatusEnum.Pending:
 
@@ -162,9 +162,9 @@ public class OrderStatus : MonoBehaviour
 
                 StatusBoxText.text = "Pending";
                 StatusBoxColor.color = new Color32(192, 167, 46, 255);
-                
+
                 StatusTimeStampText.text = "Order Created at " + Order.CreatedAt;
-                
+
                 break;
 
             case OrderStatusEnum.Completed:
@@ -188,7 +188,7 @@ public class OrderStatus : MonoBehaviour
                 StatusBoxColor.color = new Color32(63, 120, 61, 255);
 
                 StatusTimeStampText.text = "Order Collected at " + Order.CollectedAt;
- 
+
                 break;
 
             case OrderStatusEnum.Failed:
@@ -206,7 +206,7 @@ public class OrderStatus : MonoBehaviour
             default:
 
                 DisableAllPanels();
-           
+
                 Debug.Log("Invalid Order Status");
                 StatusTimeStampText.text = "?";
 
@@ -237,12 +237,12 @@ public class OrderStatus : MonoBehaviour
         Debug.Log("==============");
         Debug.Log("Username = " + Order.Username);
 
-        OrderIDText.text    = Order.OrderID.ToString();
-        OrderOTP.text       = Order.OrderOTP.ToString();
+        OrderIDText.text = Order.OrderID.ToString();
+        OrderOTP.text = Order.OrderOTP.ToString();
     }
 
 
-    
+
 
 
 
@@ -273,18 +273,18 @@ public class OrderStatus : MonoBehaviour
                                                     false
                                                   );
 
-        OrderStatusInfo OrderStatusInfoScript = 
+        OrderStatusInfo OrderStatusInfoScript =
             OrderStatusInfoObject.GetComponent<OrderStatusInfo>();
 
         //Providing reference to the required scripts.
         OrderStatusInfoScript.SetScene3ManagerScript(Scene3ManagerScript);
-        
+
         //Providing reference to this OrderStatusManager panel itself.
         OrderStatusInfoScript.SetOrdersStatusPanel(OrderStatusManagerScript.OrdersStatusManagerPanel);
 
         //This is to obtain the reference of the OrderStatusInfoListParent ( which is a child of OrderStatusInfo ).
         //This object will act as a parent to all Bills as well as the FinalBill.
-        OrderStatusInfoListParentScript Parent = 
+        OrderStatusInfoListParentScript Parent =
             OrderStatusInfoObject.GetComponentInChildren<OrderStatusInfoListParentScript>();
 
         if (Parent == null)
@@ -330,119 +330,37 @@ public class OrderStatus : MonoBehaviour
 
 
 
-    //These are functions to mark a specific Order as Pending / Completed / Collected / Arhived.
+    //These are functions to mark a specific Order as Pending / Completed / Collected / Failed / Arhived / Unarchived.
+    //All of them go through OrderStatusManager.ApplyAction(), the same code which is used for many selected orders,
+    //so a single order and a bulk change behave the same way.
+    //( An archived order is unarchived first, and only then given the new status. )
+    //The order is unselected only once it has really been changed, so if something fails, it stays selected.
     public void ClickedMarkAsPending()
     {
-        if (Order == null)
-        {
-            Debug.Log("Order is absent inside OrderStatus script.");
-            return;
-        }
-
-        Scene3ManagerScript.EnableInvisiblePanel();
-
-        if (IsSelected)
-        {
-            //This is to unselect an order automatically when it is manually marked as Pending / Printed... etc.
-            Clicked_SelectOrder();
-        }
-
-        //This is to unarchive an order ( in a rare occurence where it is archived ).
-        if (archiveStatusEnum == ArchiveStatusEnum.Archived)
-        {
-            Scene3BackendScript.SetOrderAsUnarchived(Order.OrderID, this.gameObject);
-        }
-
-        Scene3BackendScript.SetOrderAsPending(Order.OrderID, this.gameObject);
+        ApplyActionToThisOrder(OrderStatusManager.OrderAction.Pending);
     }
     public void ClickedMarkAsPrinted()
     {
-        if (Order == null)
-        {
-            Debug.Log("Order is absent inside OrderStatus script.");
-            return;
-        }
-
-        Scene3ManagerScript.EnableInvisiblePanel();
-
-        if (IsSelected)
-        {
-            //This is to unselect an order automatically when it is manually marked as Pending / Printed... etc.
-            Clicked_SelectOrder();
-        }
-
-        if (archiveStatusEnum == ArchiveStatusEnum.Archived)
-        {
-            Scene3BackendScript.SetOrderAsUnarchived(Order.OrderID, this.gameObject);
-        }
-
-        Scene3BackendScript.SetOrderAsCompleted(Order.OrderID, this.gameObject);
+        ApplyActionToThisOrder(OrderStatusManager.OrderAction.Printed);
     }
     public void ClickedMarkAsCollected()
     {
-        if (Order == null)
-        {
-            Debug.Log("Order is absent inside OrderStatus script.");
-            return;
-        }
-
-        Scene3ManagerScript.EnableInvisiblePanel();
-
-        if (IsSelected)
-        {
-            //This is to unselect an order automatically when it is manually marked as Pending / Printed... etc.
-            Clicked_SelectOrder();
-        }
-
-        if (archiveStatusEnum == ArchiveStatusEnum.Archived)
-        {
-            Scene3BackendScript.SetOrderAsUnarchived(Order.OrderID, this.gameObject);
-        }
-
-        Scene3BackendScript.SetOrderAsCollected(Order.OrderID, this.gameObject);
+        ApplyActionToThisOrder(OrderStatusManager.OrderAction.Collected);
     }
     public void ClickedMarkAsFailed()
     {
-        if (Order == null)
-        {
-            Debug.Log("Order is absent inside OrderStatus script.");
-            return;
-        }
-
-        Scene3ManagerScript.EnableInvisiblePanel();
-
-        if (IsSelected)
-        {
-            //This is to unselect an order automatically when it is manually marked as Pending / Printed... etc.
-            Clicked_SelectOrder();
-        }
-
-        if (archiveStatusEnum == ArchiveStatusEnum.Archived)
-        {
-            Scene3BackendScript.SetOrderAsUnarchived(Order.OrderID, this.gameObject);
-        }
-
-        Scene3BackendScript.SetOrderAsFailed(Order.OrderID, this.gameObject);
+        ApplyActionToThisOrder(OrderStatusManager.OrderAction.Failed);
     }
     public void ClickedArchiveOrderButton()
     {
-        if (Order == null)
-        {
-            Debug.Log("Order is absent inside OrderStatus script.");
-            return;
-        }
-
-        Scene3ManagerScript.EnableInvisiblePanel();
-
-        if (IsSelected)
-        {
-            //This is to unselect an order automatically when it is manually marked as Pending / Printed... etc.
-            Clicked_SelectOrder();
-        }
-
-        Scene3BackendScript.SetOrderAsArchived(Order.OrderID, this.gameObject);
+        ApplyActionToThisOrder(OrderStatusManager.OrderAction.Archived);
     }
     public void ClickedUnarchiveOrderButton()
+    {
+        ApplyActionToThisOrder(OrderStatusManager.OrderAction.Unarchived);
+    }
+
+    private void ApplyActionToThisOrder(OrderStatusManager.OrderAction Action)
     {
         if (Order == null)
         {
@@ -450,19 +368,28 @@ public class OrderStatus : MonoBehaviour
             return;
         }
 
-        Scene3ManagerScript.EnableInvisiblePanel();
-
-        if (IsSelected)
-        {
-            //This is to unselect an order automatically when it is manually marked as Pending / Printed... etc.
-            Clicked_SelectOrder();
-        }
-
-        Scene3BackendScript.SetOrderAsUnarchived(Order.OrderID, this.gameObject);
+        OrderStatusManagerScript.ApplyAction(
+                                                new System.Collections.Generic.List<OrderStatus> { this },
+                                                Action,
+                                                false
+                                            );
     }
 
 
+    //True if this order is currently archived.
+    public bool IsArchived
+    {
+        get { return Order != null && archiveStatusEnum == ArchiveStatusEnum.Archived; }
+    }
 
+    //Called by OrderStatusManager after the server confirmed that this order was unarchived,
+    //but a later step ( e.g. marking it Pending ) did not work. Keeps this panel in line with the server.
+    public void MarkedAsUnarchivedLocally()
+    {
+        Order.ArchivedByStationery = 0;
+
+        UpdateUI();
+    }
 
 
 
@@ -583,28 +510,34 @@ public class OrderStatus : MonoBehaviour
 
 
 
-    //This is the function to call when a user Selects / Unselects an order.
+    //This is the function to call when a user Selects / Unselects an order ( the Select button on the panel ).
     public void Clicked_SelectOrder()
     {
-        //Changing the IsSelected bool.
-        IsSelected = !IsSelected;
-
-        if (IsSelected)
+        //Ignored while orders are being changed, as the panels are about to disappear.
+        if (OrderStatusManagerScript != null && OrderStatusManagerScript.IsBusy)
         {
-            Debug.Log("Order ID " + Order.OrderID + " Selected");
-
-            Selected_Panel.SetActive(true);
-            Unselected_Panel.SetActive(false);
+            return;
         }
-        else
-        {
-            Debug.Log("Order ID " + Order.OrderID + " Unselected");
 
-            Unselected_Panel.SetActive(true);
-            Selected_Panel.SetActive(false);
-        }
+        SetSelected(!IsSelected);
 
         //Updating total number of selected orders in OrderStatusManager script.
         OrderStatusManagerScript.UpdateUI();
+    }
+
+
+    //Sets the selection to a specific value ( instead of toggling ), and updates the images.
+    //This does NOT refresh OrderStatusManager - the caller does that, so Select All only refreshes once.
+    public void SetSelected(bool Value)
+    {
+        IsSelected = Value;
+
+        if (Order != null)
+        {
+            Debug.Log("Order ID " + Order.OrderID + (IsSelected ? " Selected" : " Unselected"));
+        }
+
+        Selected_Panel.SetActive(IsSelected);
+        Unselected_Panel.SetActive(!IsSelected);
     }
 }

@@ -45,6 +45,8 @@ public class QueueManager : MonoBehaviour
         //This makes it so that the PrinterQueueManager page is disabled & enabled automatically only if it was enabled in the first place. 
         if (Scene3ManagerScript.CheckQueueManagerPage_ActiveStatus())
         {
+            Debug.Log("Queues refreshed.");
+
             //This is to clean, i.e. delete all PrinterQueue panels in QueueManager.
             DestroyAllPrinterQueuePanels();
 

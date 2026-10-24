@@ -240,9 +240,9 @@ public class PrintDetails
 
     public float BillAmount;
 
-    public bool failedToDownloadPrint           = false;
-    public bool failedToDownloadPrintSettings   = false;
-    public bool failedToDownloadPrintBills      = false;
+    public bool failedToDownloadPrint = false;
+    public bool failedToDownloadPrintSettings = false;
+    public bool failedToDownloadPrintBills = false;
 
     public PrintDetails()
     {
@@ -474,9 +474,9 @@ public class Scene3Backend : MonoBehaviour
             yield break;
         }
 
-        #if UNITY_EDITOR
+#if UNITY_EDITOR
         //Debug.Log(request.downloadHandler.text);
-        #endif
+#endif
 
 
         OrderSummaryWrapper Response =
@@ -774,9 +774,9 @@ public class Scene3Backend : MonoBehaviour
             yield break;
         }
 
-        #if UNITY_EDITOR
+#if UNITY_EDITOR
         Debug.Log(request.downloadHandler.text);
-        #endif
+#endif
 
         OrderSummaryWrapper Response =
             JsonUtility.FromJson<OrderSummaryWrapper>
@@ -1093,7 +1093,7 @@ public class Scene3Backend : MonoBehaviour
             yield break;
         }
 
-       //Debug.Log("Finished Downloading Print Settings.");
+        //Debug.Log("Finished Downloading Print Settings.");
 
         OnComplete(true);
     }
@@ -1278,9 +1278,9 @@ public class Scene3Backend : MonoBehaviour
 
                 Order.Prints.Add(Details);
 
-                #if UNITY_EDITOR
+#if UNITY_EDITOR
                 Details.PrintOrderDetails();
-                #endif
+#endif
             }
 
             //Debug.Log("GetUsername()");
@@ -1383,7 +1383,7 @@ public class Scene3Backend : MonoBehaviour
 
     //This bool is switched to true when such a coroutine is called which starts a transacion in the database,
     //and is switched to false only when the transaction has been completed.
-    
+
     public bool CheckFor_OngoingTransaction = false;
 
 
@@ -1484,7 +1484,11 @@ public class Scene3Backend : MonoBehaviour
     {
         CheckFor_OngoingTransaction = false;
 
-        Scene3ManagerScript.DisableInvisiblePanel();
+        //While OrderStatusManager is changing many orders, it controls the loading screen itself ( once, for the whole process ).
+        if (!OrderStatusManagerScript.IsBusy)
+        {
+            Scene3ManagerScript.DisableInvisiblePanel();
+        }
 
         if (!Success)
         {
@@ -1736,57 +1740,70 @@ public class Scene3Backend : MonoBehaviour
 
 
 
+    //Same as the other SetOrderAs...(int, GameObject) functions: on success the panel is removed from OrderStatusManager's list and destroyed.
     public void SetOrderAsArchived(int OrderID, GameObject Panel)
     {
         CheckFor_OngoingTransaction = true;
 
-        StartCoroutine(Coroutine_SetOrderAsArchived(OrderID, Panel));
+        StartCoroutine
+        (
+            SetOrderAsArchived
+            (
+                OrderID,
+                Success => HandleStandaloneStatusChange
+                (
+                    Success,
+                    Panel
+                )
+            )
+        );
     }
-    IEnumerator Coroutine_SetOrderAsArchived(int OrderID, GameObject Panel)
+
+    //Coroutine version, used by OrderStatusManager to archive orders one after another.
+    public IEnumerator SetOrderAsArchived(int OrderID, System.Action<bool> OnComplete)
     {
         OrderIDRequest requestBody = new();
         requestBody.OrderID = OrderID;
 
         string json = JsonUtility.ToJson(requestBody);
 
-        byte[] body = System.Text.Encoding.UTF8.GetBytes(json);
+        byte[] body =
+            System.Text.Encoding.UTF8.GetBytes(json);
 
-        UnityWebRequest request = new UnityWebRequest(
-                                                            "http://localhost:3000/order/stationery-archive",
-                                                            "POST"
-                                                      );
+        UnityWebRequest request = new UnityWebRequest
+        (
+            "http://localhost:3000/order/stationery-archive",
+            "POST"
+        );
 
         request.uploadHandler = new UploadHandlerRaw(body);
-
         request.downloadHandler = new DownloadHandlerBuffer();
 
-        request.SetRequestHeader(
-                                    "Content-Type",
-                                    "application/json"
-                                );
+        request.SetRequestHeader
+        (
+            "Content-Type",
+            "application/json"
+        );
 
         yield return request.SendWebRequest();
 
-        if (request.result == UnityWebRequest.Result.Success)
+        if (request.result != UnityWebRequest.Result.Success)
         {
-            Debug.Log("Order marked as Archived.");
+            Debug.LogError
+            (
+                "Failed To Archive Order "
+                + OrderID
+                + ": "
+                + request.error
+            );
 
-            Destroy(Panel);
-
-            Scene3ManagerScript.DisableInvisiblePanel();
-        }
-        else
-        {
-            Debug.LogError(request.error);
-
-            Scene3ManagerScript.DisableAllPanels();
-            Scene3ManagerScript.EnableHomePagePanel();
-
-            Scene3ManagerScript.MessageText.text = "Something went wrong, try again later.";
-            Scene3ManagerScript.EnableMessagePanel();
+            OnComplete(false);
+            yield break;
         }
 
-        CheckFor_OngoingTransaction = false;
+        Debug.Log("Order marked as Archived.");
+
+        OnComplete(true);
     }
 
 
@@ -2262,7 +2279,7 @@ public class Scene3Backend : MonoBehaviour
             Response.Amount.ToString("F2");
 
         OnComplete(true);
-    } 
+    }
 
 
 
@@ -2579,7 +2596,7 @@ public class Scene3Backend : MonoBehaviour
     }
 
 
-     
+
 
 
 
@@ -3062,7 +3079,7 @@ public class Scene3Backend : MonoBehaviour
         {
             Scene3ManagerScript.MessageText.text = "PrintPal couldn't download all PDFs.";
             Scene3ManagerScript.EnableMessagePanel();
-            
+
             //Scene3ManagerScript.DisableInvisiblePanel();
 
             PrintManager.Instance.EndProcessingOrder
@@ -3432,7 +3449,7 @@ public class Scene3Backend : MonoBehaviour
 
 
 
-    
+
 
     //===========================================================================================================================
     //flow =
@@ -3758,7 +3775,7 @@ public class Scene3Backend : MonoBehaviour
                     request.downloadHandler.text
                 );
 
-            if (response == null || 
+            if (response == null ||
                 !response.Success ||
                 response.Printers == null)
             {
@@ -3789,6 +3806,17 @@ public class Scene3Backend : MonoBehaviour
         }
     }
 
+
+
+
+
+
+
+
+
+
+
+
     public static class WindowsPrinterCapabilities
     {
         private const int DC_DUPLEX = 7;
@@ -3807,7 +3835,7 @@ public class Scene3Backend : MonoBehaviour
 
         public static int GetPPM(string printerName, string portName)
         {
-            #if UNITY_STANDALONE_WIN || UNITY_EDITOR_WIN
+#if UNITY_STANDALONE_WIN || UNITY_EDITOR_WIN
             try
             {
                 return DeviceCapabilities(
@@ -3819,9 +3847,9 @@ public class Scene3Backend : MonoBehaviour
             {
                 return 0;
             }
-        #else
+#else
         return 0;
-        #endif
+#endif
         }
 
         public static bool SupportsDuplex(string printerName, string portName)
@@ -3863,4 +3891,3 @@ public class Scene3Backend : MonoBehaviour
         }
     }
 }
-

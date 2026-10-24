@@ -172,6 +172,10 @@ public class PrintJob
 
 
 
+    //TimeLeft in seconds.
+    public int TimeLeft;
+
+
 
 
 

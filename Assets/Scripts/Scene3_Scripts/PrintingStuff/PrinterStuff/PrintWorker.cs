@@ -539,6 +539,7 @@ public class PrinterWorker
         (
             Coroutine_WaitForPrintingDelay
             (
+                Job,
                 Document,
                 PrintStartTime
             )
@@ -582,7 +583,8 @@ public class PrinterWorker
             Document.StatusMessage = "Fetching customer details...";
 
             using (UnityWebRequest Request =
-                UnityWebRequest.Get(
+                UnityWebRequest.Get
+                (
                     "http://localhost:3000/user/" + Job.UserID
                 ))
             {
@@ -1023,6 +1025,7 @@ public class PrinterWorker
     //Makes sure the print is marked as completed after some delay.
     IEnumerator Coroutine_WaitForPrintingDelay
     (
+        PrintJob Job,
         PrintDocument Document,
         float PrintStartTime
     )
@@ -1061,6 +1064,8 @@ public class PrinterWorker
 
         EstimatedPrintingTime += 10f;
 
+       
+
         //--------------------------------------------------
         // STEP 3: Calculate elapsed and remaining time.
         //--------------------------------------------------
@@ -1088,6 +1093,7 @@ public class PrinterWorker
 
             Document.StatusMessage = "Finishing print...";
 
+
             yield return new WaitForSeconds(RemainingTime);
         }
         else
@@ -1098,6 +1104,8 @@ public class PrinterWorker
                 $"{Document.Print.PrintID}: " +
                 "Estimated printing time has already elapsed."
             );
+
+            Job.TimeLeft = 0;
         }
     }
 

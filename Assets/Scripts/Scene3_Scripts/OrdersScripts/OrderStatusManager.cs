@@ -10,8 +10,8 @@ using UnityEngine;
 public class OrderStatusManager : MonoBehaviour
 {
     //Script references =
-    [SerializeField] Scene3Manager      Scene3ManagerScript;
-    [SerializeField] Scene3Backend      Scene3BackendScript;
+    [SerializeField] Scene3Manager Scene3ManagerScript;
+    [SerializeField] Scene3Backend Scene3BackendScript;
 
     [SerializeField] HomePage HomePageScript;
 
@@ -88,6 +88,14 @@ public class OrderStatusManager : MonoBehaviour
     //Called by HomePage when a user clicks on Pending / Printed / Collected orders.
     public void CreateOrderStatusPanels()
     {
+        //Starting from a clean list every time, even if there are no orders to show.
+        //( Previously this happened after the "no orders" return, so old panels stayed in the list. )
+        OrderStatus_Panels.Clear();
+
+        TotalSelectedOrders = 0;
+        IsBusy = false;
+        UpdateUI();
+
         if (Scene3BackendScript.ConfirmedOrders.Orders.Length <= 0)
         {
             //In future, if I ever want to make a "No Orders exist" wala object, it should be instantitated here.
@@ -95,12 +103,12 @@ public class OrderStatusManager : MonoBehaviour
             return;
         }
 
-        OrderStatus_Panels.Clear();
-
         foreach (OrderSummary Order in Scene3BackendScript.ConfirmedOrders.Orders)
         {
             CreateOrderStatusPanel(Order);
         }
+
+        UpdateUI();
     }
 
     //Called by CreateOrderStatusPanels() to instantiate a panel for each order in Scene3Backend.ConfirmedOrders.Orders
@@ -109,7 +117,7 @@ public class OrderStatusManager : MonoBehaviour
         //To check if the same order already exists.
         foreach (OrderStatus Panel in OrderStatusListParent.GetComponentsInChildren<OrderStatus>())
         {
-            if (Panel.Order.OrderID == Order.OrderID) { return; }
+            if (Panel.Order != null && Panel.Order.OrderID == Order.OrderID) { return; }
         }
 
         GameObject OrderStatusObject = Instantiate(
@@ -129,7 +137,7 @@ public class OrderStatusManager : MonoBehaviour
 
 
 
-    
+
 
     //To go from OrderStatus page to HomePage.
     public void ClickedPreviousPageButton()
@@ -161,7 +169,7 @@ public class OrderStatusManager : MonoBehaviour
 
 
 
-    //This function is called to remove a OrderStatus panel from OrderStatusPanel list before destroying it.
+    //Removes a OrderStatus panel from the list of panels ( called when its order leaves this page, e.g. it was marked as something else ).
     public void Remove_OrderStatusPanel(OrderStatus OrderStatusScript)
     {
         OrderStatus_Panels.Remove(OrderStatusScript);
@@ -221,7 +229,7 @@ public class OrderStatusManager : MonoBehaviour
         //Updating number of selected orders.
 
         Debug.Log("Updating SelectedOrders text.");
-        
+
         SelectedOrder_Text.text = "Mark " + TotalSelectedOrders + " as :";
         SelectedOrders_Panel.SetActive(true);
 
@@ -231,7 +239,7 @@ public class OrderStatusManager : MonoBehaviour
 
 
         //Checking if all orders are selected.
-        if(Has_SelectedAll)
+        if (Has_SelectedAll)
         {
             UnselectAll_Button.SetActive(true);
             SelectAll_Button.SetActive(false);
@@ -248,6 +256,9 @@ public class OrderStatusManager : MonoBehaviour
     //This function updates the total number of selected orders everytime a user Selects / Unselects an order.
     public void Update_TotalNumberOfSelectedOrders()
     {
+        //Panels which were destroyed ( e.g. after leaving the page ) are dropped from the list first.
+        OrderStatus_Panels.RemoveAll(Panel => Panel == null);
+
         TotalSelectedOrders = 0;
 
         foreach (OrderStatus OrderStatusScript in OrderStatus_Panels)
@@ -264,195 +275,305 @@ public class OrderStatusManager : MonoBehaviour
     //This function checks if all orders are selected or not.
     public void CheckIf_SelectedAllOrders()
     {
-        Has_SelectedAll = false;
+        Has_SelectedAll =
+            OrderStatus_Panels.Count > 0
+            && TotalSelectedOrders == OrderStatus_Panels.Count;
+    }
 
-        if (TotalSelectedOrders == OrderStatus_Panels.Count)
+
+
+
+
+
+
+
+
+
+    //==============================================================
+    //Changing the status of orders ( one order, or many selected ).
+    //==============================================================
+    //
+    //Why this is done one order after another:
+    //Before, every selected order sent its request at the same moment, and the "Marked N as ..." message
+    //was shown before the server had answered. Now the requests are sent one at a time, and the message is
+    //shown once all of them are finished, saying how many really worked.
+
+    public enum OrderAction
+    {
+        Pending,
+        Printed,
+        Collected,
+        Failed,
+        Archived,
+        Unarchived
+    }
+
+    //True while a change is running. Select / Unselect / Mark buttons do nothing during this time.
+    public bool IsBusy = false;
+
+
+    //Called by OrderStatus ( single order ) and by the Clicked_MarkSelectedOrdersAs_...() functions below ( many orders ).
+    public void ApplyAction(List<OrderStatus> Orders, OrderAction Action, bool ShowSummary)
+    {
+        if (IsBusy)
         {
-            Has_SelectedAll = true;
+            Debug.Log("Already changing orders, ignoring this click.");
+            return;
+        }
+
+        if (Orders == null || Orders.Count <= 0)
+        {
+            return;
+        }
+
+        //Scene3Backend is used to run it, as it always stays active ( this object might be switched off in the middle ).
+        Scene3BackendScript.StartCoroutine(Coroutine_ApplyAction(Orders, Action, ShowSummary));
+    }
+
+    private IEnumerator Coroutine_ApplyAction(List<OrderStatus> Orders, OrderAction Action, bool ShowSummary)
+    {
+        IsBusy = true;
+
+        Scene3ManagerScript.EnableInvisiblePanel();
+
+        int Succeeded = 0;
+        int Failed = 0;
+
+        //A copy, because panels are removed from OrderStatus_Panels while we go through the orders.
+        List<OrderStatus> Snapshot = new List<OrderStatus>(Orders);
+
+        foreach (OrderStatus Panel in Snapshot)
+        {
+            //The panel was destroyed in the meantime.
+            if (Panel == null || Panel.Order == null)
+            {
+                continue;
+            }
+
+            int OrderID = Panel.Order.OrderID;
+
+            bool Ok = true;
+
+
+            //An archived order has to be unarchived first, when it is being given any other status.
+            if (Panel.IsArchived && Action != OrderAction.Archived && Action != OrderAction.Unarchived)
+            {
+                bool Unarchived = false;
+
+                yield return Scene3BackendScript.SetOrderAsUnarchived(OrderID, Result => Unarchived = Result);
+
+                if (Unarchived)
+                {
+                    Panel.MarkedAsUnarchivedLocally();
+                }
+                else
+                {
+                    Ok = false;
+                }
+            }
+
+
+            if (Ok)
+            {
+                bool Changed = false;
+
+                switch (Action)
+                {
+                    case OrderAction.Pending:
+                        yield return Scene3BackendScript.SetOrderAsPending(OrderID, Result => Changed = Result);
+                        break;
+
+                    case OrderAction.Printed:
+                        yield return Scene3BackendScript.SetOrderAsCompleted(OrderID, Result => Changed = Result);
+                        break;
+
+                    case OrderAction.Collected:
+                        yield return Scene3BackendScript.SetOrderAsCollected(OrderID, Result => Changed = Result);
+                        break;
+
+                    case OrderAction.Failed:
+                        yield return Scene3BackendScript.SetOrderAsFailed(OrderID, Result => Changed = Result);
+                        break;
+
+                    case OrderAction.Archived:
+                        yield return Scene3BackendScript.SetOrderAsArchived(OrderID, Result => Changed = Result);
+                        break;
+
+                    case OrderAction.Unarchived:
+                        yield return Scene3BackendScript.SetOrderAsUnarchived(OrderID, Result => Changed = Result);
+                        break;
+                }
+
+                Ok = Changed;
+            }
+
+
+            if (Ok)
+            {
+                Succeeded++;
+
+                //The order doesn't belong to this page anymore, so its panel goes away.
+                //Panel.Unselect() is called first so the selected counter stays right.
+                OrderStatus_Panels.Remove(Panel);
+
+                if (Panel != null)
+                {
+                    Destroy(Panel.gameObject);
+                }
+            }
+            else
+            {
+                Failed++;
+
+                //A failed order stays on the page, and stays selected so it can be tried again.
+                Debug.LogError("Could not change Order " + OrderID + " to " + Action);
+            }
+        }
+
+
+        IsBusy = false;
+
+        Scene3ManagerScript.DisableInvisiblePanel();
+
+        UpdateUI();
+
+
+        //Telling the user what happened.
+        if (Failed > 0)
+        {
+            Scene3ManagerScript.MessageText.text =
+                Succeeded > 0
+                ? "Marked " + Succeeded + " as " + GetActionName(Action) + ". " + Failed + " failed, try again later."
+                : "Couldn't mark as " + GetActionName(Action) + ", try again later.";
+
+            Scene3ManagerScript.EnableMessagePanel();
+        }
+        else if (ShowSummary && Succeeded > 0)
+        {
+            Scene3ManagerScript.MessageText.text = "Marked " + Succeeded + " as " + GetActionName(Action) + ".";
+            Scene3ManagerScript.EnableMessagePanel();
         }
     }
 
-
-
-
-
-
-
-
-
-    //===================================================================================
-    //Mark N orders as Pending / Printed / Collected / Archived / Unarchived button.
-    //===================================================================================
-
-    //flow = Clicked_MarkSelectedOrdersAs_...() -> Coroutine_ProcessSelectedOrders()
-
-
-    public void Clicked_MarkSelectedOrdersAs_Pending()
+    private string GetActionName(OrderAction Action)
     {
-        StartCoroutine
-        (
-            Coroutine_ProcessSelectedOrders
-            (
-                Order => Order.ClickedMarkAsPending(),
-                () => CurrentStatus == CurrentStatus_OfAllOrders.Pending,
-                "Selected orders are already marked as Pending",
-                "Pending"
-            )
-        );
-    }
-
-    public void Clicked_MarkSelectedOrdersAs_Printed()
-    {
-        StartCoroutine
-        (
-            Coroutine_ProcessSelectedOrders
-            (
-                Order => Order.ClickedMarkAsPrinted(),
-                () => CurrentStatus == CurrentStatus_OfAllOrders.Printed,
-                "Selected orders are already marked as Printed",
-                "Printed"
-            )
-        );
-    }
-
-    public void Clicked_MarkSelectedOrdersAs_Collected()
-    {
-        StartCoroutine
-        (
-            Coroutine_ProcessSelectedOrders
-            (
-                Order => Order.ClickedMarkAsCollected(),
-                () => CurrentStatus == CurrentStatus_OfAllOrders.Collected,
-                "Selected orders are already marked as Collected",
-                "Collected"
-            )
-        );
-    }
-
-    public void Clicked_MarkSelectedOrdersAs_Archived()
-    {
-        StartCoroutine
-        (
-            Coroutine_ProcessSelectedOrders
-            (
-                Order => Order.ClickedArchiveOrderButton(),
-                () => CurrentStatus == CurrentStatus_OfAllOrders.Archived,
-                "Selected orders are already marked as Archived",
-                "Archived"
-            )
-        );
-    }
-
-    public void Clicked_MarkSelectedOrdersAs_Unarchived()
-    {
-        StartCoroutine
-        (
-            Coroutine_ProcessSelectedOrders
-            (
-                Order => Order.ClickedUnarchiveOrderButton(),
-                () => CurrentStatus != CurrentStatus_OfAllOrders.Archived,
-                "Selected orders are already marked as Unarchived",
-                "Unarchived"
-            )
-        );
+        return Action.ToString();
     }
 
 
-
-    private IEnumerator Coroutine_ProcessSelectedOrders
-    (
-        System.Action<OrderStatus> ProcessOrder,
-        System.Func<bool> IsAlreadyInStatus,
-        string AlreadyMessage,
-        string StatusName
-    )
+    //Returns all orders which are currently selected.
+    private List<OrderStatus> GetSelectedOrders()
     {
+        List<OrderStatus> Selected = new List<OrderStatus>();
+
+        foreach (OrderStatus OrderStatusScript in OrderStatus_Panels)
+        {
+            if (OrderStatusScript != null && OrderStatusScript.IsSelected)
+            {
+                Selected.Add(OrderStatusScript);
+            }
+        }
+
+        return Selected;
+    }
+
+
+    //Shared by all Clicked_MarkSelectedOrdersAs_...() functions =
+    //returns false ( after telling the user why ) if nothing should be done.
+    private bool CanMarkSelected(bool AlreadyThatStatus, string AlreadyMessage)
+    {
+        if (IsBusy)
+        {
+            return false;
+        }
+
+        Update_TotalNumberOfSelectedOrders();
+
         if (TotalSelectedOrders <= 0)
         {
             Debug.Log("0 orders have been selected.");
-            yield break;
+
+            return false;
         }
 
-
-
-
-
-        if (IsAlreadyInStatus())
+        if (AlreadyThatStatus)
         {
             Debug.Log(AlreadyMessage);
 
             Scene3ManagerScript.MessageText.text = AlreadyMessage;
             Scene3ManagerScript.EnableMessagePanel();
-            yield break;
+
+            return false;
         }
 
-
-
-
-
-        int SelectedCount = TotalSelectedOrders;
-
-        // Take a snapshot because processing can remove panels.
-        OrderStatus[] StatusPanelSnapshot = OrderStatus_Panels.ToArray();
-
-        foreach (OrderStatus OrderStatusScript in StatusPanelSnapshot)
-        {
-            if (!OrderStatusScript || !OrderStatusScript.IsSelected)
-            {
-                continue;
-            }
-
-
-
-
-            // Wait without freezing Unity.
-            yield return new WaitUntil
-            (
-                () => !Scene3BackendScript.CheckFor_OngoingTransaction
-            );
-
-
-
-
-
-            // Start this order's transaction.
-            ProcessOrder(OrderStatusScript);
-
-
-
-
-
-            // Wait until this transaction finishes before continuing.
-            yield return new WaitUntil
-            (
-                () => !Scene3BackendScript.CheckFor_OngoingTransaction
-            );
-        }
-
-        Debug.Log
-        (
-            "Finished processing selected orders for status: " + StatusName
-        );
-
-
-
-
-        
-        Scene3ManagerScript.MessageText.text = "Processed " + SelectedCount + " selected orders for " + StatusName + ".";
-        Scene3ManagerScript.EnableMessagePanel();
-
-
-
-
-        TotalSelectedOrders = 0;
-
-
-
-
-        UpdateUI();
+        return true;
     }
 
 
+
+
+    //Mark n orders as Pending / Printed / Collected / Failed / Archived / Unarchived button.
+
+    public void Clicked_MarkSelectedOrdersAs_Pending()
+    {
+        if (!CanMarkSelected(CurrentStatus == CurrentStatus_OfAllOrders.Pending, "Selected orders are already marked as Pending"))
+        {
+            return;
+        }
+
+        ApplyAction(GetSelectedOrders(), OrderAction.Pending, true);
+    }
+
+    public void Clicked_MarkSelectedOrdersAs_Printed()
+    {
+        if (!CanMarkSelected(CurrentStatus == CurrentStatus_OfAllOrders.Printed, "Selected orders are already marked as Printed"))
+        {
+            return;
+        }
+
+        ApplyAction(GetSelectedOrders(), OrderAction.Printed, true);
+    }
+
+    public void Clicked_MarkSelectedOrdersAs_Collected()
+    {
+        if (!CanMarkSelected(CurrentStatus == CurrentStatus_OfAllOrders.Collected, "Selected orders are already marked as Collected"))
+        {
+            return;
+        }
+
+        ApplyAction(GetSelectedOrders(), OrderAction.Collected, true);
+    }
+
+    //NEW = there was no bulk "Failed" button before. To use it, add a button and point it to this function in the Inspector.
+    public void Clicked_MarkSelectedOrdersAs_Failed()
+    {
+        if (!CanMarkSelected(CurrentStatus == CurrentStatus_OfAllOrders.Failed, "Selected orders are already marked as Failed"))
+        {
+            return;
+        }
+
+        ApplyAction(GetSelectedOrders(), OrderAction.Failed, true);
+    }
+
+    public void Clicked_MarkSelectedOrdersAs_Archived()
+    {
+        if (!CanMarkSelected(CurrentStatus == CurrentStatus_OfAllOrders.Archived, "Selected orders are already marked as Archived"))
+        {
+            return;
+        }
+
+        ApplyAction(GetSelectedOrders(), OrderAction.Archived, true);
+    }
+
+    public void Clicked_MarkSelectedOrdersAs_Unarchived()
+    {
+        if (!CanMarkSelected(CurrentStatus != CurrentStatus_OfAllOrders.Archived, "Selected orders are already marked as Unarchived"))
+        {
+            return;
+        }
+
+        ApplyAction(GetSelectedOrders(), OrderAction.Unarchived, true);
+    }
 
 
 
@@ -471,30 +592,38 @@ public class OrderStatusManager : MonoBehaviour
     //This function is called when the user clicks on SelectAll button.
     public void Clicked_SelectAll()
     {
-        foreach(OrderStatus OrderStatusScript in OrderStatus_Panels)
+        if (IsBusy)
         {
-            OrderStatusScript.IsSelected = false;
-
-            OrderStatusScript.Clicked_SelectOrder();
+            return;
         }
 
-        Has_SelectedAll = true;
+        foreach (OrderStatus OrderStatusScript in OrderStatus_Panels)
+        {
+            if (OrderStatusScript != null)
+            {
+                OrderStatusScript.SetSelected(true);
+            }
+        }
 
         UpdateUI();
     }
 
-    
+
     //This function is called when the user clicks on UnselectAll button.
     public void Clicked_UnselectAll()
     {
-        foreach (OrderStatus OrderStatusScript in OrderStatus_Panels)
+        if (IsBusy)
         {
-            OrderStatusScript.IsSelected = true;
-
-            OrderStatusScript.Clicked_SelectOrder();
+            return;
         }
 
-        Has_SelectedAll = false;
+        foreach (OrderStatus OrderStatusScript in OrderStatus_Panels)
+        {
+            if (OrderStatusScript != null)
+            {
+                OrderStatusScript.SetSelected(false);
+            }
+        }
 
         UpdateUI();
     }
