@@ -8,6 +8,13 @@ using TMPro;
 
 public class QueuedOrder : MonoBehaviour
 {
+    PrintJob Job;
+
+
+
+
+
+
     //UI stuff =
     [SerializeField] public TMP_Text OrderID;
 
@@ -15,24 +22,25 @@ public class QueuedOrder : MonoBehaviour
 
 
 
-    private void Start()
+
+
+
+    public void SetPrintJob(PrintJob Job)
     {
-        TimeLeft.text = "Processing...";
+        this.Job = Job;
     }
 
 
 
-    public void Set_TimeLeft(int TimeLeft)
+    
+
+
+
+    public void UpdateUI()
     {
-        int TimeLeft_int = (int)(TimeLeft / 60);
+        //Debug.Log("UpdateUI for QueuedOrder of JobID = " + Job.OrderID);
+        //Debug.Log("TimeLeft = " + Job.TimeLeft);
 
-        if(TimeLeft_int == 0)
-        {
-            this.TimeLeft.text = "Done";
-
-            return;
-        }
-
-        this.TimeLeft.text = "TimeLeft = " + TimeLeft_int;
-    }    
+        TimeLeft.text = Job.TimeLeft.ToString() + " secs left";
+    }
 }

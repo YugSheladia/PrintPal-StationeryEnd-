@@ -22,6 +22,7 @@ public class QueueManager : MonoBehaviour
     [SerializeField] GameObject PrinterQueuePanelsParent;
 
 
+
     //This is a list of PrinterQueuePanels.
     public List<PrinterQueuePanel> PrinterQueuePanel_List = new List<PrinterQueuePanel>();
 
@@ -40,12 +41,25 @@ public class QueueManager : MonoBehaviour
     //This function is called to refresh all Queues in QueueManager page every time an order is Queued, Unqueued,
     //or when a user clicks on Queue button in HomePage, etc
    
+
+    //RefreshQueuedOrders() is called by =
+
+    //1. ClickedQueueButton()           in HomePage script.
+    //2. UpdatePagesLeft_Locally()      in PrintWorker script.
+    //3. QueuePrintJob()                in PrintManager script.
+    //4. RedistributeJobsFromWorker()   in PrintManager script.
+    //5. RerouteFailedJob()             in PrintManager script.
+    //6. JumpStartPrinter()             in PrintManager script.
+    //7. DisablePrinter()               in PrintManager script.
+    //8. CompletePrintedOrder()         in Scene3Backend script. 
+
+
     public void RefreshQueuedOrders()
     {
         //This makes it so that the PrinterQueueManager page is disabled & enabled automatically only if it was enabled in the first place. 
         if (Scene3ManagerScript.CheckQueueManagerPage_ActiveStatus())
         {
-            Debug.Log("Queues refreshed.");
+            //Debug.Log("Queues refreshed.");
 
             //This is to clean, i.e. delete all PrinterQueue panels in QueueManager.
             DestroyAllPrinterQueuePanels();
@@ -88,7 +102,7 @@ public class QueueManager : MonoBehaviour
         PrinterQueuePanelScript.SetPrintWorker(Worker, PrinterNumber);
 
         //This is to create the QueuedOrder panels inside each PrinterQueue panel.
-        PrinterQueuePanelScript.CreateQueuedOrders(Worker);
+        PrinterQueuePanelScript.CreateQueuedOrders();
 
         PrinterQueuePanelScript.UpdateUI();
     }

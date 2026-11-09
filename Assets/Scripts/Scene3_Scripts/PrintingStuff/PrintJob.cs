@@ -1,4 +1,5 @@
 //namespaces =
+using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -32,6 +33,7 @@ public class PrintJob
 
 
 
+
     //==================================================
     // Status
     //==================================================
@@ -39,6 +41,7 @@ public class PrintJob
     public PrintJobStatus Status = PrintJobStatus.Waiting;
 
     public string StatusMessage = "Waiting...";
+
 
 
 
@@ -57,6 +60,9 @@ public class PrintJob
     // every known printer has been tried.
 
     public List<string> AttemptedPrinterIDs = new();
+
+
+
 
 
 
@@ -92,9 +98,6 @@ public class PrintJob
             return count;
         }
     }
-
-
-
 
 
 
@@ -138,8 +141,6 @@ public class PrintJob
 
 
 
-
-
     //==================================================
     // Overall Progress
     //==================================================
@@ -163,6 +164,9 @@ public class PrintJob
 
 
 
+
+
+
     //==================================================
     // Retry
     //==================================================
@@ -172,8 +176,77 @@ public class PrintJob
 
 
 
-    //TimeLeft in seconds.
+
+
+
+
+
+
+    //================================================================
+    //Time stuff ( all in seconds )
+    //( Calculated by PrintManager.Calculate_TimeForCompletion_OfEachJob() )
+    //================================================================
+
+    //This is the amount of time it will take for this Job to be completed.
+    public int TimeForCompletion = 0;
+
+    //This is a bool which is switched on when TimeForCompletion is successfully calculated.
+    //This exists so that TimeForCompletion of each Job is calculated only once.
+    public bool Calculated_TimeForCompletion = false;
+
+    //This is TimeLeft ( currently ) for the completion of this Job.
     public int TimeLeft;
+
+    //This bool is switched on when TimeLeft hits 0;
+    public bool TimeLeft_Exhausted = false;
+
+    //This variable takes into account any delay, i.e. the time difference between TimeForCompletion 
+    //& the actual time this Job stays in a queue.
+    public int AdditionalDelay = 0;
+
+    //The ( real ) time at which TimeLeft was last updated.
+    //PrintManager uses it to subtract the time which has REALLY passed, no matter how often it is called.
+    public float LastTimeLeftUpdate;
+
+
+
+
+
+
+    //This is the amount of pages which will be needed to print this document.
+    public int PagesNeeded;
+
+
+
+    //Clears this Job's time estimates ( and those of its unfinished documents ), so they are calculated again.
+    //Called whenever the job is given to a printer ( a different printer may have a different PPM ).
+    public void ResetTimeEstimates()
+    {
+        TimeForCompletion = 0;
+        Calculated_TimeForCompletion = false;
+
+        TimeLeft = 0;
+        TimeLeft_Exhausted = false;
+
+        AdditionalDelay = 0;
+
+        PagesNeeded = 0;
+
+        LastTimeLeftUpdate = Time.realtimeSinceStartup;
+
+        foreach (PrintDocument Document in Documents)
+        {
+            //Documents which are already printed keep their values.
+            if (Document.Status == PrintDocumentStatus.Completed)
+            {
+                continue;
+            }
+
+            Document.ResetTimeEstimates();
+        }
+    }
+
+
 
 
 
@@ -181,17 +254,17 @@ public class PrintJob
 
     public void PrintJobDetails()
     {
-        UnityEngine.Debug.Log("OrderID = " + OrderID);
+        //UnityEngine.Debug.Log("OrderID = " + OrderID);
 
-        UnityEngine.Debug.Log("Printer info = ");
+        //UnityEngine.Debug.Log("Printer info = ");
 
         if (Printer != null)
         {
-            UnityEngine.Debug.Log("Printer name                 = " + Printer.Name);
-            UnityEngine.Debug.Log("Printer IsSelected           = " + Printer.IsSelected);
-            UnityEngine.Debug.Log("Printer IsOnline             = " + Printer.IsOnline);
-            UnityEngine.Debug.Log("Printer IsBusy               = " + Printer.IsBusy);
-            UnityEngine.Debug.Log("Printer Automatic printing   = " + Printer.AutomaticPrinting);
+            //UnityEngine.Debug.Log("Printer name                 = " + Printer.Name);
+            //UnityEngine.Debug.Log("Printer IsSelected           = " + Printer.IsSelected);
+            //UnityEngine.Debug.Log("Printer IsOnline             = " + Printer.IsOnline);
+            //UnityEngine.Debug.Log("Printer IsBusy               = " + Printer.IsBusy);
+            //UnityEngine.Debug.Log("Printer Automatic printing   = " + Printer.AutomaticPrinting);
         }
         else
         {
@@ -199,22 +272,21 @@ public class PrintJob
         }
 
 
-        UnityEngine.Debug.Log("PrintID of all prints = ");
-        foreach (PrintDocument document in Documents)
-        {
-            UnityEngine.Debug.Log("PrintID = " + document.Print.PrintID);
-        }
+        //UnityEngine.Debug.Log("PrintID of all prints = ");
+        //foreach (PrintDocument document in Documents)
+        //{
+        //UnityEngine.Debug.Log("PrintID = " + document.Print.PrintID);
+        //}
 
-        UnityEngine.Debug.Log("Status               = " + Status);
-        UnityEngine.Debug.Log("Status message       = " + StatusMessage);
-        UnityEngine.Debug.Log("Total documents      = " + TotalDocuments);
-        UnityEngine.Debug.Log("Documents printed    = " + DocumentsPrinted);
-        UnityEngine.Debug.Log("Total pages          = " + TotalPages);
-        UnityEngine.Debug.Log("Pages printed        = " + PagesPrinted);
-        UnityEngine.Debug.Log("Progress             = " + Progress);
-        UnityEngine.Debug.Log("Retry count          = " + RetryCount);
+        //UnityEngine.Debug.Log("Status               = " + Status);
+        //UnityEngine.Debug.Log("Status message       = " + StatusMessage);
+        //UnityEngine.Debug.Log("Total documents      = " + TotalDocuments);
+        //UnityEngine.Debug.Log("Documents printed    = " + DocumentsPrinted);
+        //UnityEngine.Debug.Log("Total pages          = " + TotalPages);
+        //UnityEngine.Debug.Log("Pages printed        = " + PagesPrinted);
+        //UnityEngine.Debug.Log("Progress             = " + Progress);
+        //UnityEngine.Debug.Log("Retry count          = " + RetryCount);
     }
-
 }
 
 
@@ -238,4 +310,3 @@ public enum PrintJobStatus
 
     Paused
 }
-

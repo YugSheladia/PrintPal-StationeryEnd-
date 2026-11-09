@@ -28,7 +28,12 @@ public static class PrintMonitor
         Action<PrintJobPauseReason, string> OnPaused,
         Action OnResumed,
         Action<bool, string> OnComplete,
-        float StuckTimeoutSeconds = 15f
+        float StuckTimeoutSeconds = 15f,
+
+        //Only used when the document was printed from a different PDF than Document.Print.LocalPDFPath
+        //( e.g. the header merged into the document's PDF ). The spooler job is named after the file that was
+        //actually printed, so that file's name is the one to search for.
+        string PDFPathOverride = null
     )
     {
         //--------------------------------------------------
@@ -73,14 +78,16 @@ public static class PrintMonitor
         string DocumentName =
             Path.GetFileName
             (
-                Document.Print.LocalPDFPath
+                string.IsNullOrEmpty(PDFPathOverride)
+                    ? Document.Print.LocalPDFPath
+                    : PDFPathOverride
             );
 
 
-        Debug.Log
-        (
-            $"[{Printer.Name}] Monitoring print job: {DocumentName}"
-        );
+        //Debug.Log
+        //(
+        //    $"[{Printer.Name}] Monitoring print job: {DocumentName}"
+        //);
 
 
         //--------------------------------------------------

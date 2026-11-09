@@ -3,10 +3,18 @@ using System.Text;
 
 public static class SumatraArguments
 {
+    //PDFPathOverride is optional: when it is given, that PDF is printed instead of Print.LocalPDFPath
+    //( used for the document's PDF with the header merged into it ).
+    //
+    //CopiesAreInPDF = true means the copies ( and their collation ) are already inside that PDF, so Sumatra must print
+    //it ONCE - otherwise the header would be printed once per copy, and the copies would be multiplied again.
+    //Everything else is unchanged.
     public static string Build
     (
         PrintDocument Document,
-        Printer Printer
+        Printer Printer,
+        string PDFPathOverride = null,
+        bool CopiesAreInPDF = false
     )
     {
         PrintDetails Print = Document.Print;
@@ -17,7 +25,7 @@ public static class SumatraArguments
 
 
         // Copies ( Works )
-        if (Print.Copies > 1)
+        if (Print.Copies > 1 && !CopiesAreInPDF)
             Settings.Add($"{Print.Copies}x");
 
 
@@ -26,10 +34,10 @@ public static class SumatraArguments
         if (Print.SideSelection == SideSelectionEnum.DoubleSided)
             Settings.Add("duplex");
 
-     
+
 
         // Collation
-        if (Print.CollatedOrNot == CollatedOrNotEnum.Collated)
+        if (Print.CollatedOrNot == CollatedOrNotEnum.Collated && !CopiesAreInPDF)
             Settings.Add("collate");
 
 
@@ -67,8 +75,8 @@ public static class SumatraArguments
                 break;
         }
 
-        
-        
+
+
         // Page Selection (if supported by Sumatra)
         switch (Print.PageSelection)
         {
@@ -96,7 +104,12 @@ public static class SumatraArguments
             Arguments.Append($"-print-settings \"{PrintSettings}\" ");
         }
 
-        Arguments.Append($"\"{Print.LocalPDFPath}\"");
+        string PDFPath =
+            string.IsNullOrEmpty(PDFPathOverride)
+                ? Print.LocalPDFPath
+                : PDFPathOverride;
+
+        Arguments.Append($"\"{PDFPath}\"");
 
         return Arguments.ToString();
     }

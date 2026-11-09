@@ -224,7 +224,7 @@ public class HomePage : MonoBehaviour
     //AutomaticPrinting is called by InitialiseHomePage().
     public void AutomaticPrinting()
     {
-        Debug.Log("AutomaticPrinting()");
+        //Debug.Log("AutomaticPrinting()");
 
         //here, we depend on Sciprt1's AutomaticPrinting bool because it is set to false by default.
         //We want to make sure that the AutomaticPrinting bool is disabled by default every time a user logs in.
@@ -295,7 +295,7 @@ public class HomePage : MonoBehaviour
     {
         if (StationeryIsOperational == isOperational)
         {
-            Debug.Log("Stationery is already " + isOperational);
+            //Debug.Log("Stationery's Operationality is already " + isOperational);
             yield break;
         }
 
@@ -646,11 +646,11 @@ public class HomePage : MonoBehaviour
     {
         Scene3ManagerScript.EnableInvisiblePanel();
 
-        Debug.Log
-        (
-            "Stationery ID = "
-            + Script1.StationeryInfoObject.StationeryID
-        );
+        //Debug.Log
+        //(
+        //    "Stationery ID = "
+        //    + Script1.StationeryInfoObject.StationeryID
+        //);
 
         bool Success = false;
 

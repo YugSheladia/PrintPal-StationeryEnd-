@@ -360,7 +360,7 @@ public class Scene3Backend : MonoBehaviour
 
             bool isOnline = request.result == UnityWebRequest.Result.Success;
 
-            Debug.Log(isOnline ? "Server is ONLINE" : "Server is OFFLINE");
+            //Debug.Log(isOnline ? "Server is ONLINE" : "Server is OFFLINE");
 
             OnComplete?.Invoke(isOnline);
         }
@@ -540,7 +540,7 @@ public class Scene3Backend : MonoBehaviour
             yield return null;
         }
 
-        Debug.Log("Downloading Completed Orders...");
+        //Debug.Log("Downloading Completed Orders...");
 
         IsBusy = true;
 
@@ -571,7 +571,7 @@ public class Scene3Backend : MonoBehaviour
         }
 
 #if UNITY_EDITOR
-        Debug.Log(request.downloadHandler.text);
+        //Debug.Log(request.downloadHandler.text);
 #endif
 
         OrderSummaryWrapper Response =
@@ -606,10 +606,10 @@ public class Scene3Backend : MonoBehaviour
         ConfirmedOrders.Orders =
             Response.Orders ?? new OrderSummary[0];
 
-        Debug.Log
-        (
-            $"Downloaded {ConfirmedOrders.Orders.Length} Completed Orders."
-        );
+        //Debug.Log
+        //(
+        //    $"Downloaded {ConfirmedOrders.Orders.Length} Completed Orders."
+        //);
 
         bool PrintsSuccess = false;
 
@@ -627,7 +627,7 @@ public class Scene3Backend : MonoBehaviour
             yield break;
         }
 
-        Debug.Log("Finished Downloading Completed Orders.");
+        //Debug.Log("Finished Downloading Completed Orders.");
         IsBusy = false;
 
         OnComplete(true);
@@ -642,7 +642,7 @@ public class Scene3Backend : MonoBehaviour
             yield return null;
         }
 
-        Debug.Log("Downloading Collected Orders...");
+        //Debug.Log("Downloading Collected Orders...");
 
         IsBusy = true;
 
@@ -673,7 +673,7 @@ public class Scene3Backend : MonoBehaviour
         }
 
 #if UNITY_EDITOR
-        Debug.Log(request.downloadHandler.text);
+        //Debug.Log(request.downloadHandler.text);
 #endif
 
         OrderSummaryWrapper Response =
@@ -744,7 +744,7 @@ public class Scene3Backend : MonoBehaviour
             yield return null;
         }
 
-        Debug.Log("Downloading Failed Orders...");
+        //Debug.Log("Downloading Failed Orders...");
 
         IsBusy = true;
 
@@ -775,7 +775,7 @@ public class Scene3Backend : MonoBehaviour
         }
 
 #if UNITY_EDITOR
-        Debug.Log(request.downloadHandler.text);
+        //Debug.Log(request.downloadHandler.text);
 #endif
 
         OrderSummaryWrapper Response =
@@ -846,7 +846,7 @@ public class Scene3Backend : MonoBehaviour
             yield return null;
         }
 
-        Debug.Log("Downloading Archived Orders...");
+        //Debug.Log("Downloading Archived Orders...");
 
         IsBusy = true;
 
@@ -877,7 +877,7 @@ public class Scene3Backend : MonoBehaviour
         }
 
 #if UNITY_EDITOR
-        Debug.Log(request.downloadHandler.text);
+        //Debug.Log(request.downloadHandler.text);
 #endif
 
         OrderSummaryWrapper Response =
@@ -933,7 +933,7 @@ public class Scene3Backend : MonoBehaviour
             yield break;
         }
 
-        Debug.Log("Finished Downloading Archived Orders.");
+        //Debug.Log("Finished Downloading Archived Orders.");
         IsBusy = false;
 
         OnComplete(true);
@@ -979,7 +979,7 @@ public class Scene3Backend : MonoBehaviour
             }
 
 #if UNITY_EDITOR
-            Debug.Log(request.downloadHandler.text);
+            //Debug.Log(request.downloadHandler.text);
 #endif
 
             PrintSummaryWrapper Response =
@@ -1279,7 +1279,7 @@ public class Scene3Backend : MonoBehaviour
                 Order.Prints.Add(Details);
 
 #if UNITY_EDITOR
-                Details.PrintOrderDetails();
+                //Details.PrintOrderDetails();
 #endif
             }
 
@@ -1857,7 +1857,7 @@ public class Scene3Backend : MonoBehaviour
         }
 
 #if UNITY_EDITOR
-        Debug.Log(request.downloadHandler.text);
+        //Debug.Log(request.downloadHandler.text);
 #endif
 
         OrderSummaryWrapper Response =
@@ -2623,7 +2623,7 @@ public class Scene3Backend : MonoBehaviour
     {
         if (AutomaticPrintingCoroutine == null)
         {
-            Debug.Log("Automatic Printing Coroutine has already been stopped.");
+            //Debug.Log("Automatic Printing Coroutine has already been stopped.");
             return;
         }
 
@@ -2680,6 +2680,9 @@ public class Scene3Backend : MonoBehaviour
             }
 
             //Important !!!
+
+            //Debug.Log("The sequence of orders are = ");
+
             foreach (OrderSummary Order in ConfirmedOrders.Orders)
             {
                 if (PrintManager.Instance.IsOrderAlreadyHandled(Order.OrderID))
@@ -2687,9 +2690,10 @@ public class Scene3Backend : MonoBehaviour
                     continue;
                 }
 
+                //Debug.Log("Beginning the processing of OrderID = " + Order.OrderID);
+
                 PrintManager.Instance.BeginProcessingOrder(Order.OrderID);
 
-                //StartPrintJob(Order);
                 StartCoroutine(ProcessOrder(Order));
             }
         }
@@ -2710,7 +2714,7 @@ public class Scene3Backend : MonoBehaviour
     //Refreshing HomePage UI
     public void RefreshUI()
     {
-        Debug.Log("RefreshUI");
+        //Debug.Log("RefreshUI");
 
         StartCoroutine(Coroutine_RefreshUI());
     }
@@ -2776,12 +2780,20 @@ public class Scene3Backend : MonoBehaviour
         //To update number of working printers, based on their past activity.
         HomePageScript.UpdateNumberOfWorkingPrinters();
 
-        //To inform users if 0 printers are conntected.
+        //This checks how many printers have been selected by a stationery ( regardless they are working or not ).
+        //If this number is 0, the stationery user is informed with a 'No printers connected !' text on home page.
         HomePageScript.UpdateNumberOfConnectedPrinters();
 
         //This function checks if there exists any printer with less than 10% of PagesLeft out of PageCapacity in the tray.
         //If yes, it SetsActive an exclamation mark over the Queue button on HomePage.
         HomePageScript.Check_PrintersFor_PagesLeft();
+
+
+        //To calculate TimeForCompletion of each Job in each Printer's Queue ( exactly once )
+        PrintManagerScript.Calculate_TimeForCompletion_OfEachJob();
+
+
+        QueueManagerScript.RefreshQueuedOrders();
 
 
         IsRefreshingHomePage = false;
@@ -3036,16 +3048,17 @@ public class Scene3Backend : MonoBehaviour
             // SUCCESS
             //==================================================
 
-            Debug.Log
-            (
-                "All Prints of OrderID = " +
-                Order.OrderID +
-                " have been validated."
-            );
+            //Debug.Log
+            //(
+            //    "All Prints of OrderID = " +
+            //    Order.OrderID +
+            //    " have been validated."
+            //);
 
             OnComplete(true);
         }
     }
+
 
 
 
@@ -3100,12 +3113,12 @@ public class Scene3Backend : MonoBehaviour
         // SUCCESS
         //==================================================
 
-        Debug.Log
-        (
-            "Downloaded all PDFs of OrderID = " +
-            Order.OrderID +
-            " successfully."
-        );
+        //Debug.Log
+        //(
+        //    "Downloaded all PDFs of OrderID = " +
+        //    Order.OrderID +
+        //    " successfully."
+        //);
 
         OnComplete(true);
     }
@@ -3156,7 +3169,7 @@ public class Scene3Backend : MonoBehaviour
         //If the PDF of the same name is already downloaded.
         if (File.Exists(SavePath))
         {
-            Debug.Log("PDF already exists.");
+            //Debug.Log("PDF already exists.");
 
             OnComplete(true, SavePath);
             yield break;
@@ -3230,12 +3243,12 @@ public class Scene3Backend : MonoBehaviour
         }
 
 
-        Debug.Log
-        (
-            "Job for OrderID = " +
-            Order.OrderID +
-            " has been created."
-        );
+        //Debug.Log
+        //(
+        //    "Job for OrderID = " +
+        //    Order.OrderID +
+        //    " has been created."
+        //);
 
 
 
@@ -3380,10 +3393,10 @@ public class Scene3Backend : MonoBehaviour
             yield break;
         }
 
-        Debug.Log
-        (
-            $"Order {OrderID} marked as completed."
-        );
+        //Debug.Log
+        //(
+        //    $"Order {OrderID} marked as completed."
+        //);
 
 
         //--------------------------------------------------
@@ -3582,7 +3595,7 @@ public class Scene3Backend : MonoBehaviour
 
             if (request.result == UnityWebRequest.Result.Success)
             {
-                Debug.Log("Pages used updated successfully.");
+                //Debug.Log("Pages used updated successfully.");
 
                 OnComplete?.Invoke(true);
             }
@@ -3625,7 +3638,7 @@ public class Scene3Backend : MonoBehaviour
 
                 if (response.Success)
                 {
-                    Debug.Log("Pages left: " + response.PagesLeft);
+                    //Debug.Log("Pages left: " + response.PagesLeft);
 
                     OnComplete?.Invoke(response.PagesLeft);
                 }
@@ -3695,7 +3708,7 @@ public class Scene3Backend : MonoBehaviour
 
                 if (response.Success)
                 {
-                    Debug.Log("Printer pages refilled successfully.");
+                    //Debug.Log("Printer pages refilled successfully.");
 
                     OnComplete?.Invoke(true);
                 }

@@ -181,11 +181,11 @@ public class ControlPanel : MonoBehaviour
         {
             if (isOnline)
             {
-                Debug.Log("Server is active");
+                //Debug.Log("Server is active");
 
                 //Insert the true case here =
 
-                Debug.Log("Clicked StartAutomaticPrinting() Button.");
+                //Debug.Log("Clicked StartAutomaticPrinting() Button.");
 
                 //Enabling AutomaticPrinting.
                 Script1.SetAutomaticPrintingValue(true);

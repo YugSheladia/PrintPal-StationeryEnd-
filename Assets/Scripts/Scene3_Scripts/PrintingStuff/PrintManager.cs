@@ -9,10 +9,10 @@ using UnityEngine;
 public class PrintManager : MonoBehaviour
 {
     //Script references
-    [SerializeField]        Scene3Manager  Scene3ManagerScript;
-    [SerializeField]        Scene3Backend  Scene3BackendScript;
-    [SerializeField]        HomePage       HomePageScript;
-    [SerializeField] public QueueManager   QueueManagerScript;
+    [SerializeField] Scene3Manager Scene3ManagerScript;
+    [SerializeField] Scene3Backend Scene3BackendScript;
+    [SerializeField] HomePage HomePageScript;
+    [SerializeField] public QueueManager QueueManagerScript;
 
 
 
@@ -35,6 +35,11 @@ public class PrintManager : MonoBehaviour
     //A list of all Printers =
     public List<PrinterWorker> Workers = new List<PrinterWorker>();
 
+    //Flat time ( in seconds ) added ONCE to every order's estimate, to make up for any additional delay
+    //( spooler, printer warm-up etc. ). It used to be added to every single document, which made orders with
+    //many documents far slower than they needed to be.
+    const float PaddingSeconds_PerOrder = 30f;
+
     //Index used to decide which Printer will take the next Order.
     int NextWorkerIndex = 0;
 
@@ -46,7 +51,7 @@ public class PrintManager : MonoBehaviour
 
     //This HashSet contains all orders which are processing, so an order doesn't arrive in the same queue again,
     //or 2 workers dont have the same order at the same time.
-    
+
     private readonly HashSet<int> ProcessingOrders = new();
 
 
@@ -54,14 +59,14 @@ public class PrintManager : MonoBehaviour
     //To add the said Order in ProcessingOrders HashSet.
     public void BeginProcessingOrder(int OrderID)
     {
-        Debug.Log("Starting the processing of Order ID = " + OrderID);
+        //Debug.Log("Starting the processing of Order ID = " + OrderID);
         ProcessingOrders.Add(OrderID);
     }
 
     //To remove the said Order from ProcessingOrders HashSet.
     public void EndProcessingOrder(int OrderID)
     {
-        Debug.Log("Ended the processing of Order ID = " + OrderID);
+        //Debug.Log("Ended the processing of Order ID = " + OrderID);
         ProcessingOrders.Remove(OrderID);
     }
 
@@ -109,7 +114,7 @@ public class PrintManager : MonoBehaviour
     //To check if the HashSet has any orders in it currently.
     public bool Is_ProcessingOrders_HashSet_Empty()
     {
-        if(ProcessingOrders.Count <= 0)
+        if (ProcessingOrders.Count <= 0)
         {
             return true;
         }
@@ -283,9 +288,9 @@ public class PrintManager : MonoBehaviour
     {
         PrintJob Job = new PrintJob();
 
-        Job.OrderID     = Order.OrderID;
-        Job.UserID      = Order.UserID;
-        Job.Username    = Order.Username;
+        Job.OrderID = Order.OrderID;
+        Job.UserID = Order.UserID;
+        Job.Username = Order.Username;
 
         Job.Status = PrintJobStatus.Waiting;
         Job.StatusMessage = "Waiting...";
@@ -304,7 +309,7 @@ public class PrintManager : MonoBehaviour
                     $"Print {Print.PrintID} has no downloaded PDF."
                 );
 
-                Scene3ManagerScript.MessageText.text = 
+                Scene3ManagerScript.MessageText.text =
                     "An OrderID = " + Order.OrderID + "'s print's PDF could not be found. " +
                     "Check the downloads folder, or ask the user to send the Order again.";
 
@@ -413,7 +418,7 @@ public class PrintManager : MonoBehaviour
             //To make sure the printer work the last time it was given a job.
             if (!Candidate.WorkedLastTime)
                 continue;
-            
+
             //To make sure that if the Order has a print which required Duplex / Color support, the printer has it.
             if (NeedsColor && !Candidate.Printer.SupportsColorPrinting)
                 continue;
@@ -441,7 +446,7 @@ public class PrintManager : MonoBehaviour
         );
 
         Scene3ManagerScript.MessageText.text =
-            "Order of ID = " + Job.OrderID + " could not be printed."  +
+            "Order of ID = " + Job.OrderID + " could not be printed." +
             " This usually happens when no selected printer supports Duplex / Color Printing, or has insufficient number of pages left in tray.";
 
         Scene3ManagerScript.EnableMessagePanel();
@@ -516,7 +521,7 @@ public class PrintManager : MonoBehaviour
         }
 
 
-        Debug.LogWarning
+        Debug.Log
         (
             $"Redistributing waiting jobs from " +
             $"{FailedWorker.Printer.Name}."
@@ -583,6 +588,10 @@ public class PrintManager : MonoBehaviour
 
 
                 Scene3BackendScript.SetOrderAsFailed(Job.OrderID, (GameObject)null);
+
+                //Same as in RerouteFailedJob(): this order is finished here, so it must not stay in ProcessingOrders
+                //( otherwise AutomaticPrinting would skip it forever if it is ever marked as Pending again ).
+                EndProcessingOrder(Job.OrderID);
 
                 continue;
             }
@@ -718,7 +727,7 @@ public class PrintManager : MonoBehaviour
 
         Debug.LogWarning
         (
-            "Order of ID = \" + Job.OrderID + \" could not be printed. " +
+            "Order of ID = " + Job.OrderID + " could not be printed. " +
             "This usually happens when no selected printer supports Duplex / Color Printing, or has insufficient number of pages left in tray."
         );
 
@@ -1054,10 +1063,10 @@ public class PrintManager : MonoBehaviour
         {
             TotalSheetsNeededToPrint += (Document.Print.EffectiveSheets * Document.Print.Copies);
 
-            Debug.Log("TotalSheetsNeededTPrint = " + TotalSheetsNeededToPrint);
+            //Debug.Log("TotalSheetsNeededTPrint = " + TotalSheetsNeededToPrint);
         }
 
-        Debug.Log("Final TotalSheetsNeededTPrint = " + TotalSheetsNeededToPrint);
+        //Debug.Log("Final TotalSheetsNeededTPrint = " + TotalSheetsNeededToPrint);
 
         //To make sure that the printer has enough PagesLeft in the tray to print all documents in the order.
         if (Candidate.Printer.PagesLeft < TotalSheetsNeededToPrint)
@@ -1066,7 +1075,7 @@ public class PrintManager : MonoBehaviour
             return false;
         }
 
-        return true;    
+        return true;
     }
 
 
@@ -1151,7 +1160,7 @@ public class PrintManager : MonoBehaviour
         }
 
 
-        Debug.LogWarning
+        Debug.Log
         (
             $"Manually disabling printer: {PrinterName}"
         );
@@ -1175,11 +1184,11 @@ public class PrintManager : MonoBehaviour
     //This function returns true if all printer queues are empty, else it returns false.
     public bool CheckIf_AllPrinterQueues_AreEmpty()
     {
-        foreach(PrinterWorker Worker in Workers)
+        foreach (PrinterWorker Worker in Workers)
         {
-            if(Worker.Queue.HasJobs())
+            if (Worker.Queue.HasJobs())
             {
-                return false; 
+                return false;
             }
         }
 
@@ -1200,6 +1209,351 @@ public class PrintManager : MonoBehaviour
         foreach (PrinterWorker Worker in Workers)
         {
             Worker.Queue.RemoveAllJobs();
+        }
+    }
+
+
+
+
+
+
+
+
+
+    //This group of function together calculate the TimeForCompletion of Each Job and Documents exactly once.
+
+    //Flow =
+    //Scene3Backend.RefreshUI() =>
+
+    //Calculate_TimeForCompletion_OfEachJob() =>
+
+    //GetPPM() +
+    //Calculate_TimeForCompletion_ForDocument() +
+    //Calculate_TimeForCompletion_ForJob().
+
+
+    public void Calculate_TimeForCompletion_OfEachJob()
+    {
+        //Checking if atleast 1 Worker is available.
+        if (Workers.Count <= 0)
+        {
+            return;
+        }
+
+
+
+
+        //A normal 'for' loop is used ( and nothing is removed from Workers here ), as removing from a list
+        //inside a 'foreach' over that list throws an exception.
+        for (int i = 0; i < Workers.Count; i++)
+        {
+            PrinterWorker Worker = Workers[i];
+
+            //Extracting PPM from a Worker.Printer.
+            int PPM = -1;
+            PPM = GetPPM(Worker);
+
+            //GetPPM() return -1 if a Worker / Printer is null.
+            if (PPM == -1)
+            {
+                continue;
+            }
+
+
+
+
+            if (Worker.Queue.Jobs.Count <= 0)
+            {
+                continue;
+            }
+
+
+
+
+
+            foreach (PrintJob Job in Worker.Queue.Jobs)
+            {
+                //Countdowns only run while the job is really printing ( not while it is waiting / paused ).
+                bool JobIsPrinting = Job.Status == PrintJobStatus.Printing;
+
+                foreach (PrintDocument Document in Job.Documents)
+                {
+                    Calculate_TimeForCompletion_ForDocument(Document, PPM, JobIsPrinting);
+                }
+
+                Calculate_TimeForCompletion_ForJob(Job);
+            }
+        }
+    }
+
+    private int GetPPM(PrinterWorker Worker)
+    {
+        if (Worker == null || Worker.Printer == null)
+        {
+            Debug.Log("This Worker / Printer doesn't exist.");
+
+            return -1;
+        }
+
+        if (Worker.Printer.PPM <= 0)
+        {
+            return 10;
+        }
+
+        return Worker.Printer.PPM;
+    }
+
+    private void Calculate_TimeForCompletion_ForDocument(PrintDocument Document, int PPM, bool JobIsPrinting)
+    {
+        //Not including the documents which have been already completed.
+        if (Document.Status == PrintDocumentStatus.Completed)
+        {
+            return;
+        }
+
+
+
+
+
+
+        //This is to make sure that we aren't calculating a document's TimeForCompletion more than once.
+        if (Document.Calculated_TimeForCompletion)
+        {
+            //Here, we update TimeLeft of each Document.
+            Update_TimeLeft_ForDocument(Document, JobIsPrinting);
+
+            return;
+        }
+
+
+
+
+
+
+        float EstimatedPrintingTime = 0f;
+
+        int PagesUsed = (Document.Print.EffectiveSheets * Document.Print.Copies) + 1;
+        Document.PagesNeeded = PagesUsed;
+
+        //Calculates EstimatedPrintingTime for a document using a Worker's PPM.
+        EstimatedPrintingTime = (PagesUsed / (float)PPM) * 60f;
+
+        //No padding is added here - the flat padding is added once per order, in Calculate_TimeForCompletion_ForJob().
+
+        //Updating a Document's TimeForCompletion.
+        Document.TimeForCompletion = (int)EstimatedPrintingTime;
+
+
+
+
+
+
+        Debug.Log("DocumentID " + Document.Print.PrintID + "'s TimeForCompletion = " + Document.TimeForCompletion);
+
+        //Switching Caculated_TimeForCompletion to true to make sure it is not calculated twice.
+        Document.Calculated_TimeForCompletion = true;
+
+        Document.TimeLeft = Document.TimeForCompletion;
+
+        Document.LastTimeLeftUpdate = Time.realtimeSinceStartup;
+    }
+
+    private void Calculate_TimeForCompletion_ForJob(PrintJob Job)
+    {
+        if (Job.Status == PrintJobStatus.Completed)
+        {
+            return;
+        }
+
+
+
+
+
+        if (Job.Calculated_TimeForCompletion)
+        {
+            Update_TimeLeft_ForJob(Job);
+
+            return;
+        }
+
+
+
+
+        //Starting from 0, so the totals are right even if this is ever calculated again.
+        Job.TimeForCompletion = 0;
+        Job.PagesNeeded = 0;
+
+        bool HasUnfinishedDocuments = false;
+
+        foreach (PrintDocument Document in Job.Documents)
+        {
+            //Documents which are already printed don't need any more time.
+            if (Document.Status == PrintDocumentStatus.Completed)
+            {
+                continue;
+            }
+
+            HasUnfinishedDocuments = true;
+
+            Job.TimeForCompletion += Document.TimeForCompletion;
+
+            Job.PagesNeeded += Document.PagesNeeded;
+        }
+
+        //The flat padding is added ONCE for the whole order ( not once per document ).
+        if (HasUnfinishedDocuments)
+        {
+            Job.TimeForCompletion += (int)PaddingSeconds_PerOrder;
+        }
+
+
+
+
+
+        Debug.Log("JobID " + Job.OrderID + "'s TimeForCompletion = " + Job.TimeForCompletion);
+
+        Job.Calculated_TimeForCompletion = true;
+
+        Job.TimeLeft = Job.TimeForCompletion;
+
+        //Nothing is left to wait for ( e.g. every document was already printed ).
+        if (Job.TimeLeft <= 0)
+        {
+            Job.TimeLeft_Exhausted = true;
+        }
+
+        Job.LastTimeLeftUpdate = Time.realtimeSinceStartup;
+    }
+
+
+
+
+
+    //Returns how many WHOLE seconds have really passed since LastUpdate, and moves LastUpdate forward by exactly that much
+    //( so no fraction of a second is ever lost ).
+    //If the countdown isn't running ( IsCounting is false ), it returns 0, and LastUpdate is moved to 'now' so that the
+    //time spent waiting / paused is never counted.
+
+    //Why this exists = RefreshUI() ( which calls this ) doesn't run every 6 seconds - HomePage refreshing, AutomaticPrinting
+    //and other things all call it, so subtracting a fixed '6' made the countdowns run too fast ( or too slow ).
+    private int Consume_ElapsedSeconds(ref float LastUpdate, bool IsCounting)
+    {
+        float Now = Time.realtimeSinceStartup;
+
+        if (!IsCounting)
+        {
+            LastUpdate = Now;
+
+            return 0;
+        }
+
+        int WholeSeconds = (int)(Now - LastUpdate);
+
+        if (WholeSeconds < 1)
+        {
+            return 0;
+        }
+
+        LastUpdate += WholeSeconds;
+
+        return WholeSeconds;
+    }
+
+    private void Update_TimeLeft_ForDocument(PrintDocument Document, bool JobIsPrinting)
+    {
+        if (Document.Status == PrintDocumentStatus.Completed)
+        {
+            return;
+        }
+
+
+
+
+        bool IsCounting = JobIsPrinting && Document.Status == PrintDocumentStatus.Printing;
+
+        int ElapsedSeconds = Consume_ElapsedSeconds(ref Document.LastTimeLeftUpdate, IsCounting);
+
+        if (ElapsedSeconds <= 0)
+        {
+            return;
+        }
+
+
+
+
+
+        //TimeLeft has already hit 0, but the document is still printing, i.e. it is taking longer than estimated.
+        if (Document.TimeLeft_Exhausted)
+        {
+            Document.AdditionalDelay += ElapsedSeconds;
+
+            return;
+        }
+
+
+
+
+
+        Document.TimeLeft -= ElapsedSeconds;
+
+        if (Document.TimeLeft <= 0)
+        {
+            Debug.Log("DocumentID " + Document.Print.PrintID + "'s TimeLeft has hit 0.");
+
+            //Whatever time was already used up beyond the estimate counts as additional delay.
+            Document.AdditionalDelay += -Document.TimeLeft;
+
+            Document.TimeLeft = 0;
+            Document.TimeLeft_Exhausted = true;
+        }
+    }
+
+    private void Update_TimeLeft_ForJob(PrintJob Job)
+    {
+        if (Job.Status == PrintJobStatus.Completed)
+        {
+            return;
+        }
+
+
+
+
+        bool IsCounting = Job.Status == PrintJobStatus.Printing;
+
+        int ElapsedSeconds = Consume_ElapsedSeconds(ref Job.LastTimeLeftUpdate, IsCounting);
+
+        if (ElapsedSeconds <= 0)
+        {
+            return;
+        }
+
+
+
+
+
+        //TimeLeft has already hit 0, but the job is still printing, i.e. it is taking longer than estimated.
+        if (Job.TimeLeft_Exhausted)
+        {
+            Job.AdditionalDelay += ElapsedSeconds;
+
+            return;
+        }
+
+
+
+
+
+        Job.TimeLeft -= ElapsedSeconds;
+
+        if (Job.TimeLeft <= 0)
+        {
+            Debug.Log("OrderID " + Job.OrderID + "'s TimeLeft has hit 0.");
+
+            //Whatever time was already used up beyond the estimate counts as additional delay.
+            Job.AdditionalDelay += -Job.TimeLeft;
+
+            Job.TimeLeft = 0;
+            Job.TimeLeft_Exhausted = true;
         }
     }
 }

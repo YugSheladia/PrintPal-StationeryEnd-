@@ -104,10 +104,8 @@ public class PrinterQueuePanel : MonoBehaviour
 
 
     //This function is called by QueueManager -> CreatePrinterQueuePanel().
-    public void CreateQueuedOrders(PrinterWorker Worker)
+    public void CreateQueuedOrders()
     {
-        this.Worker = Worker;
-
         QueuedOrders_List.Clear();
 
         //For each Job the workers has in it's queue, a QueueOrder object is instantiated.
@@ -123,9 +121,18 @@ public class PrinterQueuePanel : MonoBehaviour
         GameObject QueuedOrder = Instantiate(QueuedOrderPrefab, QueuedOrdersParent.transform);
         QueuedOrder QueuedOrderScript = QueuedOrder.GetComponent<QueuedOrder>();
 
+
         QueuedOrders_List.Add(QueuedOrderScript);
 
+
+
+        QueuedOrderScript.SetPrintJob(Job);
+
+
+
         QueuedOrderScript.OrderID.text = "OrderID: " + Job.OrderID;
+
+        QueuedOrderScript.UpdateUI();
     }
 
     //QueueManager script -> CreatePrinterQueuePanel() -> UpdateUI()
@@ -214,7 +221,7 @@ public class PrinterQueuePanel : MonoBehaviour
         //This disables all indicator panels to start fresh.
         DisableAll_PagesLeftIndicatorPanels();
 
-        Debug.Log("Current Mode = " + Worker.Printer.PagesLeft_IndicatorEnum);
+        //Debug.Log("Current Mode = " + Worker.Printer.PagesLeft_IndicatorEnum);
 
         //This checks the current PagesLeft_Indicator of the printer, and activates the appropriate PagesLeft_Indicator panel.
         if (Worker.Printer.PagesLeft_IndicatorEnum == PagesLeft_Indicator.Caution)
@@ -317,7 +324,7 @@ public class PrinterQueuePanel : MonoBehaviour
                 {
                     if (Success)
                     {
-                        Debug.Log("Printer refilled.");
+                        //Debug.Log("Printer refilled.");
 
                         Worker.Printer.RefillPagesTo_PageCapacity();
 

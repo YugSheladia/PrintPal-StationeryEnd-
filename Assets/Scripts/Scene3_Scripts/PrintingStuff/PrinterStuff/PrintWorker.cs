@@ -66,6 +66,9 @@ public class PrinterWorker
         //Providing Job a reference to the Printer, which is going to print it.
         Job.Printer = Printer;
 
+        //The time estimates depend on this printer's PPM, so they are calculated again for this printer.
+        Job.ResetTimeEstimates();
+
         //Enqueing the Job.
         Queue.Enqueue(Job);
 
@@ -129,7 +132,7 @@ public class PrinterWorker
             return;
         }
 
-        
+
 
         //==================================================
         // Lock this worker before starting the coroutine.
@@ -160,14 +163,15 @@ public class PrinterWorker
 
 
 
-    
-   
+
+
     //StartNextJob() -> Coroutine_PrintJob().
     IEnumerator Coroutine_PrintJob(PrintJob Job)
     {
         if (!WorkedLastTime)
         {
-            Debug.LogWarning(
+            Debug.LogWarning
+            (
                 $"[{Printer.Name}] Cannot start Order {Job.OrderID}: printer is not working."
             );
 
@@ -183,13 +187,19 @@ public class PrinterWorker
         Job.Status = PrintJobStatus.Printing;
         Job.StatusMessage = "Printing...";
 
+        //The job's countdown starts from now.
+        Job.LastTimeLeftUpdate = Time.realtimeSinceStartup;
+
+        //Making sure the estimate for this job exists right now ( instead of whenever RefreshUI() happens to run next ).
+        Manager.Calculate_TimeForCompletion_OfEachJob();
+
 
 
 
 
         foreach (PrintDocument Document in Job.Documents)
         {
-            
+
             if (Document.Status == PrintDocumentStatus.Completed)
                 continue;
 
@@ -279,6 +289,8 @@ public class PrinterWorker
 
 
 
+
+
                     IsPrinting = false;
                     Printer.IsBusy = false;
 
@@ -297,9 +309,9 @@ public class PrinterWorker
 
                 SetPrinterAsNotWorking();
 
-                
-                
-                
+
+
+
                 Manager.RerouteFailedJob
                 (
                     Job,
@@ -330,6 +342,7 @@ public class PrinterWorker
 
             Document.Status = PrintDocumentStatus.Completed;
             Document.StatusMessage = "Completed";
+            Document.TimeLeft = 0;
 
             Debug.Log
             (
@@ -343,11 +356,27 @@ public class PrinterWorker
         }
 
         //--------------------------------------------------
+        // All documents have been printed ( condition A ).
+        //
+        // The order is only marked as printed once the estimated
+        // time has ALSO run out ( condition B = Job.TimeLeft_Exhausted ).
+        //--------------------------------------------------
+
+        yield return Manager.StartCoroutine
+        (
+            Coroutine_WaitForTimeLeftToExhaust(Job)
+        );
+
+
+
+        //--------------------------------------------------
         // Entire PrintJob completed.
         //--------------------------------------------------
 
         Job.Status = PrintJobStatus.Completed;
         Job.StatusMessage = "Completed";
+        Job.TimeLeft = 0;
+
 
 
 
@@ -380,14 +409,14 @@ public class PrinterWorker
             Scene3BackendScript.CompletePrintedOrder(Job.OrderID)
         );
 
-        
+
         SetPrinterAsWorking();
 
-        
 
 
 
-        
+
+
         IsPrinting = false;
         Printer.IsBusy = false;
 
@@ -405,14 +434,11 @@ public class PrinterWorker
 
 
 
-
-
-
     //Coroutine_PrintJob() -> Coroutine_PrintDocument() ->
     //Coroutine_PrintDocument() +
     //Coroutine_GenerateHeader() +
     //Soroutine_SendPrintRequest() +
-    //Coroutine_WaitForPrintingDelay()
+    //UpdatePaperUsage()
 
     public enum PrintFailureType
     {
@@ -420,6 +446,7 @@ public class PrinterWorker
         Preparation,
         Printer
     }
+
 
 
 
@@ -432,16 +459,20 @@ public class PrinterWorker
     {
         Debug.Log
         (
-            $"[{Printer.Name}] Printing PrintID = " +
-            $"{Document.Print.PrintID}"
+            $"[{DateTime.Now:HH:mm:ss.fff}] " +
+            $"[{Printer.Name}] Printing PrintID = {Document.Print.PrintID}"
         );
 
 
-
-        
         //--------------------------------------------------
         // STEP 1: Generate the document header.
         //--------------------------------------------------
+
+        Debug.Log
+        (
+            $"[{DateTime.Now:HH:mm:ss.fff}] " +
+            $"[{Printer.Name}] STEP 1 STARTED: Header Generation"
+        );
 
         string HeaderPDFPath = "";
         string HeaderErrorMessage = "";
@@ -449,7 +480,7 @@ public class PrinterWorker
 
         bool HeaderGenerated = false;
 
-        
+
         yield return Manager.StartCoroutine
         (
             Coroutine_GenerateHeader
@@ -466,8 +497,15 @@ public class PrinterWorker
             )
         );
 
+
         if (!HeaderGenerated)
         {
+            Debug.Log
+            (
+                $"[{DateTime.Now:HH:mm:ss.fff}] " +
+                $"[{Printer.Name}] STEP 1 FAILED: {HeaderErrorMessage}"
+            );
+
             OnComplete
             (
                 false,
@@ -475,11 +513,94 @@ public class PrinterWorker
                 HeaderFailureType
             );
 
-            Debug.Log("Header not generated because = " + HeaderErrorMessage);
-
             yield break;
         }
-        
+
+        Debug.Log
+        (
+            $"[{DateTime.Now:HH:mm:ss.fff}] " +
+            $"[{Printer.Name}] STEP 1 COMPLETED: Header Generated"
+        );
+
+
+
+        //--------------------------------------------------
+        // STEP 1.5: Merge the header into the document's PDF.
+        //
+        // The header and the document then go to the printer as ONE
+        // print job instead of two ( every job costs the printer
+        // several seconds ). If merging isn't possible, or fails,
+        // MergedPDFPath stays empty and the old way ( 2 jobs ) is used.
+        //--------------------------------------------------
+
+        string MergedPDFPath = "";
+
+        //Empty when the header can be merged, else the reason why it can't.
+        string MergeBlocker = PdfMerger.GetMergeBlocker(Document.Print);
+
+        if (MergeBlocker == "")
+        {
+            Debug.Log
+            (
+                $"[{DateTime.Now:HH:mm:ss.fff}] " +
+                $"[{Printer.Name}] STEP 1.5 STARTED: Merging Header Into Document"
+            );
+
+            Document.StatusMessage = "Preparing document...";
+
+            string MergeOutputPath =
+                System.IO.Path.Combine
+                (
+                    System.IO.Path.GetDirectoryName(HeaderPDFPath),
+                    $"Header_Order{Job.OrderID}_Print{Document.Print.PrintID}_Merged_{Guid.NewGuid():N}.pdf"
+                );
+
+            var MergeTask = PdfMerger.MergeAsync
+            (
+                HeaderPDFPath,
+                Document.Print.LocalPDFPath,
+                Document.Print.SideSelection == SideSelectionEnum.DoubleSided,
+                Document.Print.Copies,
+                Document.Print.CollatedOrNot == CollatedOrNotEnum.Collated,
+                MergeOutputPath
+            );
+
+            yield return new WaitUntil(() => MergeTask.IsCompleted);
+
+            if (MergeTask.IsFaulted || MergeTask.IsCanceled)
+            {
+                string MergeError =
+                    MergeTask.Exception != null
+                        ? MergeTask.Exception.GetBaseException().Message
+                        : "Merging was cancelled.";
+
+                Debug.LogWarning
+                (
+                    $"[{Printer.Name}] Could not merge the header into PrintID " +
+                    $"{Document.Print.PrintID}: {MergeError}. Printing the header and the document separately."
+                );
+            }
+            else
+            {
+                MergedPDFPath = MergeTask.Result;
+
+                Debug.Log
+                (
+                    $"[{DateTime.Now:HH:mm:ss.fff}] " +
+                    $"[{Printer.Name}] STEP 1.5 COMPLETED: Header Merged"
+                );
+            }
+        }
+        //Only said when merging is possible in general ( PDFsharp is enabled ) but not for this document.
+        else if (PdfMerger.IsAvailable)
+        {
+            Debug.Log
+            (
+                $"[{DateTime.Now:HH:mm:ss.fff}] " +
+                $"[{Printer.Name}] STEP 1.5 SKIPPED: {MergeBlocker}. " +
+                "The header will be printed as a separate job."
+            );
+        }
 
 
 
@@ -487,16 +608,16 @@ public class PrinterWorker
         // STEP 2: Submit and monitor the print request.
         //--------------------------------------------------
 
-        float PrintStartTime = Time.realtimeSinceStartup;
+        Debug.Log
+        (
+            $"[{DateTime.Now:HH:mm:ss.fff}] " +
+            $"[{Printer.Name}] STEP 2 STARTED: Sending Print Request"
+        );
 
         bool PrintSuccess = false;
         string PrintMessage = "";
 
         PrintFailureType PrintFailure = PrintFailureType.Printer;
-
-
-
-
 
 
         yield return Manager.StartCoroutine
@@ -506,6 +627,7 @@ public class PrinterWorker
                 Job,
                 Document,
                 HeaderPDFPath,
+                MergedPDFPath,
                 (Success, Message, FailureType) =>
                 {
                     PrintSuccess = Success;
@@ -515,8 +637,15 @@ public class PrinterWorker
             )
         );
 
+
         if (!PrintSuccess)
         {
+            Debug.Log
+            (
+                $"[{DateTime.Now:HH:mm:ss.fff}] " +
+                $"[{Printer.Name}] STEP 2 FAILED: {PrintMessage}"
+            );
+
             OnComplete
             (
                 false,
@@ -527,24 +656,46 @@ public class PrinterWorker
             yield break;
         }
 
-
-
-
-
-        //--------------------------------------------------
-        // STEP 3: Update paper usage and handle the delay.
-        //--------------------------------------------------
-
-        yield return Manager.StartCoroutine
+        Debug.Log
         (
-            Coroutine_WaitForPrintingDelay
-            (
-                Job,
-                Document,
-                PrintStartTime
-            )
+            $"[{DateTime.Now:HH:mm:ss.fff}] " +
+            $"[{Printer.Name}] STEP 2 COMPLETED: Print Request Finished"
         );
 
+
+
+        //--------------------------------------------------
+        // STEP 3: Update paper usage.
+        //--------------------------------------------------
+
+        Debug.Log
+        (
+            $"[{DateTime.Now:HH:mm:ss.fff}] " +
+            $"[{Printer.Name}] STEP 3 STARTED: Updating Paper Usage"
+        );
+
+        UpdatePaperUsage(Document);
+
+        Debug.Log
+        (
+            $"[{DateTime.Now:HH:mm:ss.fff}] " +
+            $"[{Printer.Name}] STEP 3.1 COMPLETED: Paper Usage Updated"
+        );
+
+
+        //--------------------------------------------------
+        // The estimated time is NOT waited for here anymore.
+        //
+        // It is waited for ONCE per order, by Coroutine_WaitForTimeLeftToExhaust(),
+        // after the last document has been submitted ( so the documents of an order
+        // go to the printer one after the other without idle waiting in between ).
+        //--------------------------------------------------
+
+        Debug.Log
+        (
+            $"[{DateTime.Now:HH:mm:ss.fff}] " +
+            $"[{Printer.Name}] STEP 3 COMPLETED: Paper Usage Updated"
+        );
 
 
 
@@ -552,13 +703,26 @@ public class PrinterWorker
         // STEP 4: Report final success.
         //--------------------------------------------------
 
+        Debug.Log
+        (
+            $"[{DateTime.Now:HH:mm:ss.fff}] " +
+            $"[{Printer.Name}] STEP 4: Reporting Final Success"
+        );
+
         OnComplete
         (
             true,
             PrintMessage,
             PrintFailureType.None
         );
+
+        Debug.Log
+        (
+            $"[{DateTime.Now:HH:mm:ss.fff}] " +
+            $"[{Printer.Name}] PRINTING PIPELINE COMPLETED: PrintID = {Document.Print.PrintID}"
+        );
     }
+
 
 
 
@@ -780,90 +944,107 @@ public class PrinterWorker
         PrintJob Job,
         PrintDocument Document,
         string HeaderPDFPath,
+        string MergedPDFPath,
         Action<bool, string, PrintFailureType> OnComplete
     )
     {
-        
+
         //--------------------------------------------------
-        // STEP 1: Submit the header before the original PDF.
+        // If the header is already merged into the document's PDF,
+        // it is printed together with the document ( in STEP 2 ),
+        // so it must NOT be submitted again as a separate job.
         //--------------------------------------------------
 
-        Document.StatusMessage = "Submitting document header...";
+        bool HeaderIsMerged = !string.IsNullOrEmpty(MergedPDFPath);
 
-        var HeaderPrintTask = WindowsPrinter.PrintHeaderAsync
-        (
-            HeaderPDFPath,
-            Printer
-        );
-
-        yield return new WaitUntil
-        (
-            () => HeaderPrintTask.IsCompleted
-        );
-
-        if
-        (
-            HeaderPrintTask.IsFaulted ||
-            HeaderPrintTask.IsCanceled
-        )
+        if (!HeaderIsMerged)
         {
-            string ErrorMessage =
-                HeaderPrintTask.Exception != null
-                    ? HeaderPrintTask.Exception.GetBaseException().Message
-                    : "Header printing was cancelled.";
+            //--------------------------------------------------
+            // STEP 1: Submit the header before the original PDF.
+            //--------------------------------------------------
 
-            Debug.LogError
+            Document.StatusMessage = "Submitting document header...";
+
+            var HeaderPrintTask = WindowsPrinter.PrintHeaderAsync
             (
-                $"[{Printer.Name}] {ErrorMessage}"
+                HeaderPDFPath,
+                Printer
             );
 
-            OnComplete
+            yield return new WaitUntil
             (
-                false,
-                ErrorMessage,
-                PrintFailureType.Printer
+                () => HeaderPrintTask.IsCompleted
             );
 
-            yield break;
+            if
+            (
+                HeaderPrintTask.IsFaulted ||
+                HeaderPrintTask.IsCanceled
+            )
+            {
+                string ErrorMessage =
+                    HeaderPrintTask.Exception != null
+                        ? HeaderPrintTask.Exception.GetBaseException().Message
+                        : "Header printing was cancelled.";
+
+                Debug.LogError
+                (
+                    $"[{Printer.Name}] {ErrorMessage}"
+                );
+
+                OnComplete
+                (
+                    false,
+                    ErrorMessage,
+                    PrintFailureType.Printer
+                );
+
+                yield break;
+            }
+
+            PrintResult HeaderResult = HeaderPrintTask.Result;
+
+            if (!HeaderResult.Success)
+            {
+                Debug.LogError
+                (
+                    $"[{Printer.Name}] Header failed: " +
+                    HeaderResult.Message
+                );
+
+                OnComplete
+                (
+                    false,
+                    HeaderResult.Message,
+                    PrintFailureType.Printer
+                );
+
+                yield break;
+            }
+
+            Debug.Log
+            (
+                $"[{Printer.Name}] Header submitted for PrintID " +
+                $"{Document.Print.PrintID}."
+            );
         }
 
-        PrintResult HeaderResult = HeaderPrintTask.Result;
 
-        if (!HeaderResult.Success)
-        {
-            Debug.LogError
-            (
-                $"[{Printer.Name}] Header failed: " +
-                HeaderResult.Message
-            );
-
-            OnComplete
-            (
-                false,
-                HeaderResult.Message,
-                PrintFailureType.Printer
-            );
-
-            yield break;
-        }
-
-        Debug.Log
-        (
-            $"[{Printer.Name}] Header submitted for PrintID " +
-            $"{Document.Print.PrintID}."
-        );
-        
 
         //--------------------------------------------------
         // STEP 2: Submit exactly one request for the original PDF.
         //--------------------------------------------------
 
-        Document.StatusMessage = "Submitting original document...";
+        Document.StatusMessage =
+            HeaderIsMerged
+                ? "Submitting header and document..."
+                : "Submitting original document...";
 
         var PrintTask = WindowsPrinter.PrintAsync
         (
             Document,
-            Printer
+            Printer,
+            MergedPDFPath
         );
 
         yield return new WaitUntil
@@ -924,6 +1105,12 @@ public class PrinterWorker
         Document.Status = PrintDocumentStatus.Printing;
         Document.StatusMessage = "Printing...";
 
+        //The document's countdown starts from now.
+        Document.LastTimeLeftUpdate = Time.realtimeSinceStartup;
+
+        //Making sure TimeForCompletion / TimeLeft of this document exist right now ( and not only when the UI happens to refresh ).
+        Manager.Calculate_TimeForCompletion_OfEachJob();
+
         //--------------------------------------------------
         // STEP 3: Monitor the original PDF.
         //--------------------------------------------------
@@ -964,6 +1151,10 @@ public class PrinterWorker
                 {
                     Job.Status = PrintJobStatus.Printing;
                     Job.StatusMessage = "Printing...";
+
+                    //The time spent paused must not be counted, so the countdowns continue from now.
+                    Job.LastTimeLeftUpdate = Time.realtimeSinceStartup;
+                    Document.LastTimeLeftUpdate = Time.realtimeSinceStartup;
                     Document.StatusMessage = "Printing...";
 
                     Debug.Log
@@ -978,7 +1169,10 @@ public class PrinterWorker
                     Success = ResultSuccess;
                     Message = ResultMessage;
                     MonitorFinished = true;
-                }
+                },
+
+                //The spooler job is named after the file which was printed.
+                PDFPathOverride: MergedPDFPath
             )
         );
 
@@ -1022,21 +1216,52 @@ public class PrinterWorker
     }
 
 
-    //Makes sure the print is marked as completed after some delay.
-    IEnumerator Coroutine_WaitForPrintingDelay
-    (
-        PrintJob Job,
-        PrintDocument Document,
-        float PrintStartTime
-    )
+    //Called by Coroutine_PrintJob() once ALL documents of the job have been printed ( A ).
+    //It waits until Job.TimeLeft_Exhausted is true ( B ), so an order is never marked as printed earlier than its estimated time.
+    //If A is true and B is already true ( the printing took longer than estimated ), it returns immediately.
+    IEnumerator Coroutine_WaitForTimeLeftToExhaust(PrintJob Job)
     {
-        //--------------------------------------------------
-        // STEP 1: Calculate paper usage.
-        // EffectiveSheets accounts for pages per sheet.
-        // Copies accounts for the number of copies.
-        // Add one sheet for the document header.
-        //--------------------------------------------------
+        //The job's countdown only runs while its status is Printing.
+        Job.Status = PrintJobStatus.Printing;
+        Job.StatusMessage = "Finishing print...";
 
+        while (true)
+        {
+            //Updating the countdown here as well, so this doesn't depend on RefreshUI() running ( it is only called while the
+            //home page is refreshing / automatic printing is on ). Calling it more often than needed is harmless, as the
+            //countdown subtracts the time that has really passed.
+            Manager.Calculate_TimeForCompletion_OfEachJob();
+
+            if (Job.TimeLeft_Exhausted)
+            {
+                yield break;
+            }
+
+            //The job was removed from this queue while waiting ( e.g. the queues were cleared ), so there is nothing to wait for.
+            if (!Queue.ContainsOrder(Job.OrderID))
+            {
+                Debug.LogWarning
+                (
+                    $"[{Printer.Name}] Order {Job.OrderID} is no longer in the queue. Not waiting for its TimeLeft."
+                );
+
+                yield break;
+            }
+
+            yield return new WaitForSeconds(1f);
+        }
+    }
+
+
+
+
+    //Tells the server how much paper a printed document used, and then updates this printer's PagesLeft ( locally ).
+    //( This used to be done by Coroutine_WaitForPrintingDelay(), which was removed - PagesLeft was never updated after that. )
+    void UpdatePaperUsage(PrintDocument Document)
+    {
+        //EffectiveSheets accounts for pages per sheet.
+        //Copies accounts for the number of copies.
+        //Add one sheet for the document header.
         int PagesUsed =
             (Document.Print.EffectiveSheets *
              Document.Print.Copies) + 1;
@@ -1047,79 +1272,7 @@ public class PrinterWorker
             PagesUsed,
             this
         );
-
-        //--------------------------------------------------
-        // STEP 2: Estimate printing time using printer PPM.
-        //--------------------------------------------------
-
-        int PPM = Printer.PPM;
-
-        if (PPM <= 0)
-        {
-            PPM = 10;
-        }
-
-        float EstimatedPrintingTime =
-            (PagesUsed / (float)PPM) * 60f;
-
-        EstimatedPrintingTime += 10f;
-
-       
-
-        //--------------------------------------------------
-        // STEP 3: Calculate elapsed and remaining time.
-        //--------------------------------------------------
-
-        float ElapsedTime =
-            Time.realtimeSinceStartup - PrintStartTime;
-
-        float RemainingTime =
-            EstimatedPrintingTime - ElapsedTime;
-
-        //--------------------------------------------------
-        // STEP 4: Wait only for the remaining estimated time.
-        //--------------------------------------------------
-
-        if (RemainingTime > 0f)
-        {
-            Debug.Log
-            (
-                $"[{Printer.Name}] PrintID " +
-                $"{Document.Print.PrintID}: " +
-                $"Estimated total = {EstimatedPrintingTime:F1}s, " +
-                $"elapsed = {ElapsedTime:F1}s, " +
-                $"waiting another {RemainingTime:F1}s."
-            );
-
-            Document.StatusMessage = "Finishing print...";
-
-
-            yield return new WaitForSeconds(RemainingTime);
-        }
-        else
-        {
-            Debug.Log
-            (
-                $"[{Printer.Name}] PrintID " +
-                $"{Document.Print.PrintID}: " +
-                "Estimated printing time has already elapsed."
-            );
-
-            Job.TimeLeft = 0;
-        }
     }
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
@@ -1216,7 +1369,7 @@ public class PrinterWorker
         Printer.IsOnline = false;
 
 
-        Debug.LogWarning
+        Debug.Log
         (
             $"[{Printer.Name}] marked as NOT WORKING."
         );

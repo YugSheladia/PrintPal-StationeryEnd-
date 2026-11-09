@@ -207,7 +207,7 @@ public class OrderStatusManager : MonoBehaviour
 
         if (TotalSelectedOrders <= 0)
         {
-            Debug.Log("No order has been selected.");
+            //Debug.Log("No order has been selected.");
 
             //This is the panel which displays how many order have been selected, along with the buttons to mark them as Pending / Printed etc.
             SelectedOrders_Panel.SetActive(false);
@@ -228,7 +228,7 @@ public class OrderStatusManager : MonoBehaviour
 
         //Updating number of selected orders.
 
-        Debug.Log("Updating SelectedOrders text.");
+        //Debug.Log("Updating SelectedOrders text.");
 
         SelectedOrder_Text.text = "Mark " + TotalSelectedOrders + " as :";
         SelectedOrders_Panel.SetActive(true);

@@ -234,8 +234,8 @@ public class OrderStatus : MonoBehaviour
         //Other vital information =
         Username.text = Order.Username;
 
-        Debug.Log("==============");
-        Debug.Log("Username = " + Order.Username);
+        //Debug.Log("==============");
+        //Debug.Log("Username = " + Order.Username);
 
         OrderIDText.text = Order.OrderID.ToString();
         OrderOTP.text = Order.OrderOTP.ToString();
@@ -534,7 +534,7 @@ public class OrderStatus : MonoBehaviour
 
         if (Order != null)
         {
-            Debug.Log("Order ID " + Order.OrderID + (IsSelected ? " Selected" : " Unselected"));
+            //Debug.Log("Order ID " + Order.OrderID + (IsSelected ? " Selected" : " Unselected"));
         }
 
         Selected_Panel.SetActive(IsSelected);
